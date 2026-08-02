@@ -463,32 +463,72 @@ function Publish-Public ([string]$RepoUrl, [switch]$DryRun) {
         return $true
     }
 
-    Push-Location $stage
+    # Clone the public repo and update it in place. The old version init'd a fresh repo and
+    # force-pushed, which meant the public history was a single ever-replaced commit with a
+    # hardcoded message: no diffs, no record of what changed, and any contribution or fork
+    # silently destroyed on the next publish.
+    $work = Join-Path $StudioRoot '.publish-work'
+    if (Test-Path $work) { Remove-Item $work -Recurse -Force }
+
     $prevEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'   # git writes harmless CRLF notices to stderr
     try {
-        git init -q
-        git remote add origin $RepoUrl
-        git fetch -q origin 2>$null
-        $branch = (git ls-remote --symref origin HEAD 2>$null | Select-String 'refs/heads/(\S+)').Matches.Groups[1].Value
+        git clone -q $RepoUrl $work 2>$null
+        if (-not (Test-Path (Join-Path $work '.git'))) { Write-Host "  could not clone $RepoUrl" -ForegroundColor Red; return $false }
+
+        Push-Location $work
+        $branch = (git rev-parse --abbrev-ref HEAD 2>$null).Trim()
         if (-not $branch) { $branch = 'main' }
-        git checkout -q -b $branch
-        # the studio owns the LICENSE now, so only the repo's README is preserved
-        git fetch -q origin $branch 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            git checkout -q "origin/$branch" -- README.md 2>$null
+
+        # What did the studio change since we last published? The previous publish recorded
+        # the studio commit it came from, so the message can say what actually changed.
+        # absent on the first publish, so match defensively rather than indexing a null
+        $lastSha = $null
+        $m = [regex]::Match(((git log -1 --format=%B 2>$null) -join "`n"), 'Studio-Source:\s*(\S+)')
+        if ($m.Success) { $lastSha = $m.Groups[1].Value }
+        Pop-Location
+
+        # replace only the paths the studio owns; anything else in the repo is left alone
+        foreach ($m in $PUBLIC_MANIFEST) {
+            $target = Join-Path $work $m.to
+            if (Test-Path $target) { Remove-Item $target -Recurse -Force }
         }
+        Get-ChildItem $stage -Force | ForEach-Object { Copy-Item $_.FullName (Join-Path $work $_.Name) -Recurse -Force }
+
+        Push-Location $work
         git add -A
+        $changed = @(git diff --cached --name-only) | Where-Object { $_ }
+        if (-not $changed.Count) {
+            Write-Host ""
+            Write-Host "  nothing changed since the last publish" -ForegroundColor DarkGray
+            Pop-Location
+            return $true
+        }
+
+        $studioSha = (git -C $StudioRoot rev-parse HEAD 2>$null).Trim()
+        $subjects  = if ($lastSha) { @(git -C $StudioRoot log --format='%s' "$lastSha..HEAD" 2>$null) } else { @() }
+        $subjects  = @($subjects | Where-Object { $_ }) | Select-Object -First 12
+
+        $summary = if ($subjects.Count) { $subjects -join "`r`n" } else { "Files updated: " + (($changed | Select-Object -First 8) -join ', ') }
+        $msg = @"
+$(if ($subjects.Count -eq 1) { $subjects[0] } else { "Update: $($changed.Count) file(s) changed" })
+
+$summary
+
+$($changed.Count) file(s) changed in this publish.
+Generated export from the studio; see the page and METHOD.md for the model.
+
+Studio-Source: $studioSha
+"@
         $who = $CONFIG.PublishAs
         $idArgs = if ($who) { @('-c', "user.name=$($who.Name)", '-c', "user.email=$($who.Email)") } else { @() }
-        git @idArgs commit -q -m "Publish studio method and agent roster
-
-Generated export from the private studio. Base agent roster, the composition
-tooling, the new-project scaffold, and the method."
-        git push -q --force origin $branch
+        git @idArgs commit -q -m $msg
+        git push -q origin $branch
         Write-Host ""
         Write-Host "  published to $RepoUrl ($branch)" -ForegroundColor Green
-    } finally { $ErrorActionPreference = $prevEAP; Pop-Location }
+        Write-Host ("  {0} file(s) changed: {1}" -f $changed.Count, (($changed | Select-Object -First 6) -join ', ')) -ForegroundColor Gray
+        Pop-Location
+    } finally { $ErrorActionPreference = $prevEAP }
     $true
 }
 
