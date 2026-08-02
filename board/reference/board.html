@@ -1,0 +1,813 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>PROJECT Board</title>
+<script src="/lib/config.js?v=c2be67881c"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root{
+    --bg:#0D0A06; --panel:#141009; --panel2:#1B160D; --line:#2A2318;
+    --ink:#F2EBD9; --ink-dim:#B8AE96; --ink-faint:#8A8069;
+    --amber:#F5C518; --terra:#C4513A; --verm:#D9412E; --teal:#2A6E6B; --olive:#5C6B2E; --blue:#1B4FCC; --green:#6BA368;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  [hidden]{display:none !important;} /* author display: values otherwise defeat the hidden attribute */
+  html,body{height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column; min-height:100vh;
+  }
+  a{color:var(--amber);}
+  button{font-family:inherit; cursor:pointer;}
+
+  /* â”€â”€ top bar â”€â”€ */
+  header.top{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:14px 18px; border-bottom:1px solid var(--line); background:var(--panel);
+    position:sticky; top:0; z-index:20;
+  }
+  .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.04em;}
+  .brand .dot{width:22px;height:22px;border-radius:6px;background:var(--amber);display:inline-flex;align-items:center;justify-content:center;color:#0D0A06;font-size:13px;font-weight:900;}
+  .brand small{font-weight:600; color:var(--ink-dim); letter-spacing:.02em; font-size:12px; text-transform:uppercase;}
+  .top .spacer{flex:1;}
+  .imrow{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .imlink{flex:1 1 auto; text-align:left; font:inherit; font-size:12.5px; padding:7px 10px; cursor:pointer;
+    background:var(--bg-soft,#171310); color:inherit; border:1.5px solid var(--line,#3a332a); border-radius:3px;
+    display:flex; justify-content:space-between; gap:10px; min-height:34px; align-items:center;}
+  .imlink:hover{border-color:var(--terra);}
+  .imkb{color:var(--ink-faint,#8a8175); font-size:11px;}
+  .imnote{font-size:12px; color:var(--ink-faint,#8a8175); padding:4px 0;}
+  .q{flex:0 1 300px; min-width:0; font:inherit; font-size:12.5px; padding:6px 10px; border:1.5px solid var(--line,#3a332a);
+     background:var(--bg-soft,#171310); color:inherit; border-radius:3px; margin-left:14px;}
+  .q:focus{outline:2px solid var(--terra); outline-offset:1px;}
+  .qcount{font-size:11.5px; color:var(--ink-faint,#8a8175); margin-left:8px; white-space:nowrap;}
+  .stamp{font-size:11px; color:var(--ink-faint,#8a8175); margin-right:10px; white-space:nowrap;}
+  @media (max-width:720px){ .q{flex:1 1 auto; margin-left:8px;} .stamp{display:none;} }
+  .whoami{font-size:12.5px; color:var(--ink-dim); display:flex; align-items:center; gap:8px;}
+  .whoami .av{width:26px;height:26px;border-radius:50%;background:var(--terra);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+  .btn{
+    border:1px solid var(--line); background:var(--panel2); color:var(--ink);
+    padding:8px 13px; border-radius:8px; font-size:13px; font-weight:600; min-height:40px;
+  }
+  .btn:hover{border-color:var(--ink-faint);}
+  .btn.primary{background:var(--amber); color:#0D0A06; border-color:var(--amber); font-weight:800;}
+  .btn.ghost{background:transparent;}
+  .btn.danger{color:var(--verm); border-color:#4a2018;}
+  .btn.danger:hover{background:#2a1410;}
+
+  /* â”€â”€ gate / status screens â”€â”€ */
+  #gate{flex:1; display:flex; align-items:center; justify-content:center; padding:40px 20px; text-align:center;}
+  #gate .card{max-width:420px; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:34px 28px;}
+  #gate h1{font-size:20px; margin-bottom:10px;}
+  #gate p{color:var(--ink-dim); font-size:14px; line-height:1.6; margin-bottom:20px;}
+  #gate .g-btn{display:inline-flex; align-items:center; gap:10px; justify-content:center;}
+  .spin{width:20px;height:20px;border:2.5px solid var(--line);border-top-color:var(--amber);border-radius:50%;animation:sp .8s linear infinite;display:inline-block;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  /* â”€â”€ board (horizontal scroll of columns) â”€â”€ */
+  main.board{
+    flex:1; display:flex; gap:14px; padding:16px; overflow-x:auto; align-items:flex-start;
+  }
+  .col{
+    flex:0 0 268px; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    display:flex; flex-direction:column; min-height:140px; max-height:calc(100vh - 92px);
+  }
+  .col.dragover{border-color:var(--amber); box-shadow:0 0 0 1px var(--amber) inset;}
+  .col-head{
+    display:flex; align-items:center; gap:9px; padding:13px 14px; border-bottom:1px solid var(--line);
+    background:var(--panel); border-radius:var(--radius) var(--radius) 0 0; flex-shrink:0;
+  }
+  .col-head .pip{width:9px;height:9px;border-radius:50%; flex-shrink:0;}
+  .col[data-status="backlog"] .pip{background:var(--ink-faint);}
+  .col[data-status="todo"] .pip{background:#C49A3F;}
+  .col[data-status="in_progress"] .pip{background:var(--teal);}
+  .col[data-status="uat"] .pip{background:var(--terra);}
+  .col[data-status="prod_ready"] .pip{background:var(--blue);}
+  .col[data-status="prod_deployed"] .pip{background:var(--olive);}
+  .col[data-status="done"] .pip{background:var(--green);}
+  .col-head h2{font-size:12.5px; letter-spacing:.03em; text-transform:uppercase; font-weight:700; white-space:nowrap;}
+  .col-head .count{margin-left:auto; font-size:12px; color:var(--ink-faint); background:var(--panel2); border-radius:20px; padding:2px 9px; min-width:24px; text-align:center;}
+  .col-body{padding:10px; display:flex; flex-direction:column; gap:9px; flex:1; overflow-y:auto;}
+
+  .card{
+    background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:11px 12px;
+    cursor:grab; position:relative; transition:border-color .12s;
+  }
+  .card:hover{border-color:var(--ink-faint);}
+  .card:active{cursor:grabbing;}
+  .card.dragging{opacity:.45;}
+  .card.insert-before{box-shadow:0 -3px 0 -1px var(--amber);}
+  .card .c-title{font-size:13.5px; line-height:1.4; font-weight:600; word-break:break-word;}
+  .card .c-meta{display:flex; align-items:center; gap:8px; margin-top:9px; color:var(--ink-faint); font-size:11.5px; flex-wrap:wrap;}
+  .card .c-meta .tag{display:inline-flex; align-items:center; gap:4px;}
+  .assignee{display:inline-flex; align-items:center; font-size:10.5px; font-weight:700; letter-spacing:.02em; padding:2px 7px; border-radius:20px;}
+  .assignee[data-a="SQUAD"]{background:var(--amber); color:#0D0A06;}
+  .assignee[data-a="FOUNDER"]{background:var(--teal); color:#fff;}
+  .assignee[data-a="CC"]{background:var(--terra); color:#fff;}
+  .stage-chip{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;border:1px solid var(--line);color:var(--ink-dim);}
+  .stage-chip[data-s="UAT"]{color:#e08a76;border-color:rgba(196,81,58,.5);}
+  .stage-chip[data-s="UAT Complete"]{color:#9bb267;border-color:rgba(92,107,46,.6);background:rgba(92,107,46,.12);}
+  .ver-tag{font-size:10px;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--ink-faint);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 5px;}
+  .c-code{display:inline-block;font-size:10.5px;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;letter-spacing:.04em;color:var(--amber);margin-bottom:5px;}
+  .code-ro{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:13px;letter-spacing:.04em;color:var(--amber);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 10px;display:inline-block;}
+  .confirm-box{max-width:400px;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin:auto;box-shadow:0 12px 40px rgba(0,0,0,.55);}
+  .confirm-box h3{font-size:16px;font-weight:700;margin:0 0 8px;}
+  .confirm-box p{font-size:13px;line-height:1.5;color:var(--ink-dim);margin:0 0 18px;}
+  .confirm-box .cf-actions{display:flex;gap:10px;justify-content:flex-end;}
+  .card .c-move{display:flex; gap:4px; margin-left:auto;}
+  .card .c-move button{
+    width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--panel);
+    color:var(--ink-dim); font-size:13px; line-height:1; display:flex;align-items:center;justify-content:center; padding:0;
+  }
+  .card .c-move button:hover:not(:disabled){border-color:var(--ink-faint); color:var(--ink);}
+  .card .c-move button:disabled{opacity:.28; cursor:default;}
+
+  .add-row{padding:10px; border-top:1px solid var(--line); flex-shrink:0;}
+  .add-row .add-btn{width:100%; border:1px dashed var(--line); background:transparent; color:var(--ink-dim); padding:10px; border-radius:8px; font-size:13px; font-weight:600;}
+  .add-row .add-btn:hover{border-color:var(--ink-faint); color:var(--ink);}
+  .add-form{display:flex; flex-direction:column; gap:8px;}
+  .add-form textarea{
+    width:100%; resize:vertical; min-height:56px; background:var(--bg); color:var(--ink);
+    border:1px solid var(--line); border-radius:8px; padding:9px 10px; font-size:13.5px; font-family:inherit; line-height:1.4;
+  }
+  .add-form .row{display:flex; gap:8px;}
+
+  /* â”€â”€ detail modal â”€â”€ */
+  .modal{position:fixed; inset:0; z-index:60; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; background:rgba(0,0,0,.62);}
+  .sheet{
+    width:100%; max-width:640px; background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; overflow:hidden; margin:auto 0;
+  }
+  .sheet-head{display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--line);}
+  .sheet-head .st-pill{font-size:11px; text-transform:uppercase; letter-spacing:.05em; font-weight:700; padding:4px 10px; border-radius:20px; background:var(--panel2); color:var(--ink-dim);}
+  .sheet-head .x{margin-left:auto; width:40px;height:40px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--ink-dim);font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;}
+  .sheet-head .x:hover{color:var(--ink);border-color:var(--ink-faint);}
+  .sheet-body{padding:16px; display:flex; flex-direction:column; gap:16px;}
+  .field label{display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); margin-bottom:6px; font-weight:700;}
+  .field input.t-title{
+    width:100%; background:var(--bg); border:1px solid var(--line); border-radius:8px; color:var(--ink);
+    font-size:17px; font-weight:600; padding:11px 12px; font-family:inherit;
+  }
+  .field textarea.t-desc{
+    width:100%; min-height:120px; resize:vertical; background:var(--bg); border:1px solid var(--line);
+    border-radius:8px; color:var(--ink); font-size:14px; line-height:1.6; padding:11px 12px; font-family:inherit;
+  }
+  .field input:focus, .field textarea:focus, .add-form textarea:focus{outline:none; border-color:var(--amber);}
+  .seg{display:flex; gap:6px; flex-wrap:wrap;}
+  .seg button{
+    padding:9px 11px; border-radius:8px; border:1px solid var(--line); background:var(--panel2);
+    color:var(--ink-dim); font-size:12.5px; font-weight:600; min-height:40px; flex:1; white-space:nowrap;
+  }
+  .seg.status button{flex:1 1 30%;}
+  #d-status button.on{background:rgba(245,197,24,.14); color:var(--amber); border-color:var(--amber);}
+  #d-assignee button.on[data-a="SQUAD"]{background:var(--amber); color:#0D0A06; border-color:var(--amber);}
+  #d-assignee button.on[data-a="FOUNDER"]{background:var(--teal); color:#fff; border-color:var(--teal);}
+  #d-assignee button.on[data-a="CC"]{background:var(--terra); color:#fff; border-color:var(--terra);}
+  #d-assignee button.on[data-a=""]{background:var(--panel); color:var(--ink); border-color:var(--ink-faint);}
+  .d-select{width:100%; background:var(--bg); border:1px solid var(--line); color:var(--ink); font-size:14px; font-weight:600; padding:11px 12px; border-radius:8px; font-family:inherit; min-height:44px; cursor:pointer;}
+  .d-select:focus{outline:none; border-color:var(--amber);}
+  .seg button:disabled{opacity:.4; cursor:not-allowed;}
+  .ver-ro{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; color:var(--ink-dim); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px 12px;}
+  .ver-ro .none{color:var(--ink-faint); font-style:italic;}
+
+  .imgs{display:flex; flex-wrap:wrap; gap:9px;}
+  .imgs .im{position:relative; width:96px; height:96px;}
+  .imgs .im img{width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid var(--line); cursor:zoom-in;}
+  .imgs .im .rm{position:absolute; top:-7px; right:-7px; width:22px;height:22px;border-radius:50%;background:var(--verm);color:#fff;border:2px solid var(--panel);font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;}
+  .paste-zone{
+    border:1px dashed var(--line); border-radius:9px; padding:16px; text-align:center;
+    color:var(--ink-faint); font-size:13px; background:var(--bg);
+  }
+  .paste-zone.hot{border-color:var(--amber); color:var(--ink);}
+  .paste-zone b{color:var(--ink-dim);}
+  .sheet-foot{display:flex; align-items:center; gap:10px; padding:14px 16px; border-top:1px solid var(--line);}
+  .sheet-foot .save-state{font-size:12px; color:var(--ink-faint);}
+  .sheet-foot .spacer{flex:1;}
+
+  .lightbox{position:fixed; inset:0; z-index:80; background:rgba(0,0,0,.9); display:flex; align-items:center; justify-content:center; padding:24px;}
+  .lightbox img{max-width:100%; max-height:100%; border-radius:8px;}
+
+  .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--panel2); border:1px solid var(--line); color:var(--ink); padding:11px 16px; border-radius:9px; font-size:13px; z-index:100; box-shadow:0 8px 30px rgba(0,0,0,.5);}
+
+  @media (max-width:820px){
+    main.board{flex-direction:column; overflow-x:visible; gap:12px; padding:12px;}
+    .col{flex:1 1 auto; width:100%; max-height:none;}
+    .col-body{overflow-y:visible;}
+    .modal{padding:0;}
+    .sheet{max-width:none; border-radius:0; min-height:100vh;}
+    .card{padding:13px 14px;}
+    .card .c-title{font-size:14px;}
+    .card .c-move button{width:44px; height:44px; font-size:16px;}
+  }
+</style>
+</head>
+<body>
+  <header class="top">
+    <span class="brand"><span class="dot">M</span> PROJECT <small>Board</small></span>
+    <input id="q" class="q" type="search" placeholder="Search number, title, description" autocomplete="off" spellcheck="false" hidden>
+    <span class="qcount" id="qcount" hidden></span>
+    <span class="spacer"></span>
+    <button class="btn ghost" id="refresh" hidden title="Reload the board from the database">Refresh</button>
+    <span class="stamp" id="stamp" hidden></span>
+    <span class="whoami" id="whoami" hidden></span>
+    <button class="btn ghost" id="signout" hidden>Sign out</button>
+  </header>
+
+  <div id="gate">
+    <div class="card">
+      <div class="spin"></div>
+      <p style="margin-top:16px;">Loading your board...</p>
+    </div>
+  </div>
+
+  <main class="board" id="board" hidden></main>
+
+  <!-- detail modal -->
+  <div class="modal" id="detail" hidden>
+    <div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet-head">
+        <span class="code-ro" id="d-code" title="Ticket number (auto-generated, read-only)"></span>
+        <span class="st-pill" id="d-pill">Backlog</span>
+        <button class="x" id="d-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="sheet-body">
+        <div class="field">
+          <label>Title</label>
+          <input class="t-title" id="d-title" placeholder="Ticket title">
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select class="d-select" id="d-status"></select>
+        </div>
+        <div class="field">
+          <label>Assignee</label>
+          <div class="seg" id="d-assignee"></div>
+        </div>
+        <div class="field">
+          <label>Release version <span style="text-transform:none;letter-spacing:0;color:var(--ink-faint);font-weight:400;">(tagged by Claude Code)</span></label>
+          <div class="ver-ro" id="d-version"><span class="none">Not tagged</span></div>
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea class="t-desc" id="d-desc" placeholder="Add detail, context, links..."></textarea>
+        </div>
+        <div class="field">
+          <label>Images</label>
+          <div class="imgs" id="d-imgs"></div>
+          <div class="paste-zone" id="d-paste" tabindex="0">
+            <b>Paste</b> a screenshot here (Ctrl/Cmd+V), or <label style="color:var(--amber);cursor:pointer;text-decoration:underline;">choose a file<input type="file" id="d-file" accept="image/*" hidden multiple></label>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn danger" id="d-delete">Delete</button>
+        <span class="spacer"></span>
+        <span class="save-state" id="d-save-state"></span>
+        <button class="btn primary" id="d-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- delete confirmation -->
+  <div class="modal" id="confirm-del" hidden>
+    <div class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="cf-title">
+      <h3 id="cf-title">Delete ticket?</h3>
+      <p id="cf-msg">This permanently deletes the ticket. This cannot be undone.</p>
+      <div class="cf-actions">
+        <button class="btn ghost" id="cf-cancel">Cancel</button>
+        <button class="btn danger" id="cf-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="lightbox" id="lightbox" hidden><img id="lb-img" alt="ticket image"></div>
+  <div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* The board is PINNED to one project, deliberately, and does NOT use window.PROJECTConfig.
+   *
+   * PROJECTConfig resolves the project from the hostname, which is right for the product: UAT talks
+   * to UAT, production talks to production. The board is not the product. It is ONE internal work
+   * queue with one set of tickets, and the CEO's ruling (2026-08-02) is that it stays on the
+   * original project. Resolving it by hostname gave PROJECT.live a SEPARATE, stale copy of the
+   * table left behind by the database migration: 284 rows against the real 293, diverging from the
+   * moment the migration finished. That is worse than an outage, because it looks like it works.
+   *
+   * It surfaced as an outage only by luck: adding image_count to the real project made the query
+   * 400 on the copy, which is the first time the split announced itself.
+   *
+   * If this ever needs to move, move it once, here, on purpose. */
+  var SB_URL = '<<SET VIA ENV: SUPABASE_URL>>';
+  var SB_KEY = 'sb_publishable_QA0pwIa5D24vSy39438kbg__nFDd9_m';
+  // Team members who can view and edit the board. A future release adds a read-only
+  // view for signed-in customers (feature-request board); they will not be in this list.
+  var ALLOWED = [
+    '<team-member-uid-1>',
+    '<team-member-uid-2>'
+  ];
+  // Columns shown on the board (display groups).
+  var COLUMNS = ['backlog','todo','in_progress','uat','prod_ready','prod_deployed','done'];
+  // The single per-ticket status, ordered (drives the move arrows and the Status dropdown).
+  // Statuses map to columns by the hard-coded rule below (UAT Complete shows in the UAT column).
+  var STATUSES = ['backlog','todo','in_progress','uat','uat_complete','prod_ready','prod_deployed','done'];
+  var LABELS = { backlog:'Backlog', todo:'To Do', in_progress:'In Progress', uat:'UAT', uat_complete:'UAT Complete', prod_ready:'PROD Ready', prod_deployed:'PROD Deployed', done:'Done' };
+  var ADD_IN = ['backlog','todo']; // columns that get a "+ Add ticket" control
+  var ASSIGNEES = ['SQUAD','FOUNDER','CC']; // Claude Code PROJECT Squad, FOUNDER, CC (partner)
+  var USER_LOCKED = { prod_deployed:true }; // only Claude Code sets the PROD Deployed status
+  // Hard-coded status -> column mapping (simple workflows come later). uat_complete lives in the UAT
+  // column; the legacy 'uat_deployed' value also maps there until the schema migration runs.
+  var STATUS_COL = { uat_complete:'uat', uat_deployed:'uat' };
+  function colOf(t){ return STATUS_COL[t.status] || t.status; }
+  var MAX_IMG_DIM = 1400;
+  var IMG_QUALITY = 0.82;
+
+  var sb = supabase.createClient(SB_URL, SB_KEY, {
+    /* The board keeps its OWN session, under its own storage key.
+     *
+     * It shares an origin with the product but not a Supabase project: the board is pinned to the
+     * original project while the site follows the hostname, so on PROJECT.live the site issues a
+     * token from the PRODUCTION project. With one shared key the board read that token and handed
+     * it to the original project, which rejected it: 401, "Expected 3 parts in JWT". The board
+     * looked signed in and loaded nothing.
+     *
+     * Two clients on one origin may only share a storage key while they talk to the SAME project.
+     * These do not, so they do not. The cost is signing in to the board separately, which is
+     * honest: it is a different application against a different database. */
+    auth: { persistSession:true, storageKey:'PROJECT-board-auth', autoRefreshToken:true, detectSessionInUrl:true }
+  });
+
+  var state = { user:null, tickets:[], open:null, dragId:null };
+  var $ = function(s, r){ return (r||document).querySelector(s); };
+  var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+
+  function toast(msg){ var t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(function(){ t.hidden=true; }, 2600); }
+  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function initials(name, email){ var s=(name||email||'?').trim(); var p=s.split(/\s+/); return (p.length>=2?(p[0][0]+p[1][0]):s.slice(0,2)).toUpperCase(); }
+
+  /* â”€â”€ gate screens â”€â”€ */
+  function showGate(html){ var g=$('#gate'); g.hidden=false; g.innerHTML='<div class="card">'+html+'</div>'; $('#board').hidden=true; }
+  function showSignIn(){
+    showGate('<h1>PROJECT Board</h1><p>This is the internal ticket board. Sign in with your team Google account to continue.</p><button class="btn primary g-btn" id="do-signin">Sign in with Google</button>');
+    $('#do-signin').onclick = function(){ sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.origin + '/board.html' } }); };
+  }
+  function showNoAccess(email){
+    showGate('<h1>No access</h1><p>The account <b>'+esc(email)+'</b> is not on the board team. If you think this is a mistake, ask an admin to add your user ID.</p><button class="btn ghost" id="do-signout">Sign out</button>');
+    $('#do-signout').onclick = doSignOut;
+  }
+  function showSetup(){
+    showGate('<h1>Board needs setup</h1><p>The <b>tickets</b> table is not there yet. Run <b>supabase-tickets.sql</b> in the Supabase SQL editor, then reload this page.</p><button class="btn ghost" id="do-reload">Reload</button>');
+    $('#do-reload').onclick = function(){ location.reload(); };
+  }
+  function doSignOut(){ sb.auth.signOut().finally(function(){ try{ localStorage.removeItem('PROJECT-auth'); }catch(e){} location.reload(); }); }
+
+  /* â”€â”€ data â”€â”€ */
+  function loadTickets(){
+    /* Deliberately a named column list rather than every column (CEO 2026-08-02): images are
+     * base64 data URIs stored in the row,
+     * and they are 57% of the payload while only 11 of 293 tickets have any. The board list needs
+     * none of them, so a refresh now carries text only and images are fetched per ticket when one
+     * is opened. Naming the columns rather than excluding one is deliberate: a column added later
+     * should have to be opted IN to the list query, not silently arrive in it. */
+    return sb.from('tickets').select('id,num,title,description,status,assignee,position,release_version,created_by,created_at,updated_at,image_count').order('status').order('position').order('created_at').then(function(res){
+      if(res.error){
+        var m = res.error.message || '';
+        if(res.error.code==='42P01' || m.indexOf('does not exist')!==-1 || m.indexOf('Could not find the table')!==-1){ showSetup(); return null; }
+        toast('Load failed: '+m); return null;
+      }
+      state.tickets = res.data || [];
+      return state.tickets;
+    });
+  }
+  function nextPosition(status){
+    var mx = state.tickets.filter(function(t){ return t.status===status; }).reduce(function(a,t){ return Math.max(a, +t.position||0); }, 0);
+    return mx + 1;
+  }
+  function createTicket(title, status){
+    var row = { title:title, status:status, position:nextPosition(status), description:'', images:[], assignee:'SQUAD', created_by: state.user.id };
+    return sb.from('tickets').insert(row).select().single().then(function(res){
+      if(res.error){ toast('Could not add: '+res.error.message); return null; }
+      state.tickets.push(res.data); render(); return res.data;
+    });
+  }
+  function patchTicket(id, patch){
+    var t = state.tickets.filter(function(x){ return x.id===id; })[0];
+    if(t){ Object.keys(patch).forEach(function(k){ t[k]=patch[k]; }); render(); }
+    patch.updated_at = new Date().toISOString();
+    return sb.from('tickets').update(patch).eq('id', id).select().single().then(function(res){
+      if(res.error){ toast('Save failed: '+res.error.message); loadTickets().then(render); return null; }
+      var i = state.tickets.map(function(x){return x.id;}).indexOf(id); if(i>=0) state.tickets[i]=res.data;
+      return res.data;
+    });
+  }
+  function deleteTicket(id){
+    return sb.from('tickets').delete().eq('id', id).then(function(res){
+      if(res.error){ toast('Delete failed: '+res.error.message); return; }
+      state.tickets = state.tickets.filter(function(t){ return t.id!==id; }); render();
+    });
+  }
+  function moveTicket(id, toStatus, beforeId){
+    if(USER_LOCKED[toStatus]){ toast('Only Claude Code moves tickets into PROD Deployed.'); return; }
+    var t = state.tickets.filter(function(x){ return x.id===id; })[0]; if(!t) return;
+    var pos;
+    if(beforeId){ var b = state.tickets.filter(function(x){ return x.id===beforeId; })[0]; pos = b ? (+b.position - 0.5) : nextPosition(toStatus); }
+    else pos = nextPosition(toStatus);
+    patchTicket(id, { status:toStatus, position:pos });
+  }
+  function shiftStatus(id, dir){
+    var t = state.tickets.filter(function(x){ return x.id===id; })[0]; if(!t) return;
+    var i = STATUSES.indexOf(colOf(t)) + dir; if(i<0 || i>=STATUSES.length) return;
+    moveTicket(id, STATUSES[i], null);
+  }
+
+  /* â”€â”€ render â”€â”€ */
+  function buildColumns(){
+    var board = $('#board');
+    board.innerHTML = COLUMNS.map(function(st){
+      return '<section class="col" data-status="'+st+'">'+
+        '<div class="col-head"><span class="pip"></span><h2>'+LABELS[st]+'</h2><span class="count" data-count="'+st+'">0</span></div>'+
+        '<div class="col-body" data-body="'+st+'"></div>'+
+        (ADD_IN.indexOf(st)!==-1 ? '<div class="add-row" data-add="'+st+'"></div>' : '')+
+      '</section>';
+    }).join('');
+  }
+  var PROJECT_CODE = 'MUS';
+  function ticketCode(t){ return (t && t.num != null) ? PROJECT_CODE + '-' + t.num : ''; }
+  function cardHtml(t){
+    /* No thumbnail: the list query no longer carries images, by design. Rendering one here would
+     * mean pulling every image on every ticket on every refresh, which is what this change exists
+     * to stop. Images appear as links inside the ticket once it is opened. */
+    var code = ticketCode(t) ? '<div class="c-code">'+esc(ticketCode(t))+'</div>' : '';
+    var st = STATUSES.indexOf(t.status)>=0 ? t.status : colOf(t); // normalize legacy status
+    var idx = STATUSES.indexOf(st);
+    var thumb = '';
+    var asg = t.assignee ? '<span class="assignee" data-a="'+esc(t.assignee)+'">'+esc(t.assignee)+'</span>' : '';
+    // show a status chip only when the status differs from its column (e.g. UAT Complete inside the UAT column)
+    var stage = (colOf(t)!==t.status && LABELS[t.status]) ? '<span class="stage-chip" data-s="'+esc(LABELS[t.status])+'">'+esc(LABELS[t.status])+'</span>' : '';
+    var ver = t.release_version ? '<span class="ver-tag" title="Release version">'+esc(t.release_version)+'</span>' : '';
+    var rightLocked = idx>=STATUSES.length-1 || USER_LOCKED[STATUSES[idx+1]]; // users cannot advance into PROD Deployed
+    return '<div class="card" draggable="true" data-id="'+esc(t.id)+'">'+
+      code +
+      '<div class="c-title">'+esc(t.title)+'</div>'+ thumb +
+      '<div class="c-meta">'+ asg + stage + ver +
+        (t.description ? '<span class="tag" title="Has description">&#9776;</span>' : '')+
+        (+t.image_count ? '<span class="tag" title="'+(+t.image_count)+' image(s)">&#9635; '+(+t.image_count)+'</span>' : '')+
+        '<span class="c-move">'+
+          '<button data-move="-1" title="Move left" '+(idx<=0?'disabled':'')+'>&#8592;</button>'+
+          '<button data-move="1" title="Move right" '+(rightLocked?'disabled':'')+'>&#8594;</button>'+
+        '</span>'+
+      '</div></div>';
+  }
+  /* Contains-search over the ticket NUMBER, title and description (TKT-151).
+   * Deliberately a plain case-insensitive substring test, not fuzzy matching: the board is small
+   * enough to filter in the browser, and a search you cannot predict is worse than none when you
+   * are hunting for a ticket you already know exists. Digits match the number so "151" and
+   * "TKT-151" both find it, and every term must appear somewhere so extra words narrow. */
+  function matchesQuery(t){
+    var q = (state.query||'').trim().toLowerCase();
+    if(!q) return true;
+    var hay = [ticketCode(t)||'', String(t.num||''), t.title||'', t.description||''].join(' ').toLowerCase();
+    return q.split(/\s+/).every(function(term){ return hay.indexOf(term) !== -1; });
+  }
+
+  function render(){
+    var shown = 0;
+    COLUMNS.forEach(function(st){
+      var body = $('[data-body="'+st+'"]'); if(!body) return;
+      var list = state.tickets.filter(function(t){ return colOf(t)===st && matchesQuery(t); })
+        .sort(function(a,b){ return (+a.position||0)-(+b.position||0) || (a.created_at||'').localeCompare(b.created_at||''); });
+      body.innerHTML = list.map(cardHtml).join('') || '<div style="color:var(--ink-faint);font-size:12px;padding:6px 4px;">' + (state.query ? 'No match' : 'Empty') + '</div>';
+      $('[data-count="'+st+'"]').textContent = list.length;
+      shown += list.length;
+    });
+    var qc = $('#qcount');
+    if(qc){
+      qc.hidden = !state.query;
+      qc.textContent = state.query ? (shown + ' of ' + state.tickets.length) : '';
+    }
+    wireCards();
+  }
+  function wireCards(){
+    $$('.card').forEach(function(el){
+      var id = el.getAttribute('data-id');
+      el.onclick = function(e){ if(e.target.closest('.c-move')) return; openDetail(id); };
+      el.ondragstart = function(e){ state.dragId=id; el.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain', id); }catch(_e){} };
+      el.ondragend = function(){ state.dragId=null; el.classList.remove('dragging'); $$('.card').forEach(function(c){ c.classList.remove('insert-before'); }); $$('.col').forEach(function(c){ c.classList.remove('dragover'); }); };
+      el.ondragover = function(e){ e.preventDefault(); e.stopPropagation(); $$('.card').forEach(function(c){ c.classList.remove('insert-before'); }); if(el.getAttribute('data-id')!==state.dragId) el.classList.add('insert-before'); };
+      el.ondrop = function(e){ e.preventDefault(); e.stopPropagation(); var col=el.closest('.col'); if(!col||!state.dragId) return; if(state.dragId!==id) moveTicket(state.dragId, col.getAttribute('data-status'), id); };
+      $$('.c-move button', el).forEach(function(b){ b.onclick = function(e){ e.stopPropagation(); shiftStatus(id, +b.getAttribute('data-move')); }; });
+    });
+  }
+  function wireColumns(){
+    $$('.col').forEach(function(col){
+      var st = col.getAttribute('data-status');
+      col.ondragover = function(e){ e.preventDefault(); col.classList.add('dragover'); };
+      col.ondragleave = function(e){ if(!col.contains(e.relatedTarget)) col.classList.remove('dragover'); };
+      col.ondrop = function(e){ e.preventDefault(); col.classList.remove('dragover'); if(state.dragId) moveTicket(state.dragId, st, null); };
+    });
+    ADD_IN.forEach(renderAddRow);
+  }
+  function renderAddRow(st){
+    var host = $('[data-add="'+st+'"]'); if(!host) return;
+    host.innerHTML = '<button class="add-btn" data-addbtn="'+st+'">+ Add ticket</button>';
+    $('[data-addbtn="'+st+'"]', host).onclick = function(){ openAddForm(st); };
+  }
+  function openAddForm(st){
+    var host = $('[data-add="'+st+'"]');
+    host.innerHTML = '<div class="add-form"><textarea placeholder="Ticket title" rows="2"></textarea><div class="row"><button class="btn primary" data-save style="flex:1;">Add</button><button class="btn ghost" data-cancel>Cancel</button></div></div>';
+    var ta = $('textarea', host); ta.focus();
+    function submit(){ var v=ta.value.trim(); if(!v){ renderAddRow(st); return; } createTicket(v, st).then(function(){ renderAddRow(st); }); }
+    $('[data-save]', host).onclick = submit;
+    $('[data-cancel]', host).onclick = function(){ renderAddRow(st); };
+    ta.onkeydown = function(e){ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); submit(); } if(e.key==='Escape'){ renderAddRow(st); } };
+  }
+
+  /* â”€â”€ detail modal â”€â”€ */
+  function buildDetailControls(){
+    $('#d-status').innerHTML = STATUSES.map(function(s){ var lock = USER_LOCKED[s] ? ' disabled' : ''; return '<option value="'+s+'"'+lock+'>'+LABELS[s]+(USER_LOCKED[s]?' (Claude Code only)':'')+'</option>'; }).join('');
+    $('#d-status').onchange = function(){ setDetailStatus(this.value); };
+    $('#d-assignee').innerHTML = '<button data-a="">Unassigned</button>' + ASSIGNEES.map(function(a){ return '<button data-a="'+a+'">'+a+'</button>'; }).join('');
+    $$('#d-assignee button').forEach(function(b){ b.onclick = function(){ setDetailAssignee(b.getAttribute('data-a')); }; });
+  }
+  function setDetailStatus(st){
+    $('#d-pill').textContent = LABELS[st] || st;
+    var sel = $('#d-status'); if(sel && sel.value !== st) sel.value = st;
+    if(state.open) state.open.status = st;
+  }
+  function setDetailAssignee(a){
+    $$('#d-assignee button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-a')===(a||'')); });
+    if(state.open) state.open.assignee = a || null;
+  }
+  function openDetail(id){
+    var t = state.tickets.filter(function(x){ return x.id===id; })[0]; if(!t) return;
+    /* images stays null, meaning NOT LOADED, for the whole life of the sheet unless somebody asks
+     * for one. It is a different thing from [] meaning none, and saveDetail depends on the
+     * difference: patching [] when they were never fetched would wipe every attachment.
+     * imageCount comes from the list query as a plain integer, so the sheet can offer exactly the
+     * right number of links while holding none of the data. */
+    state.open = { id:id, images:null, imageCount:(+t.image_count||0), loaded:{}, status:t.status, assignee:t.assignee||null };
+    $('#d-title').value = t.title || '';
+    $('#d-desc').value = t.description || '';
+    setDetailStatus(t.status); setDetailAssignee(t.assignee||'');
+    $('#d-code').textContent = ticketCode(t);
+    $('#d-version').innerHTML = t.release_version ? esc(t.release_version) : '<span class="none">Not tagged</span>';
+    renderDetailImgs(); $('#d-save-state').textContent='';
+    $('#detail').hidden=false; document.body.style.overflow='hidden';
+  }
+
+  /* Fetch ONE image, only when its link is clicked (CEO 2026-08-02: "we don't need to load the
+   * image unless user asks"). PostgREST can index into a jsonb array, so images->N returns that one
+   * element and nothing else: opening a ticket with four screenshots costs nothing until you want
+   * one of them, and then it costs one.
+   *
+   * The result is cached per index for the life of the sheet, so viewing the same image twice does
+   * not fetch it twice. */
+  function fetchImage(idx){
+    var id = state.open && state.open.id;
+    if(!id) return Promise.resolve(null);
+    if(state.open.loaded[idx]) return Promise.resolve(state.open.loaded[idx]);
+    return sb.from('tickets').select('img:images->' + idx).eq('id', id).single().then(function(res){
+      if(res.error || !res.data) return null;
+      var src = res.data.img;
+      if(!state.open || state.open.id !== id) return null;   // sheet closed while in flight
+      if(src) state.open.loaded[idx] = src;
+      return src || null;
+    }).catch(function(){ return null; });
+  }
+
+  function closeDetail(){ $('#detail').hidden=true; state.open=null; document.body.style.overflow=''; }
+  // Delete confirmation modal (replaces a native confirm() so an accidental tap cannot destroy a ticket).
+  var _pendingDelId = null;
+  function askDeleteConfirm(id){
+    _pendingDelId = id;
+    var t = state.tickets.filter(function(x){ return x.id===id; })[0];
+    var code = t ? ticketCode(t) : '';
+    var title = t ? t.title : '';
+    $('#cf-msg').textContent = 'This permanently deletes ' + (code ? code + ' ' : '') + '"' + (title || 'this ticket') + '". This cannot be undone.';
+    $('#confirm-del').hidden = false;
+  }
+  function hideDeleteConfirm(){ _pendingDelId = null; $('#confirm-del').hidden = true; }
+  $('#cf-cancel').onclick = hideDeleteConfirm;
+  $('#confirm-del').onclick = function(e){ if(e.target.id==='confirm-del') hideDeleteConfirm(); };
+  $('#cf-confirm').onclick = function(){ var id=_pendingDelId; hideDeleteConfirm(); if(id){ deleteTicket(id); closeDetail(); } };
+  /* Images render as LINKS, not <img> (CEO 2026-08-02). Nothing is decoded or painted until
+   * somebody asks for it: clicking a link opens it in the lightbox. Each link carries its size, so
+   * the cost of looking is visible before you look rather than after. */
+  /* Renders from the COUNT alone. No image data is held or requested to draw this: N links for N
+   * images, and each one fetches its own picture when clicked. That is the whole point of the
+   * change, so it is worth being explicit that state.open.images may still be null here. */
+  function renderDetailImgs(){
+    var host=$('#d-imgs'); if(!host) return;
+    var loadedArr = state.open && state.open.images;
+    var n = Array.isArray(loadedArr) ? loadedArr.length : (state.open ? state.open.imageCount : 0);
+    if(!n){ host.innerHTML = '<div class="imnote">No images</div>'; return; }
+    var html = '';
+    for(var k=0;k<n;k++){
+      html += '<div class="imrow">'
+            + '<a class="imlink" href="#" data-i="'+k+'">img_'+(k+1)+'</a>'
+            + '<button class="rm" data-rm="'+k+'" title="Remove">&times;</button>'
+            + '</div>';
+    }
+    host.innerHTML = html;
+
+    $$('#d-imgs .imlink').forEach(function(a){
+      a.onclick = function(ev){
+        ev.preventDefault();
+        var idx = +a.getAttribute('data-i');
+        var already = state.open.images && state.open.images[idx];
+        if(already){ $('#lb-img').src = already; $('#lightbox').hidden=false; return; }
+        var was = a.textContent; a.textContent = 'img_'+(idx+1)+' loading';
+        fetchImage(idx).then(function(src){
+          a.textContent = was;
+          if(src){ $('#lb-img').src = src; $('#lightbox').hidden=false; }
+          else toast('Could not load that image');
+        });
+      };
+    });
+
+    /* Removing needs the real array, because saving writes it back. Anything not yet viewed is
+     * pulled at that point: the only moment the full set is genuinely required. */
+    $$('#d-imgs .rm').forEach(function(b){
+      b.onclick = function(){
+        var idx = +b.getAttribute('data-rm');
+        ensureAllImages().then(function(arr){
+          if(!arr){ toast('Could not load images, nothing removed'); return; }
+          arr.splice(idx,1);
+          state.open.images = arr; state.open.imageCount = arr.length; state.open.loaded = {};
+          renderDetailImgs();
+        });
+      };
+    });
+  }
+
+  /* The one place the whole column is still needed: a removal has to write the surviving array
+   * back, so it must first know what it is. Everything else works from the count. */
+  function ensureAllImages(){
+    if(Array.isArray(state.open && state.open.images)) return Promise.resolve(state.open.images);
+    var id = state.open && state.open.id;
+    if(!id) return Promise.resolve(null);
+    return sb.from('tickets').select('images').eq('id', id).single().then(function(res){
+      if(res.error || !state.open || state.open.id !== id) return null;
+      var imgs = res.data && res.data.images;
+      state.open.images = Array.isArray(imgs) ? imgs.slice() : [];
+      return state.open.images;
+    }).catch(function(){ return null; });
+  }
+
+  function saveDetail(){
+    if(!state.open) return;
+    // release_version is intentionally omitted: it is tagged by Claude Code only.
+    var patch = { title:$('#d-title').value.trim()||'Untitled', description:$('#d-desc').value, status:state.open.status, assignee:state.open.assignee };
+    /* Only write images when they were actually LOADED. images === null means the fetch has not
+     * finished or failed, and patching [] in that state would silently destroy every attachment on
+     * the ticket. Omitting the key leaves the column untouched. */
+    if(Array.isArray(state.open.images)) patch.images = state.open.images;
+    $('#d-save-state').textContent='Saving...';
+    patchTicket(state.open.id, patch).then(function(res){ if(res){ $('#d-save-state').textContent='Saved'; setTimeout(closeDetail, 350); } else $('#d-save-state').textContent=''; });
+  }
+
+  /* â”€â”€ image intake â”€â”€ */
+  function fileToResized(file){
+    return new Promise(function(resolve, reject){
+      var reader=new FileReader();
+      reader.onload=function(){
+        var img=new Image();
+        img.onload=function(){
+          var w=img.width, h=img.height;
+          if(w>MAX_IMG_DIM||h>MAX_IMG_DIM){ var r=Math.min(MAX_IMG_DIM/w, MAX_IMG_DIM/h); w=Math.round(w*r); h=Math.round(h*r); }
+          var cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
+          try{ resolve(cv.toDataURL('image/jpeg', IMG_QUALITY)); }catch(e){ resolve(reader.result); }
+        };
+        img.onerror=reject; img.src=reader.result;
+      };
+      reader.onerror=reject; reader.readAsDataURL(file);
+    });
+  }
+  function intakeFiles(files){
+    var imgFiles = Array.prototype.slice.call(files).filter(function(f){ return f && /^image\//.test(f.type); });
+    if(!imgFiles.length) return;
+    /* Adding needs the existing array, since saving writes the whole column back. Without this the
+     * new image would be pushed onto null, or onto [] and take the existing ones with it. */
+    ensureAllImages().then(function(arr){
+      if(!arr){ toast('Could not load existing images, nothing added'); return; }
+      return Promise.all(imgFiles.map(fileToResized)).then(function(urls){
+        urls.forEach(function(u){ if(u) arr.push(u); });
+        state.open.images = arr; state.open.imageCount = arr.length; state.open.loaded = {};
+        renderDetailImgs(); toast(urls.length+' image'+(urls.length>1?'s':'')+' added (remember to Save)');
+      });
+    }).catch(function(){ toast('Could not read image'); });
+  }
+
+  /* â”€â”€ refresh (CEO 2026-08-02: user-triggered only, never polled) â”€â”€
+   *
+   * This used to poll every 20 seconds AND hold a realtime subscription that refetched on any
+   * change. Both pulled the WHOLE table, images included, because loadTickets selects everything
+   * and images are stored as base64 data URIs in the row rather than in storage.
+   *
+   * Measured on the live board: 293 tickets, 0.72 MB a load, of which 0.41 MB is images from just
+   * 11 tickets. At one load every 20 seconds that is about 3.1 GB PER DAY for a single tab left
+   * open, forever, whether or not anyone is looking at it. On a free tier that is the whole quota.
+   *
+   * A two-person board does not need second-by-second freshness, so it now refreshes when someone
+   * asks for it: the Refresh button, or a browser reload. 20 manual refreshes a day is 14 MB
+   * instead of 3110 MB, a 99.5% reduction. The stamp shows how stale the view is so that staleness
+   * is visible rather than assumed. */
+  function stampNow(){
+    var el = $('#stamp'); if(!el) return;
+    state.loadedAt = new Date();
+    el.hidden = false;
+    el.textContent = 'Updated ' + state.loadedAt.toTimeString().slice(0,5);
+  }
+  function doRefresh(){
+    var b = $('#refresh'); if(b){ b.disabled = true; b.textContent = 'Refreshing'; }
+    return loadTickets().then(function(r){
+      if(r){ render(); stampNow(); }
+    }).catch(function(){ toast('Refresh failed'); }).then(function(){
+      if(b){ b.disabled = false; b.textContent = 'Refresh'; }
+    });
+  }
+
+  /* â”€â”€ global wiring â”€â”€ */
+  function wireGlobal(){
+    $('#signout').onclick = doSignOut;
+    var rb = $('#refresh'); if(rb){ rb.hidden = false; rb.onclick = doRefresh; }
+    var qi = $('#q');
+    if(qi){
+      qi.hidden = false;
+      qi.oninput = function(){ state.query = qi.value; render(); };
+      qi.onkeydown = function(e){ if(e.key==='Escape'){ qi.value=''; state.query=''; render(); qi.blur(); } };
+    }
+    $('#d-close').onclick = closeDetail;
+    $('#d-save').onclick = saveDetail;
+    $('#d-delete').onclick = function(){ if(!state.open) return; askDeleteConfirm(state.open.id); };
+    $('#detail').onclick = function(e){ if(e.target.id==='detail') closeDetail(); };
+    $('#lightbox').onclick = function(){ $('#lightbox').hidden=true; };
+    $('#d-file').onchange = function(e){ intakeFiles(e.target.files); e.target.value=''; };
+    var pz=$('#d-paste');
+    pz.addEventListener('dragover', function(e){ e.preventDefault(); pz.classList.add('hot'); });
+    pz.addEventListener('dragleave', function(){ pz.classList.remove('hot'); });
+    pz.addEventListener('drop', function(e){ e.preventDefault(); pz.classList.remove('hot'); if(e.dataTransfer&&e.dataTransfer.files) intakeFiles(e.dataTransfer.files); });
+    window.addEventListener('paste', function(e){
+      if($('#detail').hidden || !state.open) return;
+      /* Belt and braces alongside the bootBoard guard: a clipboard can legitimately carry the SAME
+       * image in more than one flavour (png and jpeg, say), and every one of them reports
+       * kind === 'file'. Dedupe on the identity we have, so two representations of one screenshot
+       * do not become two attachments. */
+      var items=(e.clipboardData&&e.clipboardData.items)||[]; var files=[]; var seen={};
+      for(var i=0;i<items.length;i++){
+        if(items[i].kind!=='file') continue;
+        var f=items[i].getAsFile(); if(!f) continue;
+        var k=(f.name||'')+'|'+f.size+'|'+f.type;
+        if(seen[k]) continue;
+        seen[k]=1; files.push(f);
+      }
+      if(files.length){ e.preventDefault(); intakeFiles(files); }
+    });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(!$('#lightbox').hidden){ $('#lightbox').hidden=true; return; } if(!$('#detail').hidden) closeDetail(); } });
+  }
+
+  /* â”€â”€ boot â”€â”€ */
+  /* Idempotent on purpose (TKT-151). This could run TWICE: start() calls it when getSession()
+   * resolves with no guard at all, while onAuthStateChange('SIGNED_IN') calls it too, and which
+   * wins is a race. wireGlobal() then ran twice, and it attaches the paste, drop and keydown
+   * handlers with addEventListener, which ACCUMULATES. That is the reported bug: one paste, two
+   * listeners, the image added twice. Every other control in wireGlobal uses .onclick =, which is
+   * assignment and therefore idempotent, which is exactly why paste was the only visible symptom.
+   * It also opened a second realtime subscription and a second poller before those were removed. */
+  var booted = false;
+  function bootBoard(user){
+    if(booted) return;
+    booted = true;
+    state.user = user;
+    var name = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user.email;
+    var w=$('#whoami'); w.hidden=false; w.innerHTML='<span class="av">'+esc(initials(name, user.email))+'</span>'+esc(name);
+    $('#signout').hidden=false; $('#gate').hidden=true; $('#board').hidden=false;
+    buildColumns(); buildDetailControls(); wireColumns(); wireGlobal();
+    loadTickets().then(function(r){ if(r!==null){ render(); stampNow(); } });
+  }
+  function start(){
+    sb.auth.getSession().then(function(res){
+      var session = res.data && res.data.session;
+      if(!session || !session.user){ showSignIn(); return; }
+      if(ALLOWED.indexOf(session.user.id)===-1){ showNoAccess(session.user.email); return; }
+      bootBoard(session.user);
+    }).catch(function(){ showSignIn(); });
+  }
+  sb.auth.onAuthStateChange(function(event, session){
+    if(event==='SIGNED_IN' && session && session.user && $('#board').hidden){
+      if(ALLOWED.indexOf(session.user.id)===-1) showNoAccess(session.user.email);
+      else if(!state.user) bootBoard(session.user);
+    }
+  });
+  start();
+})();
+</script>
+</body>
+</html>

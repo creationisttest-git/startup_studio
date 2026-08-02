@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://startupstudio.projectfreedom.xyz/sitemap.xml
