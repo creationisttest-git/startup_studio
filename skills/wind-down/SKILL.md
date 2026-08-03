@@ -1,4 +1,4 @@
----
+﻿---
 name: wind-down
 description: Close a session safely by updating the project's governance documents from disk. Use when the user says wind down, shutting down, closing up, end of session, or any equivalent. Also use before deliberately restarting a session, because a session that ends without this loses everything since the last update.
 ---
@@ -41,8 +41,10 @@ They are not always in the folder you are running in. Check, in order:
 - its parent, if the parent is a venture folder holding several projects
 - any path the project's `CLAUDE.md` imports with `@`
 
-You are looking for `WARM_START.md` and `WAYS_OF_WORKING.md`. Some projects also have
-`SOURCE_OF_TRUTH.md`.
+You are looking for `WARM_START.md` and `WAYS_OF_WORKING.md`.
+
+Older projects may also carry a `SOURCE_OF_TRUTH.md`. That is retired. Leave it alone
+rather than updating it, and mention it so it can be folded into the other two and removed.
 
 If they genuinely do not exist, say so plainly and ask whether to scaffold them from
 `_STUDIO/new-project/`. Do not invent them silently at wind-down; that is the worst moment

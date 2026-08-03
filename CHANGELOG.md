@@ -8,6 +8,27 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-03
 
+### The new-project scaffold teaches, and SOURCE_OF_TRUTH is retired
+
+**The problem.** `WARM_START.md` in the scaffold was 200 bytes of four headings and four
+`[fill per project]` placeholders. Meanwhile the `/wind-down` skill explained in detail what
+each section should contain and why. A newcomer reads the template first, writes four thin
+paragraphs, gets no value from it and stops maintaining it. That is exactly what happened to
+the copies in this studio, which sat unfilled for months.
+
+**What changed.** The template now carries a line of guidance per section with worked
+examples, and points at `/wind-down` as the thing that maintains it. It shows the difference
+between "continue the build" and "the tenant filter on the property service, service layer
+done, controller not started". It adds the two sections that were missing and matter most:
+open items, where the reasoning is the valuable half rather than the status, and known gaps
+not yet built, which is what stops the same decision being relitigated every few weeks.
+
+`METHOD.md` now explains why each project keeps its own state at all: a shared base can say
+how to work, but only a session knows where a project actually is, and sessions end.
+
+`SOURCE_OF_TRUTH.md` is retired as a concept and removed from the scaffold, the method and
+the tooling. `/wind-down` will leave an existing one alone and flag it rather than keeping
+it alive.
 ### The studio now records its own state
 
 It had `CLAUDE.md` and `METHOD.md`, so a fresh session knew the model but nothing about

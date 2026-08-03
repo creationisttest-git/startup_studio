@@ -81,7 +81,7 @@ $AGENT_DIR   = '.claude\agents'
 $CARD_NAME   = '_project.md'
 
 # Governance files that are IDENTICAL in every project. A project's own
-# WAYS_OF_WORKING / WARM_START / SOURCE_OF_TRUTH are its own and never distributed.
+# WAYS_OF_WORKING and WARM_START are its own and never distributed.
 $SHARED_GOV = @('GLOBAL_WAYS_OF_WORKING.md','AGENTS.md','BRIDGE_PROTOCOL.md')
 
 function Get-Sha ([string]$Path) {

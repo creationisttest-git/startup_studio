@@ -32,9 +32,22 @@ improvement made anywhere else.
 Claude Code only ever loads agents from `~\.claude\agents\` and
 `<project>\.claude\agents\`. Everything else in this table exists to produce those two.
 
-`WAYS_OF_WORKING.md`, `WARM_START.md` and `SOURCE_OF_TRUTH.md` belong to each project and
-are never distributed. `GLOBAL_WAYS_OF_WORKING.md`, `AGENTS.md` and `BRIDGE_PROTOCOL.md`
-are shared and always come from the base.
+`WAYS_OF_WORKING.md` and `WARM_START.md` belong to each project and are never distributed.
+`GLOBAL_WAYS_OF_WORKING.md`, `AGENTS.md` and `BRIDGE_PROTOCOL.md` are shared and always
+come from the base.
+
+That split is deliberate. A shared base can tell every project how to work, but it cannot
+know where any particular project actually is: what is half-built, what is blocked, what
+was decided last week and why. That knowledge only ever exists inside a session, and a
+session ends.
+
+So each project keeps its own state, and `/wind-down` writes it before the session closes.
+`WAYS_OF_WORKING.md` holds what is durable: the architecture, the data model, the decisions
+table, the risks. `WARM_START.md` holds what is current: the state, the next action, what
+is half-finished and exactly where.
+
+The part people leave stale is the resume prompt at the bottom of `WARM_START.md`, and it
+is worth the most. It is the difference between a new session resuming and re-deriving.
 
 ---
 
@@ -143,7 +156,7 @@ Both are solved the same way. One base, layered overlays, generated output.
 ## Starting a new project
 
 1. Copy `_STUDIO\new-project\*` into the project for its own `WAYS_OF_WORKING.md`,
-   `WARM_START.md`, `SOURCE_OF_TRUTH.md` and `CLAUDE.md`, and fill them in.
+   `WARM_START.md` and `CLAUDE.md`, and fill them in.
 2. Run `.\studio.ps1 -Sync` to place the shared governance.
 3. Run `.\studio.ps1 -Tune -Project "<name>"` and fill in the stack card. This is the
    single highest-value file for a project: it tells all sixteen roles what the stack is,
