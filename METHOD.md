@@ -1,4 +1,4 @@
-# The studio method
+﻿# The studio method
 
 How the agent roster and shared governance are managed across every project.
 
@@ -82,6 +82,22 @@ that is unowned or past its review date.
 
 ---
 
+## Releasing
+
+Nothing ships without a changelog entry, and the entry is written before the release.
+
+`CHANGELOG.md` is the single source of what changed and why, written for someone who did
+not build it. The release message is generated from its newest dated section, so the
+repository history and the changelog cannot disagree. Where a project has a private source
+and a public export, one command releases both from the same note.
+
+This is mechanical rather than a matter of care, because the failures it prevents all look
+like success at the time: a change committed to one repository and never pushed to the
+other, a force-pushed history that leaves nothing to diff, and a commit that silently
+failed while the tooling reported it had published.
+
+---
+
 ## Commands
 
 Run from `_STUDIO`.
@@ -95,6 +111,7 @@ Run from `_STUDIO`.
 .\studio.ps1 -Compose -Project "<name>"     rebuild one project from the current base
 .\studio.ps1 -Compose -All                  rebuild every tuned project
 .\studio.ps1 -Governance                    shared governance only
+.\studio.ps1 -Release                       commit private and publish public, one note
 ```
 
 `-WhatIf` previews any of them.

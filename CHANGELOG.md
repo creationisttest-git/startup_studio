@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 What changed and why, written for someone who did not build it.
 
@@ -8,6 +8,22 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-03
 
+### Releasing is now a single, mandatory action
+
+**The problem.** Committing the private source and publishing the public export were
+separate steps someone had to remember. A change reached one repository and not the other,
+and nothing reported the gap. Release messages were also hand-written, so history and
+changelog could drift apart.
+
+**What changed.** `CHANGELOG.md` is the single source of the release note. The commit
+message is generated from its newest dated section, for both repositories, so they cannot
+tell different stories about the same change. `studio.ps1 -Release` commits and pushes the
+private repo and publishes the leak-scanned public export in one action, from that one
+note. `-WhatIf` previews it.
+
+It is now a non-negotiable standing rule in the ways of working and in the tech lead and
+PM mandates: no changelog entry, no release. If you cannot describe the change for someone
+who did not build it, it is not ready to ship.
 ### QA now owns the handoff to human testing, and must explain how to test
 
 **The problem.** Whoever built a piece of work was moving it to UAT the moment it
