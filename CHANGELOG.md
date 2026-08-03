@@ -8,6 +8,14 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-03
 
+### The studio now records its own state
+
+It had `CLAUDE.md` and `METHOD.md`, so a fresh session knew the model but nothing about
+where things stood: what was outstanding, what had been decided, what not to touch and
+why. `WARM_START.md` fills that, with current state, next action, open items, known gaps
+not yet built, the decisions table, and a resume prompt.
+
+The guardian was the one project not following its own governance rules.
 ### Skills, starting with /wind-down
 
 **The problem.** The governance is twenty-five sections of prose that a session has to
