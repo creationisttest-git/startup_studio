@@ -522,7 +522,7 @@ function Publish-Public ([string]$RepoUrl, [switch]$DryRun) {
                 $notes = $sec.Groups[2].Value.Trim()
                 $heads = @([regex]::Matches($notes, '(?m)^### (.+)$') | ForEach-Object { $_.Groups[1].Value })
                 $subject = if ($heads.Count -eq 1) { $heads[0] } elseif ($heads.Count) { "$($heads[0]), and $($heads.Count - 1) other change(s)" } else { "Release $date" }
-                $body = $notes
+                $body = ($notes -replace '(?m)^### .+\r?\n\r?\n?','').Trim()
             }
         }
 
@@ -544,7 +544,8 @@ Studio-Source: $studioSha
         # fenced code blocks and blank lines, and passing that as a native-command argument
         # silently mangles it: the commit fails and staged changes just sit there.
         $msgFile = Join-Path ([IO.Path]::GetTempPath()) ("studio-commit-{0}.txt" -f [guid]::NewGuid())
-        Set-Content $msgFile $msg -Encoding utf8
+        # UTF8 WITHOUT a BOM; Set-Content -Encoding utf8 on PS 5.1 emits one and git keeps it
+        [System.IO.File]::WriteAllText($msgFile, $msg, (New-Object System.Text.UTF8Encoding $false))
         git @idArgs commit -q -F $msgFile
         $committed = ($LASTEXITCODE -eq 0)
         Remove-Item $msgFile -Force -ErrorAction SilentlyContinue
