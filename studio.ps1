@@ -73,6 +73,7 @@ if (-not $ProjectsRoot) { $ProjectsRoot = if ($CONFIG.ProjectsRoot) { $CONFIG.Pr
 if (-not $PublicRepo)   { $PublicRepo   = $CONFIG.PublicRepo }
 
 $AGENT_BASE  = Join-Path $StudioRoot 'base\agents'
+$SKILL_BASE  = Join-Path $StudioRoot 'base\skills'
 $GOV_BASE    = Join-Path $StudioRoot 'base\governance'
 $ARCHIVE     = Join-Path $StudioRoot '.archive'
 $OVERLAY_DIR = '.claude\agent-overlays'
@@ -282,6 +283,29 @@ function Install-GlobalAgents {
     if ($skip.Count) { Write-Host "  HAND-EDITED here, not promoted to base: $($skip -join ', ')" -ForegroundColor Yellow }
 }
 
+# Skills are the procedures: wind-down, release, and so on. Unlike agents they are not
+# composed per project, because a procedure is the same everywhere. A project needing a
+# variant overrides by name in its own .claude/skills.
+function Install-GlobalSkills {
+    if (-not (Test-Path $SKILL_BASE)) { return }
+    $target = Join-Path $env:USERPROFILE '.claude\skills'
+    if (-not (Test-Path $target) -and -not $WhatIf) { New-Item -ItemType Directory -Path $target -Force | Out-Null }
+
+    $upd = @(); $same = @()
+    foreach ($skill in (Get-ChildItem $SKILL_BASE -Directory)) {
+        $src = Join-Path $skill.FullName 'SKILL.md'
+        if (-not (Test-Path $src)) { continue }
+        $dst = Join-Path $target $skill.Name
+        if ((Get-Sha $src) -eq (Get-Sha (Join-Path $dst 'SKILL.md'))) { $same += $skill.Name; continue }
+        if (-not $WhatIf) {
+            New-Item -ItemType Directory -Path $dst -Force | Out-Null
+            Copy-Item "$($skill.FullName)\*" $dst -Recurse -Force
+        }
+        $upd += $skill.Name
+    }
+    Write-Host ("  skills  updated {0}, current {1}{2}" -f $upd.Count, $same.Count, $(if ($upd.Count) { ": $($upd -join ', ')" } else { '' })) -ForegroundColor Gray
+}
+
 function Sync-Governance ([string]$GovRoot, [string]$Label) {
     $upd=@(); $same=@(); $drift=@()
     foreach ($f in $SHARED_GOV) {
@@ -450,6 +474,7 @@ $PUBLIC_MANIFEST = @(
     @{ from = 'LICENSE';      to = 'LICENSE' },
     @{ from = 'LICENCE-NOTES.md'; to = 'LICENCE-NOTES.md' },
     @{ from = 'base\board';   to = 'board' },
+    @{ from = 'base\skills';  to = 'skills' },
     @{ from = 'CNAME';        to = 'CNAME' },
     @{ from = 'robots.txt';   to = 'robots.txt' },
     @{ from = 'sitemap.xml';  to = 'sitemap.xml' },
@@ -764,6 +789,9 @@ function Show-Status ([switch]$Fix) {
     Write-Host "STUDIO" -ForegroundColor Cyan
     Write-Host "  base roster     $($agents.Count) roles   $AGENT_BASE"
     Write-Host "  base governance $($SHARED_GOV.Count) files   $GOV_BASE"
+    $skillCount = if (Test-Path $SKILL_BASE) { (Get-ChildItem $SKILL_BASE -Directory).Count } else { 0 }
+    $skillsInstalled = if (Test-Path (Join-Path $env:USERPROFILE '.claude\skills')) { (Get-ChildItem (Join-Path $env:USERPROFILE '.claude\skills') -Directory -EA SilentlyContinue).Count } else { 0 }
+    Write-Host ("  base skills     {0} skill(s), {1} installed   {2}" -f $skillCount, $skillsInstalled, $SKILL_BASE)
 
     $g = Join-Path $env:USERPROFILE '.claude\agents'
     $missing=@(); $drift=@()
@@ -873,7 +901,8 @@ if ($Publish) {
 if ($Update) {
     Write-Host ""; Write-Host "UPDATE" -ForegroundColor Cyan
     git -C $StudioRoot pull --ff-only 2>&1 | ForEach-Object { "  $_" }
-    Install-GlobalAgents
+Install-GlobalAgents
+    Install-GlobalSkills
     foreach ($p in Find-Projects) { Build-Project $p -Quiet }
     Write-Host ""; Write-Host "Restart the Claude Code session to pick up agent changes." -ForegroundColor Green; Write-Host ""
     return
@@ -921,6 +950,7 @@ if ($Governance) {
 if ($Sync -or $Global) {
     Write-Host ""; Write-Host "SYNC" -ForegroundColor Cyan
     Install-GlobalAgents
+    Install-GlobalSkills
     if ($Sync) {
         $seen = @()
         foreach ($p in Find-Projects) {

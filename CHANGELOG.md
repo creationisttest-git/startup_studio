@@ -8,6 +8,29 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-03
 
+### Skills, starting with /wind-down
+
+**The problem.** The governance is twenty-five sections of prose that a session has to
+read, hold in context and voluntarily follow. Several say "mandatory" or "no prompt
+needed". In practice the procedural ones get skipped: wind-down is Rule 2 and still had to
+be pasted in by hand each time, and the release protocol existed while a change went to
+one repository and not the other.
+
+**What changed.** Procedures now ship as skills rather than paragraphs. The distinction:
+judgment stays in the agents, because an agent applies it continuously while doing
+something else; a procedure has steps and either ran or did not, so it becomes a skill that
+can be invoked and cannot be half-remembered.
+
+`/wind-down` is the first. It finds the governance documents even when they sit in a parent
+venture folder, warns that anything held in context may be stale, reads each file from disk
+in full, edits in place with the decisions table append-only, shows the diff before
+applying, and refuses to touch generated agent files. It exists because a document was once
+regenerated from memory and twenty-seven recorded decisions vanished.
+
+The studio distributes skills the same way it distributes agents: `base/skills/` installs
+to `~/.claude/skills/` on `-Sync`, and `-Status` reports how many exist and how many are
+installed. Roles stay agents, because review needs a separate context and the reviewer must
+never be the author.
 ### Releasing is now a single, mandatory action
 
 **The problem.** Committing the private source and publishing the public export were
