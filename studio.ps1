@@ -516,7 +516,7 @@ function Publish-Public ([string]$RepoUrl, [switch]$DryRun) {
         $clPath  = Join-Path $StudioRoot 'CHANGELOG.md'
         if (Test-Path $clPath) {
             $cl = Get-Content $clPath -Raw
-            $sec = [regex]::Match($cl, '(?ms)^## (\d{4}-\d{2}-\d{2})\s*\r?\n(.*?)(?=^## |\z)')
+            $sec = [regex]::Match($cl, '(?ms)^## (\d{4}-\d{2}-\d{2})\s*\r?\n(.*?)(?=^## \d{4}-\d{2}-\d{2}|^## Earlier|\z)')
             if ($sec.Success) {
                 $date  = $sec.Groups[1].Value
                 $notes = $sec.Groups[2].Value.Trim()
