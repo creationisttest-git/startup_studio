@@ -46,6 +46,7 @@ param(
     [switch]$Governance,
     [switch]$Global,
     [switch]$Publish,
+    [switch]$Release,
     [switch]$Connect,
     [switch]$Autoload,
     [switch]$Update,
@@ -371,6 +372,41 @@ function Build-Project ([string]$ProjectPath, [switch]$Quiet, [switch]$Silent) {
     }
 }
 
+# --------------------------------------------------------------- release note
+
+# CHANGELOG.md is the single source of what changed and why, written for outsiders rather
+# than for us. Both the private commit and the public publish use it, so the two repos
+# never tell different stories about the same release.
+function Get-ReleaseNote {
+    $clPath = Join-Path $StudioRoot 'CHANGELOG.md'
+    if (-not (Test-Path $clPath)) { return $null }
+    $cl = Get-Content $clPath -Raw
+    # the boundary must be a DATED heading; a '##' inside a fenced example would end it early
+    $sec = [regex]::Match($cl, '(?ms)^## (\d{4}-\d{2}-\d{2})\s*\r?\n(.*?)(?=^## \d{4}-\d{2}-\d{2}|^## Earlier|\z)')
+    if (-not $sec.Success) { return $null }
+
+    $notes = $sec.Groups[2].Value.Trim()
+    $heads = @([regex]::Matches($notes, '(?m)^### (.+)$') | ForEach-Object { $_.Groups[1].Value })
+    $subject = if ($heads.Count -eq 1) { $heads[0] }
+               elseif ($heads.Count)   { "$($heads[0]), and $($heads.Count - 1) other change(s)" }
+               else                    { "Release $($sec.Groups[1].Value)" }
+    # the first heading becomes the subject, so it does not need repeating in the body
+    $body = ($notes -replace '(?m)^### .+\r?\n\r?\n?', '').Trim()
+    @{ Date = $sec.Groups[1].Value; Subject = $subject; Body = $body }
+}
+
+# Never `git commit -m` a multi-line message from PowerShell. Fenced code and blank lines
+# get mangled in native-command argument passing: the commit silently fails and the changes
+# just sit staged while the script reports success.
+function Invoke-GitCommitFile ([string]$RepoPath, [string]$Message, $IdArgs) {
+    $tmp = Join-Path ([IO.Path]::GetTempPath()) ("studio-msg-{0}.txt" -f [guid]::NewGuid())
+    [System.IO.File]::WriteAllText($tmp, $Message, (New-Object System.Text.UTF8Encoding $false))
+    git -C $RepoPath @IdArgs commit -q -F $tmp
+    $ok = ($LASTEXITCODE -eq 0)
+    Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    $ok
+}
+
 # --------------------------------------------------------------- publish
 
 # The patterns live in studio.config.ps1, not here, because the list itself names every
@@ -508,30 +544,15 @@ function Publish-Public ([string]$RepoUrl, [switch]$DryRun) {
 
         $studioSha = (git -C $StudioRoot rev-parse HEAD 2>$null).Trim()
 
-        # CHANGELOG.md is the source of the release note, because internal commit subjects
-        # are written for us and mean nothing to someone who just found the repo. Take the
-        # newest dated section verbatim.
-        $subject = "Update: $($changed.Count) file(s) changed"
-        $body    = "Files updated: " + (($changed | Select-Object -First 10) -join ', ')
-        $clPath  = Join-Path $StudioRoot 'CHANGELOG.md'
-        if (Test-Path $clPath) {
-            $cl = Get-Content $clPath -Raw
-            $sec = [regex]::Match($cl, '(?ms)^## (\d{4}-\d{2}-\d{2})\s*\r?\n(.*?)(?=^## \d{4}-\d{2}-\d{2}|^## Earlier|\z)')
-            if ($sec.Success) {
-                $date  = $sec.Groups[1].Value
-                $notes = $sec.Groups[2].Value.Trim()
-                $heads = @([regex]::Matches($notes, '(?m)^### (.+)$') | ForEach-Object { $_.Groups[1].Value })
-                $subject = if ($heads.Count -eq 1) { $heads[0] } elseif ($heads.Count) { "$($heads[0]), and $($heads.Count - 1) other change(s)" } else { "Release $date" }
-                $body = ($notes -replace '(?m)^### .+\r?\n\r?\n?','').Trim()
-            }
-        }
+        $note    = Get-ReleaseNote
+        $subject = if ($note) { $note.Subject } else { "Update: $($changed.Count) file(s) changed" }
+        $body    = if ($note) { $note.Body }    else { "Files updated: " + (($changed | Select-Object -First 10) -join ', ') }
 
         $msg = @"
 $subject
 
 $body
 
----
 $($changed.Count) file(s) changed: $(($changed | Select-Object -First 10) -join ', ')
 Full history and rationale: CHANGELOG.md
 
@@ -539,16 +560,7 @@ Studio-Source: $studioSha
 "@
         $who = $CONFIG.PublishAs
         $idArgs = if ($who) { @('-c', "user.name=$($who.Name)", '-c', "user.email=$($who.Email)") } else { @() }
-
-        # -F a file, never -m. The message carries the changelog section verbatim, including
-        # fenced code blocks and blank lines, and passing that as a native-command argument
-        # silently mangles it: the commit fails and staged changes just sit there.
-        $msgFile = Join-Path ([IO.Path]::GetTempPath()) ("studio-commit-{0}.txt" -f [guid]::NewGuid())
-        # UTF8 WITHOUT a BOM; Set-Content -Encoding utf8 on PS 5.1 emits one and git keeps it
-        [System.IO.File]::WriteAllText($msgFile, $msg, (New-Object System.Text.UTF8Encoding $false))
-        git @idArgs commit -q -F $msgFile
-        $committed = ($LASTEXITCODE -eq 0)
-        Remove-Item $msgFile -Force -ErrorAction SilentlyContinue
+        $committed = Invoke-GitCommitFile $work $msg $idArgs
 
         if (-not $committed) {
             Write-Host ""
@@ -581,6 +593,58 @@ Studio-Source: $studioSha
         Write-Host ("  release note: {0}" -f $subject) -ForegroundColor Gray
     } finally { $ErrorActionPreference = $prevEAP }
     $true
+}
+
+# --------------------------------------------------------------- release
+
+# One action, one note, both repos. Splitting these was how the QA change ended up
+# committed privately and never published, with nothing reporting the gap.
+function Invoke-Release {
+    $note = Get-ReleaseNote
+    if (-not $note) { Write-Host "  No dated section in CHANGELOG.md. Add one before releasing." -ForegroundColor Red; return $false }
+
+    # git writes CRLF notices to stderr and PowerShell treats those as terminating
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { Invoke-ReleaseInner $note } finally { $ErrorActionPreference = $prevEAP }
+}
+
+function Invoke-ReleaseInner ($note) {
+
+    Write-Host ""
+    Write-Host "RELEASE  $($note.Date)" -ForegroundColor Cyan
+    Write-Host "  $($note.Subject)" -ForegroundColor White
+
+    # 1. the private repo, using the same note
+    $dirty = @(git -C $StudioRoot status --porcelain 2>$null | Where-Object { $_ })
+    if ($dirty.Count) {
+        git -C $StudioRoot add -A 2>$null
+        $files = @(git -C $StudioRoot diff --cached --name-only) | Where-Object { $_ }
+        $msg = @"
+$($note.Subject)
+
+$($note.Body)
+
+$($files.Count) file(s) changed: $(($files | Select-Object -First 10) -join ', ')
+"@
+        if ($WhatIf) {
+            Write-Host "  would commit $($files.Count) file(s) to the private repo" -ForegroundColor DarkGray
+        } else {
+            if (-not (Invoke-GitCommitFile $StudioRoot $msg @())) {
+                Write-Host "  PRIVATE COMMIT FAILED. Nothing published." -ForegroundColor Red
+                return $false
+            }
+            git -C $StudioRoot push -q origin HEAD 2>$null
+            if ($LASTEXITCODE -ne 0) { Write-Host "  private push failed" -ForegroundColor Red; return $false }
+            Write-Host "  private : committed and pushed, $($files.Count) file(s)" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "  private : nothing to commit" -ForegroundColor DarkGray
+    }
+
+    # 2. the public repo, from the same note
+    if ($WhatIf) { Write-Host "  would publish to $PublicRepo" -ForegroundColor DarkGray; return $true }
+    Publish-Public $PublicRepo
 }
 
 # --------------------------------------------------------------- autoload
@@ -789,6 +853,13 @@ function Show-Status ([switch]$Fix) {
 if ($Autoload) {
     # Runs on every session start. Must be fast and silent when there is nothing to do.
     try { Invoke-Autoload $Path } catch { }
+    return
+}
+
+if ($Release) {
+    $ok = Invoke-Release
+    if (-not $ok) { exit 1 }
+    Write-Host ""
     return
 }
 
