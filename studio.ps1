@@ -410,6 +410,7 @@ $PUBLIC_MANIFEST = @(
     @{ from = 'studio.ps1';   to = 'studio.ps1' },
     @{ from = 'index.html';   to = 'index.html' },
     @{ from = 'METHOD.md';    to = 'METHOD.md' },
+    @{ from = 'CHANGELOG.md'; to = 'CHANGELOG.md' },
     @{ from = 'LICENSE';      to = 'LICENSE' },
     @{ from = 'LICENCE-NOTES.md'; to = 'LICENCE-NOTES.md' },
     @{ from = 'base\board';   to = 'board' },
@@ -506,28 +507,77 @@ function Publish-Public ([string]$RepoUrl, [switch]$DryRun) {
         }
 
         $studioSha = (git -C $StudioRoot rev-parse HEAD 2>$null).Trim()
-        $subjects  = if ($lastSha) { @(git -C $StudioRoot log --format='%s' "$lastSha..HEAD" 2>$null) } else { @() }
-        $subjects  = @($subjects | Where-Object { $_ }) | Select-Object -First 12
 
-        $summary = if ($subjects.Count) { $subjects -join "`r`n" } else { "Files updated: " + (($changed | Select-Object -First 8) -join ', ') }
+        # CHANGELOG.md is the source of the release note, because internal commit subjects
+        # are written for us and mean nothing to someone who just found the repo. Take the
+        # newest dated section verbatim.
+        $subject = "Update: $($changed.Count) file(s) changed"
+        $body    = "Files updated: " + (($changed | Select-Object -First 10) -join ', ')
+        $clPath  = Join-Path $StudioRoot 'CHANGELOG.md'
+        if (Test-Path $clPath) {
+            $cl = Get-Content $clPath -Raw
+            $sec = [regex]::Match($cl, '(?ms)^## (\d{4}-\d{2}-\d{2})\s*\r?\n(.*?)(?=^## |\z)')
+            if ($sec.Success) {
+                $date  = $sec.Groups[1].Value
+                $notes = $sec.Groups[2].Value.Trim()
+                $heads = @([regex]::Matches($notes, '(?m)^### (.+)$') | ForEach-Object { $_.Groups[1].Value })
+                $subject = if ($heads.Count -eq 1) { $heads[0] } elseif ($heads.Count) { "$($heads[0]), and $($heads.Count - 1) other change(s)" } else { "Release $date" }
+                $body = $notes
+            }
+        }
+
         $msg = @"
-$(if ($subjects.Count -eq 1) { $subjects[0] } else { "Update: $($changed.Count) file(s) changed" })
+$subject
 
-$summary
+$body
 
-$($changed.Count) file(s) changed in this publish.
-Generated export from the studio; see the page and METHOD.md for the model.
+---
+$($changed.Count) file(s) changed: $(($changed | Select-Object -First 10) -join ', ')
+Full history and rationale: CHANGELOG.md
 
 Studio-Source: $studioSha
 "@
         $who = $CONFIG.PublishAs
         $idArgs = if ($who) { @('-c', "user.name=$($who.Name)", '-c', "user.email=$($who.Email)") } else { @() }
-        git @idArgs commit -q -m $msg
+
+        # -F a file, never -m. The message carries the changelog section verbatim, including
+        # fenced code blocks and blank lines, and passing that as a native-command argument
+        # silently mangles it: the commit fails and staged changes just sit there.
+        $msgFile = Join-Path ([IO.Path]::GetTempPath()) ("studio-commit-{0}.txt" -f [guid]::NewGuid())
+        Set-Content $msgFile $msg -Encoding utf8
+        git @idArgs commit -q -F $msgFile
+        $committed = ($LASTEXITCODE -eq 0)
+        Remove-Item $msgFile -Force -ErrorAction SilentlyContinue
+
+        if (-not $committed) {
+            Write-Host ""
+            Write-Host "  COMMIT FAILED. Nothing pushed. Staged changes are in $work" -ForegroundColor Red
+            Pop-Location
+            return $false
+        }
+
         git push -q origin $branch
-        Write-Host ""
-        Write-Host "  published to $RepoUrl ($branch)" -ForegroundColor Green
-        Write-Host ("  {0} file(s) changed: {1}" -f $changed.Count, (($changed | Select-Object -First 6) -join ', ')) -ForegroundColor Gray
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host ""
+            Write-Host "  PUSH FAILED. Committed locally in $work but not published." -ForegroundColor Red
+            Pop-Location
+            return $false
+        }
+
+        # verify against the remote rather than trusting the exit code
+        $localSha  = (git rev-parse HEAD).Trim()
+        $remoteSha = ((git ls-remote origin $branch) -split '\s+')[0]
         Pop-Location
+        if ($localSha -ne $remoteSha) {
+            Write-Host ""
+            Write-Host "  PUBLISH UNVERIFIED: remote head does not match what was pushed." -ForegroundColor Red
+            return $false
+        }
+
+        Write-Host ""
+        Write-Host "  published to $RepoUrl ($branch), commit $($localSha.Substring(0,7))" -ForegroundColor Green
+        Write-Host ("  {0} file(s): {1}" -f $changed.Count, (($changed | Select-Object -First 6) -join ', ')) -ForegroundColor Gray
+        Write-Host ("  release note: {0}" -f $subject) -ForegroundColor Gray
     } finally { $ErrorActionPreference = $prevEAP }
     $true
 }
