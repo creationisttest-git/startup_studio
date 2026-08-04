@@ -6,6 +6,38 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-05
+
+### The public page opens with the founder's problem instead of the product's mechanics
+
+**The problem.** The page led with how the framework works: drop an idea on the board, agents
+build a v1. That tells a reader what happens without telling them why they should care, and
+it asks them to understand a process before they have been given a reason to want one.
+
+**What changed.** The opening now states the two problems a founder actually has, validating
+the idea and getting it built into anything real, and says plainly that with current AI
+coding tools the building is no longer the hard one. Only then does it describe what this is.
+
+It also stops hedging about what "built" means. The claim is a working product in under two
+days with sign-in, features that deliver real value and usage analytics, explicitly not a
+demo that falls over when someone touches it. That distinction is the whole difference
+between a prototype and something you can put in front of a customer, and it is the reason
+the framework exists.
+
+The page speaks in the first person now, because the honest version of this is a founder
+saying what did not work for them before this did. "I tried and tested a lot of setups
+before landing on this one" is doing more work than any claim about the framework, since it
+tells the reader the thing was arrived at rather than designed in the abstract.
+
+A short note under the repository link answers the question a reader will have at the moment
+they consider cloning: it runs on Claude Code, the roles are plain markdown, and moving to
+Codex changes where the files land rather than requiring a rewrite.
+
+The four metadata descriptions, which had drifted into repeating the old mechanics line, now
+carry one short value statement instead.
+
+---
+
 ## 2026-08-04
 
 ### The public site moved to Cloudflare Pages, and now has HTTPS

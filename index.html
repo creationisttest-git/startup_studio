@@ -1,11 +1,11 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>Startup Studio: a shared team of AI agents for solo founders</title>
-<meta name="description" content="Drop an idea on the board. Your AI agents build a real v1 in days. You spend your time finding out if anyone wants it.">
+<meta name="description" content="An open source multi-agent framework that turns your idea into a working product in days, so you can spend your time validating it with real customers.">
 <link rel="canonical" href="https://startupstudio.projectfreedom.xyz/">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="color-scheme" content="dark">
@@ -15,7 +15,7 @@
 <meta property="og:site_name" content="Startup Studio">
 <meta property="og:url" content="https://startupstudio.projectfreedom.xyz/">
 <meta property="og:title" content="Startup Studio: a shared team of AI agents for solo founders">
-<meta property="og:description" content="Drop an idea on the board. Your AI agents build a real v1 in days. You spend your time finding out if anyone wants it.">
+<meta property="og:description" content="An open source multi-agent framework that turns your idea into a working product in days, so you can spend your time validating it with real customers.">
 <meta property="og:image" content="https://startupstudio.projectfreedom.xyz/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -23,7 +23,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Startup Studio: a shared team of AI agents for solo founders">
-<meta name="twitter:description" content="Drop an idea on the board. Your AI agents build a real v1 in days. You spend your time finding out if anyone wants it.">
+<meta name="twitter:description" content="An open source multi-agent framework that turns your idea into a working product in days, so you can spend your time validating it with real customers.">
 <meta name="twitter:image" content="https://startupstudio.projectfreedom.xyz/og.png">
 
 <script type="application/ld+json">
@@ -34,7 +34,7 @@
   "url": "https://startupstudio.projectfreedom.xyz/",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Windows, macOS, Linux",
-  "description": "Drop an idea on the board. Your AI agents build a real v1 in days. You spend your time finding out if anyone wants it.",
+  "description": "An open source multi-agent framework that turns your idea into a working product in days, so you can spend your time validating it with real customers.",
   "license": "https://www.gnu.org/licenses/agpl-3.0.html",
   "codeRepository": "https://github.com/creationisttest-git/startup_studio",
   "keywords": "AI agents, solo founder, kanban, product development, MVP, v1",
@@ -221,11 +221,19 @@
   @keyframes blink { 0%,45% { opacity: 1; } 50%,100% { opacity: 0; } }
 
   .thesis {
-    max-width: 48ch; margin: 2rem 0 0;
+    max-width: 52ch; margin: 2rem 0 0;
     font-size: clamp(1.12rem, 1rem + 0.6vw, 1.5rem);
     line-height: 1.55; text-wrap: pretty;
   }
   .thesis strong { color: var(--bright); font-weight: 400; }
+
+  /* The turn from problem to claim, and the reason it is open. Set below the thesis
+     rather than inside it: the opening line has to survive on its own when it is the
+     only thing a share card or a search result shows. */
+  .thesis-more { max-width: 62ch; margin: 1.5rem 0 0; }
+  .thesis-more p { margin: 0 0 0.9rem; line-height: 1.65; text-wrap: pretty; }
+  .thesis-more p:last-child { margin-bottom: 0; }
+  .thesis-more strong { color: var(--bright); font-weight: 400; }
 
   /* the repo link sits in the masthead so nobody has to hunt for it */
   .repo {
@@ -246,6 +254,13 @@
   .repo a:focus-visible { outline: 2px solid var(--phosphor); outline-offset: 2px; }
   .repo-mark { color: var(--phosphor); font-size: 0.7em; flex: none; }
   .repo-note { color: var(--muted); font-size: 0.78rem; }
+
+  /* Answers the "will this work with my tool" question at the point someone is deciding
+     whether to clone, which is the only place they will think to ask it. */
+  .tooling {
+    max-width: 62ch; margin: 1rem 0 0;
+    color: var(--muted); font-size: 0.86rem; line-height: 1.6; text-wrap: pretty;
+  }
 
   /* ---------- sections ---------- */
 
@@ -456,7 +471,12 @@
   <header class="masthead">
     <p class="boot">for founders and startups <b>&gt;</b> your agents build <b>&gt;</b> you validate</p>
     <h1>Startup<br><span class="sub">Studio</span><span class="caret" aria-hidden="true"></span></h1>
-    <p class="thesis">Drop an idea on the board. Your AI agents build a real v1 in days. <strong>You spend your time finding out if anyone wants it.</strong></p>
+    <p class="thesis">As a struggling founder I had two big problems: validating the idea, and building it into anything real, even a rough prototype or a simple demo. <strong>With Claude and Codex, the building is no longer the hard part.</strong></p>
+
+    <div class="thesis-more">
+      <p>Even with AI there is a lot still left on the table. What I wanted was an idea turned into a real working product in under two days: Google sign-in, features that deliver genuine value, and deep usage analytics, not a demo that falls over when someone touches it.</p>
+      <p>I tried and tested a lot of setups before landing on this one. It is a multi-agent framework that automates the product build with proper guard rails, so you can focus on what matters most as a founder: <strong>validating with customers, and finding opportunities to deliver value to people you are passionate about.</strong> I made it open source hoping it helps other founders who are struggling.</p>
+    </div>
 
     <p class="repo">
       <a href="https://github.com/creationisttest-git/startup_studio">
@@ -465,6 +485,8 @@
       </a>
       <span class="repo-note">Free and open, AGPL-3.0. Clone it and go.</span>
     </p>
+
+    <p class="tooling">It runs on Claude Code, which is what it was designed around. The roles themselves are just markdown files, so if you would rather use Codex, the only thing that needs changing is where those files land.</p>
   </header>
 
   <section id="why">
