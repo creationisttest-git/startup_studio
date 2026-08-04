@@ -117,7 +117,8 @@ anything to anyone.
 **A GitHub Pages site behind a proxying DNS provider is the combination to avoid.** GitHub
 will not issue a certificate while it sees the proxy's addresses, so the record must be
 DNS-only. A studio site spent more than 47 hours without HTTPS on exactly this pairing, with
-every configuration check passing throughout.
+every configuration check passing throughout. It was resolved by moving the site to Pages
+hosting on the same vendor as its DNS, where the certificate issued in under a minute.
 
 If you are on that pairing anyway:
 

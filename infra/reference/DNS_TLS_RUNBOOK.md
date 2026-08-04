@@ -5,6 +5,12 @@ Standing a custom domain up, and what to do when the certificate does not arrive
 Written after a studio site spent more than 47 hours without HTTPS while every
 configuration check passed. Nothing here is theoretical.
 
+**How that one ended:** the site was moved to Pages hosting on the same vendor as its DNS,
+and the certificate issued in under a minute. The configuration on the original host was
+never wrong, which is exactly why no amount of fixing it helped. If you reach the escalation
+section below and the answer is "the configuration is correct and the queue is theirs",
+moving hosts is a legitimate resolution and usually a faster one than waiting.
+
 ---
 
 ## The short version

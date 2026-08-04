@@ -8,6 +8,37 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-04
 
+### The public site moved to Cloudflare Pages, and now has HTTPS
+
+**The problem.** The site had been served over plain HTTP for more than 47 hours because
+GitHub Pages never issued a TLS certificate. Every check passed throughout: DNS resolved to
+the right place, the record was unproxied, the `CNAME` file was present, the ACME challenge
+path was reachable over HTTP and returned a clean 404 rather than a redirect, CAA permitted
+the issuing authority, and GitHub's own health endpoint reported `is_valid: true` with no
+error. The certificate state simply sat at `new` — the request had never started.
+
+Two days went into diagnosing a configuration that was never wrong, including one full
+teardown and rebuild that changed nothing because there was nothing to fix.
+
+**What changed.** The site is now served by Cloudflare Pages from the same repository, with
+the domain on the same vendor. The certificate issued in under a minute. HTTP redirects to
+HTTPS automatically.
+
+That is not a workaround, it is the infrastructure standard published earlier the same day
+being applied to the studio's own site. The standard already said to host and DNS with one
+vendor, and named a static-host-behind-a-different-DNS-provider pairing as the combination
+to avoid. The site was the counter-example in its own documentation.
+
+**What this means for releasing.** Nothing. `studio.ps1 -Release` is unchanged: it pushes
+to `main`, and the host rebuilds on push. No build command, no framework preset, static
+files from the repository root.
+
+The runbook in `infra/reference/DNS_TLS_RUNBOOK.md` now records the outcome as well as the
+procedure, including the checks that correctly proved the configuration was fine. Those
+checks were not wasted; they are what made it safe to stop trying to fix it.
+
+---
+
 ### Drift now says which direction it drifted
 
 **The problem.** When an installed agent differed from the base, the tool called it "drift"
