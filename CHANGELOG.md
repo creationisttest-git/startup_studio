@@ -8,6 +8,38 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-04
 
+### Drift now says which direction it drifted
+
+**The problem.** When an installed agent differed from the base, the tool called it "drift"
+and said someone had edited the install. That is one of two possible causes and it is a
+coin flip which. Either the base moved forward and the install has not caught up, which is
+harmless, or the install was edited directly and holds a lesson that exists nowhere else.
+
+The two need opposite responses, and both wrong answers destroy something. Syncing over a
+hand-edited install erases the only copy of that change. Promoting a merely stale install
+into the base reverts the improvement for every project. This ambiguity has already come
+within one command of force-pushing away eight files of accumulated agent learnings.
+
+There was also no way to tell them apart even in principle, because nothing recorded what
+each installed file had been installed *from*.
+
+**What changed.** The installer now writes `.install-manifest.json` alongside the installed
+roles, recording the base hash each one came from. `-Status` classifies every difference
+against it and reports four states rather than one: missing, out of date, hand-edited, and
+unknown. Each carries the response that fits, and unknown is reported honestly as unknown
+rather than guessed.
+
+The guard also stopped crying wolf. Previously any difference required `-Force` to
+overwrite, including the ordinary case of the base having moved on, which trains a person
+to reach for `-Force` reflexively — and a guard that is always overridden is not a guard.
+Now a file that still matches what it was installed from is simply updated, and `-Force` is
+demanded only where something would genuinely be lost.
+
+A role skipped as hand-edited deliberately keeps its stale manifest entry. That entry is
+the evidence, and overwriting it would erase the thing that proves the install diverged.
+
+---
+
 ### An infrastructure standard, so every project stops choosing a stack from scratch
 
 **The problem.** Five projects had reached three hosting providers, three datastores and

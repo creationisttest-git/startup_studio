@@ -267,20 +267,64 @@ function Get-GovRoot ([string]$ProjectPath) {
 
 # --------------------------------------------------------------- actions
 
+# Records the base hash each role was installed from. Without it a difference between base
+# and install is directionless: it looks identical whether the base moved forward (safe,
+# just sync) or somebody hand-edited the install (dangerous, promote to base FIRST). That
+# ambiguity once came within one command of force-pushing away eight files of accumulated
+# agent learnings, so the manifest exists to make the two cases distinguishable.
+$INSTALL_MANIFEST = '.install-manifest.json'
+
+function Read-InstallManifest ([string]$Target) {
+    $p = Join-Path $Target $INSTALL_MANIFEST
+    if (-not (Test-Path $p)) { return @{} }
+    $h = @{}
+    try {
+        $j = Get-Content $p -Raw | ConvertFrom-Json
+        foreach ($prop in $j.PSObject.Properties) { $h[$prop.Name] = $prop.Value }
+    } catch { }
+    $h
+}
+
+function Write-InstallManifest ([string]$Target, [hashtable]$Map) {
+    $p = Join-Path $Target $INSTALL_MANIFEST
+    $json = ($Map.GetEnumerator() | Sort-Object Name | ForEach-Object { [pscustomobject]@{ n = $_.Name; v = $_.Value } } |
+             ForEach-Object -Begin { $o = [ordered]@{} } -Process { $o[$_.n] = $_.v } -End { [pscustomobject]$o }) |
+            ConvertTo-Json -Depth 3
+    [System.IO.File]::WriteAllText($p, $json, (New-Object System.Text.UTF8Encoding $false))
+}
+
 function Install-GlobalAgents {
     $files  = Get-BaseAgents
     $target = Join-Path $env:USERPROFILE '.claude\agents'
     if (-not (Test-Path $target) -and -not $WhatIf) { New-Item -ItemType Directory -Path $target -Force | Out-Null }
-    $upd=@(); $same=@(); $skip=@()
+    $man = Read-InstallManifest $target
+    $upd=@(); $same=@(); $skip=@(); $unknown=@()
     foreach ($f in $files) {
-        $d = Join-Path $target $f.Name; $dh = Get-Sha $d
-        if ($null -eq $dh)                     { if(-not $WhatIf){Copy-Item $f.FullName $d -Force}; $upd+=$f.BaseName }
-        elseif ($dh -eq (Get-Sha $f.FullName)) { $same+=$f.BaseName }
-        elseif ($Force)                        { if(-not $WhatIf){Copy-Item $f.FullName $d -Force}; $upd+=$f.BaseName }
-        else                                   { $skip+=$f.BaseName }
+        $d = Join-Path $target $f.Name; $dh = Get-Sha $d; $bh = Get-Sha $f.FullName
+        $rec = $man[$f.BaseName]
+        if ($null -eq $dh)     { if(-not $WhatIf){Copy-Item $f.FullName $d -Force}; $upd+=$f.BaseName;  $man[$f.BaseName] = $bh }
+        elseif ($dh -eq $bh)   { $same+=$f.BaseName;                                                    $man[$f.BaseName] = $bh }
+        # The install still matches what it was installed from, so the base is simply newer
+        # and there is nothing here to lose. Overwrite without ceremony. A guard that fires
+        # on every base change is a guard people learn to pass -Force to reflexively.
+        elseif ($rec -and $dh -eq $rec) { if(-not $WhatIf){Copy-Item $f.FullName $d -Force}; $upd+=$f.BaseName; $man[$f.BaseName] = $bh }
+        elseif ($Force)        { if(-not $WhatIf){Copy-Item $f.FullName $d -Force}; $upd+=$f.BaseName;  $man[$f.BaseName] = $bh }
+        elseif ($rec)          { $skip+=$f.BaseName }
+        else                   { $unknown+=$f.BaseName }
+        # A skipped role keeps whatever it was last installed from. That stale entry is the
+        # evidence the install has since been hand-edited; overwriting it would erase it.
     }
+    if (-not $WhatIf) { Write-InstallManifest $target $man }
     Write-Host "  agents  updated $($upd.Count), current $($same.Count)" -ForegroundColor Gray
-    if ($skip.Count) { Write-Host "  HAND-EDITED here, not promoted to base: $($skip -join ', ')" -ForegroundColor Yellow }
+    if ($skip.Count) {
+        Write-Host "  EDITED IN THE INSTALL, so not overwritten: $($skip -join ', ')" -ForegroundColor Yellow
+        Write-Host "  that change exists nowhere else. Promote it into base\agents, then sync." -ForegroundColor Yellow
+    }
+    if ($unknown.Count) {
+        Write-Host "  differs with no record of what it was installed from: $($unknown -join ', ')" -ForegroundColor Yellow
+        Write-Host "  direction unknown, so not overwritten. Diff against base\agents, then -Sync -Force" -ForegroundColor Yellow
+        Write-Host "  once you are satisfied nothing is lost. That records the baseline for next time." -ForegroundColor Yellow
+    }
 }
 
 # Skills are the procedures: wind-down, release, and so on. Unlike agents they are not
@@ -821,17 +865,37 @@ function Show-Status ([switch]$Fix) {
     $skillsInstalled = if (Test-Path (Join-Path $env:USERPROFILE '.claude\skills')) { (Get-ChildItem (Join-Path $env:USERPROFILE '.claude\skills') -Directory -EA SilentlyContinue).Count } else { 0 }
     Write-Host ("  base skills     {0} skill(s), {1} installed   {2}" -f $skillCount, $skillsInstalled, $SKILL_BASE)
 
+    # A base/install difference has two opposite causes and only one is dangerous. Classify
+    # it against the install manifest rather than reporting "drift" and leaving the reader
+    # to guess, because the wrong guess here is destructive in both directions: syncing over
+    # a hand-edited install destroys the edit, and promoting a stale install to the base
+    # reverts everyone.
     $g = Join-Path $env:USERPROFILE '.claude\agents'
-    $missing=@(); $drift=@()
+    $man = Read-InstallManifest $g
+    $missing=@(); $behind=@(); $edited=@(); $unknown=@()
     foreach ($f in $agents) {
         $d = Join-Path $g $f.Name
-        if (-not (Test-Path $d)) { $missing += $f.BaseName } elseif ((Get-Sha $f.FullName) -ne (Get-Sha $d)) { $drift += $f.BaseName }
+        if (-not (Test-Path $d)) { $missing += $f.BaseName; continue }
+        $dh = Get-Sha $d; $bh = Get-Sha $f.FullName
+        if ($dh -eq $bh) { continue }
+        $rec = $man[$f.BaseName]
+        if (-not $rec)        { $unknown += $f.BaseName }
+        elseif ($dh -eq $rec) { $behind  += $f.BaseName }
+        else                  { $edited  += $f.BaseName }
     }
+    $off = $missing.Count + $behind.Count + $edited.Count + $unknown.Count
     Write-Host ""
     Write-Host "BASE INSTALL (used by untuned projects)" -ForegroundColor Cyan
     Write-Host ("  $g")
-    Write-Host ("  missing {0}, drifted {1}" -f $missing.Count, $drift.Count) -ForegroundColor $(if($missing.Count -or $drift.Count){'Yellow'}else{'Gray'})
-    if ($drift.Count) { Write-Host "  drift means someone edited the install instead of the base: $($drift -join ', ')" -ForegroundColor Yellow }
+    Write-Host ("  missing {0}, out of date {1}, hand-edited {2}, unknown {3}" -f $missing.Count, $behind.Count, $edited.Count, $unknown.Count) -ForegroundColor $(if($off){'Yellow'}else{'Gray'})
+    if ($behind.Count)  { Write-Host "  the BASE moved on and the install has not caught up. Safe: -Sync" -ForegroundColor Gray
+                          Write-Host "    $($behind -join ', ')" -ForegroundColor Gray }
+    if ($edited.Count)  { Write-Host "  the INSTALL was edited directly. Do NOT sync over it; that lesson exists nowhere else." -ForegroundColor Yellow
+                          Write-Host "  promote the change into base\agents first, then -Sync." -ForegroundColor Yellow
+                          Write-Host "    $($edited -join ', ')" -ForegroundColor Yellow }
+    if ($unknown.Count) { Write-Host "  differs, and no record of what it was installed from, so the direction is unknown." -ForegroundColor Yellow
+                          Write-Host "  diff it against base\agents before syncing. -Sync records the answer for next time." -ForegroundColor Yellow
+                          Write-Host "    $($unknown -join ', ')" -ForegroundColor Yellow }
 
     Write-Host ""
     Write-Host "PROJECTS" -ForegroundColor Cyan
