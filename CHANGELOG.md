@@ -8,6 +8,27 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-03
 
+### /wind-down knows what to check before committing
+
+**The problem.** Wind-down often ends with someone asking for the governance documents to be
+committed, which is exactly when `git add -A` gets typed. A real session hit two traps in one
+go. The documents lived in a nested repository with its own `.git`, so the parent excluded the
+folder and force-adding into the parent would have been wrong. And a credentials file sat in
+that nested repo untracked but *not ignored*, one `git add -A` from being committed forever,
+because every secret rule in the parent gitignore stops at a nested repo boundary.
+
+The session flagged the file as safe on the grounds that nothing had committed it yet. That is
+true about the past and wrong about the next command.
+
+**What changed.** The skill now runs four checks before staging anything. Which repository you
+are actually in, since a nested `.git` usually explains the ignore rule, and the comment above
+a rule tends to hold the answer the rule alone does not. Whether sensitive files are ignored
+rather than merely untracked, because only ignored files are actually safe. That a nested repo
+inherits none of the parent's protections and needs its own. And whether the repo has a remote
+at all, since a commit with nowhere to go buys integrity but not durability, and surviving the
+machine is half the point of writing state down.
+
+Staging is by name. `git add -A` is out.
 ### The new-project scaffold teaches, and SOURCE_OF_TRUTH is retired
 
 **The problem.** `WARM_START.md` in the scaffold was 200 bytes of four headings and four

@@ -115,6 +115,47 @@ down records state; it does not ship.
 
 ---
 
+## If you are asked to commit the governance documents
+
+This is the moment wind-down turns dangerous, because it is when someone reaches for
+`git add -A`. Four checks first, in order. None is optional.
+
+**Which repository are you actually in?** Run `git rev-parse --show-toplevel`. A project
+folder can contain a nested repository with its own `.git`, and a parent `.gitignore`
+excluding that folder is usually why: you cannot sensibly track a nested repo's files from
+outside it. If the documents live in the nested repo, commit them there.
+
+Read the comment above an ignore rule, not just the rule. The rule tells you what is
+excluded; the comment tells you why, and the why usually contains the answer.
+
+**Untracked is not the same as ignored.** A file that is untracked *and unignored* appears
+as `??` in `git status` and is one `git add -A` from being committed permanently. An
+ignored file does not appear at all. Never conclude a sensitive file is safe because
+nothing has committed it yet.
+
+Before staging anything, list what is untracked and unignored, and look for credential
+shapes in the names and contents: `.env`, anything with `secret`, `key`, `token` or
+`credentials` in the name, service-account JSON, and long base64-looking strings. Report
+what you find without opening or printing the values.
+
+**A nested repository inherits none of the parent's protections.** Every secret rule in the
+parent `.gitignore` stops at that boundary. If the nested repo needs the same rules, it
+needs its own copy of them. Fix the ignore rules *before* the first commit, not after; once
+a credential is in history, removing it is a rewrite, not a delete.
+
+**Stage by name. Never `git add -A` or `git add .`** in a wind-down. You are committing two
+or three known documents, so name them.
+
+**Then check the repository has a remote.** `git remote -v`. A commit with no remote buys
+integrity but not durability: the history dies with the disk, and surviving the machine is
+half the point of writing state down. If there is no remote, say so plainly rather than
+reporting the commit as done.
+
+After committing, confirm what actually went in with `git show --stat`, and say if anything
+unexpected came along.
+
+---
+
 ## Step 6: confirm and stop
 
 Say "wind-down complete" and stop. State in one line what a fresh session should do next.
