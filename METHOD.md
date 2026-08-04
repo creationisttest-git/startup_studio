@@ -49,6 +49,17 @@ is half-finished and exactly where.
 The part people leave stale is the resume prompt at the bottom of `WARM_START.md`, and it
 is worth the most. It is the difference between a new session resuming and re-deriving.
 
+**Both files must be imported from the project's `CLAUDE.md`, with a line reading
+`@WARM_START.md`.** `CLAUDE.md` is the only file a session loads on its own. A warm start
+that nothing imports gets written carefully at the end of every session and opened at the
+start of none, which is the same outcome as never writing it, for more effort. The import
+resolves relative to the `CLAUDE.md` that declares it, so if the documents sit in a
+subfolder the path has to say so.
+
+This is easy to miss because nothing breaks. The studio itself sat like that for two days
+while maintaining everyone else's copies. `studio.ps1 -Status` now reports it under STATE
+DOCUMENTS, for every project and for the studio.
+
 ---
 
 ## The routing test

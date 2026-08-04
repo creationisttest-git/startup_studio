@@ -782,6 +782,34 @@ function Get-SessionFolders {
 
 # --------------------------------------------------------------- reporting
 
+# A project can write its state faithfully at the end of every session and still never read
+# it back, because CLAUDE.md is the only file a session loads automatically. If WARM_START.md
+# is not imported from there it is a file nobody opens, which is indistinguishable from not
+# having written it. The studio itself was in exactly that state for two days.
+function Get-StateDocStatus ([string]$ProjectPath) {
+    $skip = '\\node_modules\\|\\\.archive\\|\\\.git\\|\\\.public\\|\\\.publish-work\\|\\new-project\\'
+
+    $warm = Get-ChildItem $ProjectPath -Filter 'WARM_START.md' -Recurse -Depth 2 -File -EA SilentlyContinue |
+            Where-Object { $_.FullName -notmatch $skip } | Select-Object -First 1
+    if (-not $warm) { return [pscustomobject]@{ State='missing'; Detail='no WARM_START.md, this project keeps no state' } }
+
+    # The import only resolves relative to the CLAUDE.md that declares it, so the one that
+    # matters is beside the warm start, or at the project root reaching down to it.
+    $claudes = @(
+        (Join-Path $warm.DirectoryName 'CLAUDE.md')
+        (Join-Path $ProjectPath 'CLAUDE.md')
+    ) | Where-Object { Test-Path $_ } | Select-Object -Unique
+
+    if (-not $claudes.Count) { return [pscustomobject]@{ State='orphan'; Detail='WARM_START.md exists but there is no CLAUDE.md to load it' } }
+
+    foreach ($c in $claudes) {
+        if ((Get-Content $c -Raw -EA SilentlyContinue) -match '@[^\r\n]*WARM_START\.md') {
+            return [pscustomobject]@{ State='ok'; Detail=$warm.FullName.Replace("$ProjectsRoot\", '') }
+        }
+    }
+    [pscustomobject]@{ State='unread'; Detail='WARM_START.md is written but no CLAUDE.md imports it, so no session reads it' }
+}
+
 function Show-Status ([switch]$Fix) {
     $agents = Get-BaseAgents
     Write-Host ""
@@ -838,6 +866,28 @@ function Show-Status ([switch]$Fix) {
             }
             if ($gd.Count) { Write-Host ("      governance drifted: {0}" -f ($gd -join ', ')) -ForegroundColor Yellow }
         }
+    }
+
+    # Does each project actually read its own state back? The studio is checked first and by
+    # name, because Find-Projects skips folders starting with an underscore and the guardian
+    # should not be the one thing nobody watches.
+    Write-Host ""
+    Write-Host "STATE DOCUMENTS" -ForegroundColor Cyan
+    $stateTargets = @([pscustomobject]@{ Name='_STUDIO'; Path=$PSScriptRoot })
+    foreach ($p in Find-Projects) { $stateTargets += [pscustomobject]@{ Name=$p.Replace("$ProjectsRoot\", ''); Path=$p } }
+
+    $unread = 0
+    foreach ($t in $stateTargets) {
+        $s = Get-StateDocStatus $t.Path
+        switch ($s.State) {
+            'ok'      { Write-Host ("  ok       {0}" -f $t.Name) -ForegroundColor Gray }
+            'missing' { Write-Host ("  none     {0}   {1}" -f $t.Name, $s.Detail) -ForegroundColor DarkGray }
+            default   { $unread++; Write-Host ("  UNREAD   {0}   {1}" -f $t.Name, $s.Detail) -ForegroundColor Yellow }
+        }
+    }
+    if ($unread) {
+        Write-Host "  a warm start nothing imports is written every session and read in none." -ForegroundColor Yellow
+        Write-Host "  fix: add a line reading '@WARM_START.md' to that project's CLAUDE.md." -ForegroundColor Yellow
     }
 
     # Every place the studio standard has been bent, in one view. Without this a register

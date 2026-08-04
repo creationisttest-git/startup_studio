@@ -6,6 +6,37 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-04
+
+### A warm start that nothing imports is a file nobody opens
+
+**The problem.** Each project keeps its own state in `WARM_START.md`: what is true now, the
+single next action, what is deliberately unbuilt, and the decisions already settled. The
+`/wind-down` skill writes it carefully at the end of every session.
+
+None of that helps if no session reads it back. `CLAUDE.md` is the only file loaded
+automatically, so a warm start is only reachable if `CLAUDE.md` imports it with a line
+reading `@WARM_START.md`. Where that line is missing, the state gets written every session
+and opened in none, which is the same outcome as never writing it, for more effort.
+
+Nothing breaks when this is wrong, which is why it survives. The studio itself had been in
+that state for two days while maintaining the same documents for every other project. Its
+own next action and its own settled decisions were sitting in a file no session loaded.
+
+**What changed.** `-Status` and `-Doctor` gained a STATE DOCUMENTS section reporting, for
+every project, whether a warm start exists and whether anything actually imports it. Three
+outcomes: `ok`, `none` for projects that keep no state, and `UNREAD` for the failure this
+describes, with the one-line fix. The check looks beside the warm start and at the project
+root, because the import resolves relative to the `CLAUDE.md` that declares it.
+
+The studio is checked first and by name. Project discovery skips folders starting with an
+underscore, so without that the guardian would have stayed the one thing not being watched.
+
+`METHOD.md` now states the requirement where the two documents are introduced, rather than
+leaving it as something you find out by not doing it.
+
+---
+
 ## 2026-08-03
 
 ### /wind-down knows what to check before committing
