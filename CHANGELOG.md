@@ -29,9 +29,20 @@ being applied to the studio's own site. The standard already said to host and DN
 vendor, and named a static-host-behind-a-different-DNS-provider pairing as the combination
 to avoid. The site was the counter-example in its own documentation.
 
-**What this means for releasing.** Nothing. `studio.ps1 -Release` is unchanged: it pushes
-to `main`, and the host rebuilds on push. No build command, no framework preset, static
-files from the repository root.
+**Pushing turned out not to be publishing.** The host's git webhook does not fire. Its
+dashboard says the project is "disconnected from your Git account" while simultaneously
+showing the repository connected with automatic deployments enabled on `main`, and a test
+push provably produced no build. A release that reports success while the site keeps serving
+an older build is the exact failure this changelog rule exists to prevent, so it was not
+left as a manual step.
+
+`-Release` now asks for the rebuild directly, via a deploy hook that does not depend on that
+linkage. The hook URL is a credential and lives in the private config rather than in the
+published script. If the rebuild is refused or unreachable, the release says so plainly and
+states that the site is still serving the previous build, rather than printing success.
+
+Otherwise releasing is unchanged: one command, one note, both repositories. No build
+command, no framework preset, static files from the repository root.
 
 The runbook in `infra/reference/DNS_TLS_RUNBOOK.md` now records the outcome as well as the
 procedure, including the checks that correctly proved the configuration was fine. Those

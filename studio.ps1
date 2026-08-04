@@ -660,8 +660,39 @@ Studio-Source: $studioSha
         Write-Host "  published to $RepoUrl ($branch), commit $($localSha.Substring(0,7))" -ForegroundColor Green
         Write-Host ("  {0} file(s): {1}" -f $changed.Count, (($changed | Select-Object -First 6) -join ', ')) -ForegroundColor Gray
         Write-Host ("  release note: {0}" -f $subject) -ForegroundColor Gray
+
+        Invoke-SiteDeploy
     } finally { $ErrorActionPreference = $prevEAP }
     $true
+}
+
+# Pushing is not publishing when the host does not rebuild on push.
+#
+# The site host reports the project as disconnected from the git account while simultaneously
+# showing the repository connected with automatic deployments on, and a push provably did not
+# produce a build. Rather than depend on a linkage that reports itself as both, the release
+# asks for the rebuild directly.
+#
+# The hook URL is a credential and lives in studio.config.ps1, which is never published. With
+# no hook configured this says so and moves on, because a studio that does not host a public
+# site should not be nagged about one.
+function Invoke-SiteDeploy {
+    $hook = $CONFIG.PagesDeployHook
+    if (-not $hook) { return }
+    if ($WhatIf)   { Write-Host "  would trigger a site rebuild" -ForegroundColor DarkGray; return }
+
+    try {
+        $r = Invoke-RestMethod -Uri $hook -Method Post -TimeoutSec 30
+        if ($r.success) { Write-Host "  site rebuild triggered" -ForegroundColor Gray }
+        else {
+            $why = ($r.errors | ForEach-Object { $_.message }) -join '; '
+            Write-Host "  SITE REBUILD REFUSED: $why" -ForegroundColor Yellow
+            Write-Host "  the push succeeded; the site is serving the previous build until this is fixed." -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "  SITE REBUILD FAILED: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "  the push succeeded; the site is serving the previous build until this is fixed." -ForegroundColor Yellow
+    }
 }
 
 # --------------------------------------------------------------- release
