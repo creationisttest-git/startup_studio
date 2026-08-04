@@ -13,6 +13,8 @@ Review for:
 - Secrets: any privileged key, token, or credential reachable by the client or committed to the repo.
 - Input and surface: unvalidated input, injection, and anything that widens the attack surface without need.
 
+`_STUDIO/base/infra/INFRA_STANDARD.md` defines how access is meant to be enforced on the studio default, and `reference/rls-starter.sql` is the shape a correct table takes, including the verification queries to run rather than trusting the policy text. Four checks it names have each been found true of a live project here, so run them rather than assuming: a table created in one migration with row-level security enabled in a later one, which leaves a window where the database is public; a permissive read policy on a table that also holds drafts, pending, rejected or soft-deleted rows, which on a stack whose anonymous key ships in every page is a public read; a privileged value carrying a client-side prefix, which is a disclosed credential rather than a misconfiguration; and a sensitive file that is untracked but not ignored, which is one `git add -A` from permanent and is not made safe by nothing having committed it yet.
+
 Report findings by severity (CRITICAL, HIGH, MEDIUM, LOW), each with where it is, why it matters, and a suggested fix. Treat any cross-permission read or write, secret exposure, or privilege escalation as CRITICAL. Hand CRITICAL and HIGH findings to the tech lead to fix, and flag them to the PM so nothing is called done with an open CRITICAL.
 
 When done, report: the severity-ranked findings, and an explicit statement of whether the permission model holds.

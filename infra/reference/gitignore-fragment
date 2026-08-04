@@ -1,0 +1,58 @@
+# Studio secret rules. Paste at the TOP of a project's .gitignore, before the first commit.
+#
+# Order matters less than timing. A credential removed after it lands in history is a
+# rewrite, not a delete, and every clone that already exists keeps the old copy.
+#
+# These rules stop at a nested repository boundary. A repo inside another repo inherits
+# none of this and needs its own copy.
+
+# Environment values. The repo carries names, in env.example, never values.
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+
+# Platform and cloud credentials
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*-service-account*.json
+*serviceaccount*.json
+credentials.json
+gha-creds-*.json
+
+# Anything named like a secret, whatever the extension
+*secret*
+*SECRET*
+*_token
+*.token
+*credentials*
+!*credentials*.md
+
+# Local platform state
+.vercel
+.wrangler
+.supabase
+.sst
+.aws-sam
+
+# Build output and caches
+node_modules/
+.next/
+dist/
+build/
+out/
+.turbo/
+coverage/
+
+# Generated agent rosters. Build output from the studio, never edited, never committed.
+.claude/agents/
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/

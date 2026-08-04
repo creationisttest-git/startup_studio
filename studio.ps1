@@ -474,6 +474,7 @@ $PUBLIC_MANIFEST = @(
     @{ from = 'LICENSE';      to = 'LICENSE' },
     @{ from = 'LICENCE-NOTES.md'; to = 'LICENCE-NOTES.md' },
     @{ from = 'base\board';   to = 'board' },
+    @{ from = 'base\infra';   to = 'infra' },
     @{ from = 'base\skills';  to = 'skills' },
     @{ from = 'robots.txt';   to = 'robots.txt' },
     @{ from = 'sitemap.xml';  to = 'sitemap.xml' },

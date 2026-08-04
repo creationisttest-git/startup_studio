@@ -8,6 +8,45 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-04
 
+### An infrastructure standard, so every project stops choosing a stack from scratch
+
+**The problem.** Five projects had reached three hosting providers, three datastores and
+three unrelated authorization models. The cost of that is not the bill. It is that "how is
+access actually enforced here" has a different answer in every project, and that is the
+single highest-risk thing a reviewer checks. A role that has to relearn the enforcement
+model per project will eventually check the wrong one and find nothing wrong.
+
+**What changed.** `base/infra/INFRA_STANDARD.md` names a default — Next.js, Supabase,
+Cloudflare Pages — chosen because nothing in it bills for existing, and because one auth
+model studio-wide means one thing to review. It is not aspirational; it is the stack already
+proven on the most complete product here.
+
+Deviation stays legitimate but needs a named trigger: a static site with no accounts should
+not have Postgres dragged into it, and a product already running on another stack is not
+migrated for consistency, it gets a cost ceiling instead. Anything else is a preference, and
+preferences do not get their own stack.
+
+Beside it, `base/infra/reference/` carries working starting points rather than prose: ignore
+rules meant to go in before the first commit, an `env.example` that explains the public
+versus server-side prefix boundary as a security boundary rather than a naming style, a
+default-deny row-level security schema with the verification queries to run instead of
+trusting the policy text, and a DNS and TLS runbook.
+
+Four rules in it were learned rather than designed. Enable row-level security in the same
+migration that creates the table, because the gap between the two is a public database.
+Do not run two vendors for one job. Infrastructure that exists only in a hosting dashboard
+cannot be rebuilt or handed over, and a site can serve correctly for months that way before
+anyone notices. And never cycle a domain to hurry a certificate: a studio site spent more
+than 47 hours without HTTPS while every configuration check passed, and re-adding the domain
+restarts issuance from zero.
+
+The standard reaches the roster rather than sitting in a document. tech-lead does not open a
+stack debate on a new project, devops-engineer owns the reproducibility and DNS rules,
+backend-engineer starts tables from the default-deny schema, and security-reviewer audits
+against four failures that have each been found true of a live project here.
+
+---
+
 ### A warm start that nothing imports is a file nobody opens
 
 **The problem.** Each project keeps its own state in `WARM_START.md`: what is true now, the
