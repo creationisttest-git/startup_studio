@@ -1,3 +1,37 @@
+# Cloudflare prepends a managed block above this file which disallows the AI crawlers
+# across the whole zone. That toggle has no per-hostname setting, and the other hostnames
+# on this zone should stay blocked, so the exception is declared here instead.
+#
+# This site is meant to be found. It is AGPL, the code is public, and the people it is for
+# increasingly ask an assistant rather than a search engine. Being unreadable by assistants
+# costs discovery and protects nothing that is not already public.
+#
+# Same-agent groups are merged by conforming parsers, and on an equal-length path the least
+# restrictive rule wins, so these should override the managed disallows. That behaviour is
+# documented by Google and followed by most crawlers, but it is not guaranteed for all of
+# them. Verify the served file rather than assuming.
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
 User-agent: *
 Allow: /
 

@@ -8,6 +8,30 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-05
 
+### Assistants are allowed to read this site, and only this site
+
+**The problem.** The host was blocking AI crawlers across the entire zone, including
+`ClaudeBot`, `GPTBot`, `Google-Extended` and `CCBot`, through a managed `robots.txt` block
+prepended to whatever the site serves.
+
+For most sites that is a sensible default. For this one it is backwards. The framework is
+given away under AGPL, the code is already public, and the founders it is written for
+increasingly ask an assistant rather than a search engine. Being unreadable by assistants
+costs discovery and protects nothing that was not already public.
+
+**Why it is done here rather than in the host's settings.** That control has no
+per-hostname granularity. Both the managed block and the per-crawler blocking apply to the
+whole zone, and the other hostnames on this zone, including a UAT environment, should stay
+blocked. `robots.txt` is the only lever that is per-hostname, so the exception is declared
+in this site's own file and nothing else changes.
+
+Same-agent groups are merged by conforming parsers, and on an equal-length path the least
+restrictive rule wins, so the allows here should override the managed disallows. That
+behaviour is documented by Google and followed by most crawlers but guaranteed by none, so
+the served file is verified after release rather than assumed correct.
+
+---
+
 ### The sitemap was unreadable, and three other things search engines were seeing
 
 **The sitemap started with a byte order mark.** `sitemap.xml` began with the bytes `EF BB BF`
