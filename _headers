@@ -1,0 +1,16 @@
+# Cloudflare Pages reads this at deploy time and does not serve it.
+#
+# HTML deliberately keeps the default revalidate-every-time behaviour. This page changes
+# whenever the studio releases, and a stale cached copy of the one page on the site is a
+# worse outcome than a revalidation request that almost always returns 304.
+
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()
+
+# The share card never changes without its filename changing, so it can be cached hard.
+/og.png
+  Cache-Control: public, max-age=31536000, immutable

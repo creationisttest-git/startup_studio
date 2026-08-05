@@ -522,6 +522,7 @@ $PUBLIC_MANIFEST = @(
     @{ from = 'base\skills';  to = 'skills' },
     @{ from = 'robots.txt';   to = 'robots.txt' },
     @{ from = 'sitemap.xml';  to = 'sitemap.xml' },
+    @{ from = '_headers';     to = '_headers' },
     @{ from = 'og.png';       to = 'og.png' }
 )
 

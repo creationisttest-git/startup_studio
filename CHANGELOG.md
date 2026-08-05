@@ -8,6 +8,35 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-05
 
+### The sitemap was unreadable, and three other things search engines were seeing
+
+**The sitemap started with a byte order mark.** `sitemap.xml` began with the bytes `EF BB BF`
+before its XML declaration. The XML specification requires the declaration first, so strict
+parsers reject the file outright, and a rejected sitemap means the only page on the site was
+relying entirely on being found by other means. It was written by a tool that adds a BOM by
+default, which is the same defect that once put a BOM in a commit subject line. Rewritten
+without one, and the last-modified date brought up to date, since it had been stale for two
+days across several content changes.
+
+**There was no icon.** No `rel="icon"` was declared, so the tab and the search result showed
+a blank page glyph, which reads as abandoned next to results that have one. Now an inline
+SVG of a terminal prompt, as a data URI, so it costs no request and cannot 404.
+
+**The structured data described the software and nothing else.** A single
+`SoftwareApplication` node with the author inlined as a bare name. Replaced with a linked
+graph: `WebSite`, `Person` with a verifiable profile, `SoftwareSourceCode` for the repository
+and licence, and `SoftwareApplication` referencing the others by id rather than repeating
+them. Search engines and AI crawlers can now follow the relationship between the project, the
+code and the person, instead of reading four unconnected facts.
+
+**Headers were left at the platform defaults.** A `_headers` file now sets HSTS, a referrer
+policy, frame denial and a permissions policy, and caches the share card hard since its
+contents never change without its name changing. The HTML is deliberately left revalidating
+on every request, because this page changes on every release and a stale copy of the only
+page on the site is worse than a request that almost always returns 304.
+
+---
+
 ### The public page opens with the founder's problem instead of the product's mechanics
 
 **The problem.** The page led with how the framework works: drop an idea on the board, agents
