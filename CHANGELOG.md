@@ -8,6 +8,58 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-05
 
+### One board backend for every project, and tickets that cannot cross between them
+
+**The problem.** The board reference assumed one database per project. That does not
+survive five projects on a free tier, and the alternative, putting the board in each
+product's own database, is ruled out because a board is project management rather than
+product data. So the boards have to share a backend, and sharing a backend means the
+separation has to be real.
+
+The obvious version of this is a `project_id` column and a policy. That is not enough,
+because of how the CLI worked.
+
+**The CLI was the hole.** `board-cli.js` authenticated with the service-role key, which
+bypasses row-level security by definition. On a shared backend, every project would hold a
+credential that could read and write every other project's tickets, and no policy could
+have stopped it. A policy cannot constrain a key that is defined as outranking policies.
+
+**What changed.** The CLI no longer holds a privileged key at all. It signs in as that
+project's own bot user and is subject to exactly the same rules as the browser and as any
+anonymous caller hitting the API directly. Three routes in, one enforcement point. It also
+refuses to start if it finds a service key in its environment, because a service key
+reaching a project is itself the failure and should be loud rather than convenient.
+
+The schema now carries `board_project`, `board_member`, and membership-scoped policies on
+all three tables, forced so the table owner is subject to them too. Beyond the obvious:
+
+- **Ticket numbers count per project.** A shared sequence would leak the existence and
+  volume of other projects' work through the gaps in your own numbering.
+- **`project_id` is immutable**, enforced by a trigger. Without it, someone belonging to
+  two projects could move a ticket and its whole history between boards, and the policy
+  would allow it because both ids pass the membership check.
+- **A member can only see the projects they belong to**, so a board cannot enumerate the
+  names of other people's projects.
+- **The membership check is a `security definer` function with an empty `search_path`**,
+  which breaks the recursion of checking membership from inside the membership policy
+  without opening a path-injection hole.
+
+The UI resolves its board before issuing any ticket query, and shows a refusal rather than
+falling through to an unscoped read. Its client-side allowlist is now documented as a
+courtesy gate rather than access control, because anything in a file the browser loads is
+editable by whoever loads it.
+
+**Also removed:** a live publishable key for a real project was sitting in the published
+`board.html`. Publishable keys are designed to be public and the data behind it was
+protected, so this was untidy rather than dangerous, but it identified a specific backend
+and has been replaced with a placeholder.
+
+The README now ends with instructions for proving the isolation rather than trusting it,
+including pointing the CLI at a board its bot does not belong to and confirming the refusal.
+A control nobody has watched fail is a control nobody has tested.
+
+---
+
 ### Assistants are allowed to read this site, and only this site
 
 **The problem.** The host was blocking AI crawlers across the entire zone, including

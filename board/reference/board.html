@@ -306,9 +306,23 @@
    *
    * If this ever needs to move, move it once, here, on purpose. */
   var SB_URL = '<<SET VIA ENV: SUPABASE_URL>>';
-  var SB_KEY = 'sb_publishable_QA0pwIa5D24vSy39438kbg__nFDd9_m';
-  // Team members who can view and edit the board. A future release adds a read-only
-  // view for signed-in customers (feature-request board); they will not be in this list.
+  var SB_KEY = '<<SET VIA ENV: SUPABASE_ANON_KEY>>';
+
+  /* Which board this page shows. One backend serves every project, separated by
+   * project_id and enforced by row-level security tied to membership.
+   *
+   * This slug is a convenience, not a control. Setting it to another project's slug does
+   * not reveal that project: the lookup runs under the signed-in user's own permissions and
+   * returns nothing unless they are a member. Isolation lives in the database, because
+   * anything in this file is editable by whoever loads the page. */
+  var BOARD_PROJECT = '<your-project-slug>';
+  var PROJECT = null;   // { id, slug, name, ticket_prefix }, resolved after sign-in
+  function ticketRef(t){ return (PROJECT ? PROJECT.ticket_prefix : 'TKT') + '-' + t.num; }
+  /* A courtesy gate, NOT the access control. Since the shared backend arrived, the
+   * authority on who sees what is the board_member table, enforced by row-level security.
+   * This list only decides whether the page bothers rendering before the database has its
+   * say. Adding a user id here grants nothing; adding them to board_member does. Keep the
+   * two in step, or empty this list and let the membership lookup do the refusing. */
   var ALLOWED = [
     '<team-member-uid-1>',
     '<team-member-uid-2>'
@@ -376,7 +390,8 @@
      * none of them, so a refresh now carries text only and images are fetched per ticket when one
      * is opened. Naming the columns rather than excluding one is deliberate: a column added later
      * should have to be opted IN to the list query, not silently arrive in it. */
-    return sb.from('tickets').select('id,num,title,description,status,assignee,position,release_version,created_by,created_at,updated_at,image_count').order('status').order('position').order('created_at').then(function(res){
+    if(!PROJECT){ toast('Board not resolved yet'); return Promise.resolve(null); }
+    return sb.from('tickets').select('id,num,title,description,status,assignee,position,release_version,created_by,created_at,updated_at,image_count').eq('project_id', PROJECT.id).order('status').order('position').order('created_at').then(function(res){
       if(res.error){
         var m = res.error.message || '';
         if(res.error.code==='42P01' || m.indexOf('does not exist')!==-1 || m.indexOf('Could not find the table')!==-1){ showSetup(); return null; }
@@ -386,12 +401,32 @@
       return state.tickets;
     });
   }
+
+  /* Resolve the board before anything is loaded. The query runs as the signed-in user, so
+   * a slug they are not a member of comes back empty rather than forbidden. Treat empty as
+   * "not yours" and stop, rather than falling through to an unscoped read. */
+  function loadProject(){
+    return sb.from('board_project').select('id,slug,name,ticket_prefix').eq('slug', BOARD_PROJECT).maybeSingle().then(function(res){
+      if(res.error){
+        var m = res.error.message || '';
+        if(res.error.code==='42P01' || m.indexOf('does not exist')!==-1 || m.indexOf('Could not find the table')!==-1){ showSetup(); return null; }
+        toast('Board lookup failed: '+m); return null;
+      }
+      if(!res.data){
+        showGate('<h1>No access</h1><p>This account is not a member of the <b>'+BOARD_PROJECT+'</b> board. Ask the owner to add you, then sign in again.</p>');
+        return null;
+      }
+      PROJECT = res.data;
+      document.title = PROJECT.name + ' | Startup Studio Kanban';
+      return PROJECT;
+    });
+  }
   function nextPosition(status){
     var mx = state.tickets.filter(function(t){ return t.status===status; }).reduce(function(a,t){ return Math.max(a, +t.position||0); }, 0);
     return mx + 1;
   }
   function createTicket(title, status){
-    var row = { title:title, status:status, position:nextPosition(status), description:'', images:[], assignee:'SQUAD', created_by: state.user.id };
+    var row = { project_id: PROJECT.id, title:title, status:status, position:nextPosition(status), description:'', images:[], assignee:'SQUAD', created_by: state.user.id };
     return sb.from('tickets').insert(row).select().single().then(function(res){
       if(res.error){ toast('Could not add: '+res.error.message); return null; }
       state.tickets.push(res.data); render(); return res.data;
@@ -790,7 +825,12 @@
     var w=$('#whoami'); w.hidden=false; w.innerHTML='<span class="av">'+esc(initials(name, user.email))+'</span>'+esc(name);
     $('#signout').hidden=false; $('#gate').hidden=true; $('#board').hidden=false;
     buildColumns(); buildDetailControls(); wireColumns(); wireGlobal();
-    loadTickets().then(function(r){ if(r!==null){ render(); stampNow(); } });
+    /* Resolve the board first. If this account is not a member, loadProject shows the gate
+     * and returns null, and no ticket query is ever issued. */
+    loadProject().then(function(p){
+      if(!p) return;
+      loadTickets().then(function(r){ if(r!==null){ render(); stampNow(); } });
+    });
   }
   function start(){
     sb.auth.getSession().then(function(res){
