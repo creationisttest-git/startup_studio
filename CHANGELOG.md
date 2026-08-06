@@ -6,6 +6,50 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-06
+
+### The reviewers learned five ways an animated sequence hides a defect from its own tests
+
+**The problem.** A project's map opening broke five separate times in a single day. Every
+break was obvious to anyone who loaded the page, and every one passed the automated checks
+that existed at the time. Each fix was reported back as a new defect by the person looking
+at it. That is not a story about one animation; it is five distinct ways a check can be
+green while the thing it guards is visibly broken, and none of them are specific to a
+stack, a framework or a product.
+
+**What changed.** The visual reviewer and the test reviewer now carry those five patterns
+as standing checks.
+
+An entrance animation verified as "did it run" instead of "what was on screen before it".
+A defect that lives in the order of two events is invisible to a check that only confirms
+both events happened, so the reviewer now records when content is genuinely visible AND
+when it starts animating, then asserts the ordering.
+
+Suppressing one visual layer at a time, which regenerates the defect once per layer.
+Hiding a composite element leaves its siblings painted, and hiding all of them leaves
+whatever is drawn into a canvas, which no stylesheet reaches and no element walk sees.
+
+A visibility probe that reads only the element and not its ancestors. Opacity does not
+inherit as a computed value, so a child of a fully transparent parent still reports itself
+as fully opaque, and a probe built that way calls hidden content visible.
+
+A defect reproducible only on a slower device, chased by reasoning rather than by
+reproduction. Three fixes shipped without reproducing it and all three were wrong. The
+reviewer now reproduces the condition, with deliberate delay or contention, and prefers
+asserting on data over timing-dependent visual state, because a count means the same thing
+on every device and a brightness does not.
+
+A timed failsafe that expires before the thing it protects, so the safety net fires first
+and the sequence then plays onto an already-revealed surface.
+
+**And one rule about the checks themselves.** A check that skips counts as a pass in every
+runner and every summary line. That is right for a check with nothing to act on and
+dangerous for one guarding a behaviour, because the run stays green while the behaviour is
+unchecked. Projects now name the checks that are not allowed to go quiet and fail the run
+when one of them skipped, reporting it as "this guard proved nothing" rather than burying
+it in a count. This has escaped twice: once behind ninety-three silent skips, with a
+feature that never wrote a row shipping behind them.
+
 ## 2026-08-05
 
 ### One board backend for every project, and tickets that cannot cross between them

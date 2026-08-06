@@ -71,3 +71,43 @@ Keep it to the shortest path that proves the thing works. Five steps is usually 
 State how long it takes. A person deciding whether to test now or after lunch needs that more than they need thoroughness.
 
 The "not in this ticket" line saves the most time of anything here. Most false bug reports are someone testing for something that was never in scope.
+---
+
+## A guard that can skip itself is not a guard
+
+A test that skips counts as a pass in every runner and every summary line. That is correct for a
+spec with genuinely nothing to act on, and dangerous for one that guards a behaviour, because the
+run stays green while the behaviour is unchecked.
+
+This has escaped twice in the studio. An admin console suite reported a healthy pass count with 93
+tests skipped, because the account it needed had lost its access, and a feature that never wrote a
+row shipped behind it. Separately, the tests guarding a map's opening sequence all skip when they
+cannot find the animation to measure, so on an environment momentarily short of data every one of
+them would have skipped and reported green with the sequence entirely unguarded.
+
+**So name the specs that are not allowed to go quiet.** Keep an explicit list of the guards that
+must actually run, and fail the gate when one of them skipped on every project rather than counting
+it as a pass. Report it as "this guard proved nothing", never as a skip buried in a count. Fixing it
+means giving the environment something to measure, never quietly accepting the silence.
+
+**And prefer a guard that cannot skip.** A spec that asserts on data the environment always has is
+worth more than one that needs a rare state and shrugs when it is absent.
+
+## Test what a person sees, not a proxy for it
+
+Reading the source, a class name, or a computed style is not the same as looking at the thing. Each
+of these passed while the defect it was written for was live:
+
+- Seven tests guarding a change were searches over the source text, and all seven passed over an
+  error that stopped the interface rendering at all.
+- A test aimed at a new code path pointed at input that took the OLD path, so the code under test
+  never ran and the test was green forever.
+- A structural assertion confirmed a value was present in the source while the platform was
+  REJECTING that value at runtime, silently, inside a swallowed error. The feature never ran.
+- A visibility check read an element's own opacity while its parent was transparent, so it called
+  invisible content visible.
+
+Where a behaviour is only observable by running it, the guard runs it. Where a source-level
+assertion is genuinely the right tool, say in the comment why, and pair it with something that
+exercises the behaviour. And mutation test anything guarding a defect: reintroduce the defect and
+confirm the test fails. A guard that has never been seen to fail has not been shown to work.
