@@ -6,6 +6,49 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-11
+
+### Rewriting history did not remove anything, and the public repository had to be rebuilt
+
+**If you had cloned this repository before today, your copy is broken.** Delete it and clone
+again. Every commit has a new identifier. Nothing in the content changed.
+
+**The problem.** A client's project name had reached the public export inside an example
+string, and the decision was that the engagement should not be named publicly at all. The
+obvious remedy is to rewrite history and force-push, and that was done: all 25 commits were
+rewritten, the name was gone from every one of them, and a fresh clone confirmed it.
+
+The name was still publicly readable.
+
+Rewriting history makes the old objects **unreachable, not deleted**. The host kept serving
+them by direct commit identifier long after nothing pointed at them. Requesting the old file
+at the old commit returned it, intact, with the name still in it, after the rewrite had been
+verified as clean. A force-push is a remedy for what people will *browse*, not for what is
+*retrievable*.
+
+This is worth stating plainly because the intuition runs the other way. The check that looks
+authoritative, cloning fresh and finding nothing, is exactly the check that cannot see the
+problem, since a clone only ever fetches what is reachable.
+
+**What changed.** The repository was deleted and recreated from the rewritten history, which
+is the only self-serve action that actually discards the old objects. The alternative is a
+support request to the host, which takes days. The old commits now return 404 rather than
+their contents, and that was verified against the specific identifiers that had been serving
+the name.
+
+**What made this cheap, and would not always.** The repository had no stars, no watchers and
+**no forks**. Forks are the thing to check first: a fork network shares object storage, so a
+single fork would have kept the old objects alive and deleting the original would not have
+helped. Check that before assuming this route is available.
+
+**The rule that follows.** Treat "it is in a public repository's history" as published, not as
+recoverable. The fix for a leaked credential is rotation, and history surgery is cleanup after
+that, never instead of it. For a name rather than a credential, decide whether it may be
+public **before** the first push, because every remedy afterwards is worse than the decision
+would have been.
+
+---
+
 ## 2026-08-10
 
 ### The thing that decides what may be published had never been watched fail
