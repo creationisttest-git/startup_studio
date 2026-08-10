@@ -32,6 +32,61 @@ matters when most projects are meant to be killed rather than scaled.
 
 ---
 
+## Free is not unlimited, and the limits are account-wide
+
+The stack is chosen so that nothing bills for existing. That is not the same as nothing
+running out, and the difference has already cost a session.
+
+**Check the quota before you promise the thing, not while you are building it.** A dedicated
+database was planned, agreed and half-scripted before the dashboard refused to create it: the
+free plan allows two projects and both slots were already used by other products. Nothing was
+misconfigured. The capacity simply was not there, and nothing said so until the moment of
+creation. Thirty seconds of looking first would have changed the plan instead of interrupting
+it.
+
+**Know which limits are per project and which are shared.** This is the one that surprises
+people. A per-project limit degrades one project. An account-wide limit means another
+project's traffic, or another project's build loop, takes yours down. Egress and build
+minutes are usually shared. Storage and row counts usually are not.
+
+**Exhaustion mostly does not announce itself as an error you were expecting.** It arrives as
+a refusal to create, a project silently paused, a build that queues forever, or a deploy that
+reports success while serving the previous version. Read the failure before assuming the code
+is wrong.
+
+### What actually bites, by vendor
+
+Quotas change. Treat this as where to look, not as a citation, and confirm against the
+dashboard before relying on a number.
+
+**Supabase.** Two active projects per organisation on free, which is the one that stops you.
+Projects pause after roughly a week of inactivity, so a board or a validation build nobody
+opened for a week is down when someone finally does, and unpausing is a dashboard step. Then
+a database size cap per project, and an egress cap shared across the whole account. For a
+board, watch stored images rather than row counts; ticket text is negligible and a pasted
+screenshot is not.
+
+**GitHub.** Actions minutes are the live one: private repositories draw on a monthly pool and
+public repositories on standard runners do not. A busy CI on a private repo exhausts it and
+every workflow then queues or fails, across every repository on the account. Artifact and
+package storage is a separate, smaller pool. LFS has its own storage and bandwidth allowance,
+and LFS bandwidth is the one people are surprised by, because a clone spends it.
+
+**Cloudflare Pages.** Generous where it counts, with unlimited requests and bandwidth, so the
+limit that applies is builds per month across the account and a cap on files per deployment.
+A deploy loop is what burns this, not traffic.
+
+### The rule
+
+Before standing up any new project, database, or CI workflow, look at the current usage and
+the remaining headroom, and say in one line what you found. If there is not room, say so and
+propose the alternative rather than creating something that will be refused or paused.
+
+Record the check with its date in the project's warm start. A quota check nobody wrote down
+gets re-derived by the next session, or worse, assumed.
+
+---
+
 ## Access is enforced in the database, not the application
 
 This is the part that travels with the default, and the part reviewers must know.

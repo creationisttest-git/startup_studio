@@ -38,8 +38,14 @@ create table if not exists public.board_project (
   slug          text not null unique,
   name          text not null,
   ticket_prefix text not null,
+  assignees     text[],
   created_at    timestamptz not null default now()
 );
+
+-- Permitted assignee names, declared per project. Null or empty means no restriction, which
+-- is what a new board gets. See tickets_check_assignee below for why this is not a check
+-- constraint with a fixed list of values.
+alter table public.board_project add column if not exists assignees text[];
 
 -- ── membership: the single source of who may see what ───────────────────────────────
 
@@ -85,6 +91,8 @@ create table if not exists public.tickets (
   assignee        text,
   position        double precision not null default 0,
   images          jsonb not null default '[]'::jsonb,
+  image_count     integer not null default 0,
+  deleted_at      timestamptz,
   created_by      uuid,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
@@ -95,13 +103,84 @@ alter table public.tickets add column if not exists num integer;
 alter table public.tickets add column if not exists release_version text;
 alter table public.tickets drop column if exists stage_status;
 
+-- board.html selects image_count so it can show an image tag without fetching the images
+-- themselves, which is right: the payload is large and the count is all a card needs.
+--
+-- This column was missing from this file for the whole life of the reference, because the
+-- board it was extracted from had it added by hand and never written back. Every fresh
+-- install therefore failed its very first query, and failed misleadingly: board.html decides
+-- a table is missing by matching the error text for "does not exist", so a missing COLUMN
+-- announced itself as a missing TABLE and sent people to re-run this file, which was already
+-- correctly applied.
+alter table public.tickets add column if not exists image_count integer not null default 0;
+
+-- Soft delete. See the revoke further down, which is the half that actually enforces it.
+alter table public.tickets add column if not exists deleted_at timestamptz;
+
 alter table public.tickets drop constraint if exists tickets_status_check;
 alter table public.tickets add constraint tickets_status_check
   check (status in ('backlog','todo','in_progress','uat','uat_complete','prod_ready','prod_deployed','done'));
 
+-- Kept dropped, never re-added. Assignees are now validated per project by a trigger.
 alter table public.tickets drop constraint if exists tickets_assignee_check;
-alter table public.tickets add constraint tickets_assignee_check
-  check (assignee is null or assignee in ('SQUAD','FOUNDER','CC'));
+
+
+-- ── permitted assignees, declared per project ───────────────────────────────────────
+--
+-- This was a check constraint allowing exactly three fixed names. That made an existing
+-- board impossible to migrate onto the shared backend: the constraint is added part-way
+-- through this file, so a board whose tickets used any other name failed the run with the
+-- table already half-altered, and the failure read as a bug in the schema rather than as a
+-- mismatch with the data. One real board had 278 rows of 333 that would have failed.
+--
+-- A null or empty list means no restriction, which is what a new board gets. A project that
+-- wants typo protection sets its own list and gets exactly the old behaviour, in its own
+-- vocabulary rather than in the vocabulary of whichever project happened to be first.
+
+create or replace function public.tickets_check_assignee()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare allowed text[];
+begin
+  if new.assignee is null then return new; end if;
+  select p.assignees into allowed from public.board_project p where p.id = new.project_id;
+  if allowed is null or array_length(allowed, 1) is null then return new; end if;
+  if not (new.assignee = any (allowed)) then
+    raise exception 'assignee "%" is not permitted on this board (permitted: %)',
+      new.assignee, array_to_string(allowed, ', ');
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists tickets_check_assignee_trg on public.tickets;
+create trigger tickets_check_assignee_trg before insert or update of assignee on public.tickets
+  for each row execute function public.tickets_check_assignee();
+
+
+-- ── image_count stays in step with images ───────────────────────────────────────────
+--
+-- Derived rather than maintained by the client, so a caller that writes images through the
+-- API without updating the count cannot put the card out of step with the ticket.
+
+create or replace function public.tickets_sync_image_count()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.image_count := coalesce(jsonb_array_length(coalesce(new.images, '[]'::jsonb)), 0);
+  return new;
+end $$;
+
+drop trigger if exists tickets_sync_image_count_trg on public.tickets;
+create trigger tickets_sync_image_count_trg before insert or update of images on public.tickets
+  for each row execute function public.tickets_sync_image_count();
+
+update public.tickets
+   set image_count = coalesce(jsonb_array_length(coalesce(images, '[]'::jsonb)), 0)
+ where image_count is distinct from coalesce(jsonb_array_length(coalesce(images, '[]'::jsonb)), 0);
 
 
 -- ── upgrade path: an existing single-project board ──────────────────────────────────
@@ -138,6 +217,12 @@ end $$;
 
 create unique index if not exists tickets_project_num_key on public.tickets (project_id, num);
 create index if not exists tickets_project_status_position_idx on public.tickets (project_id, status, position);
+
+-- Every board query filters out deleted tickets and live ones are the overwhelming majority,
+-- so the index only carries the rows actually being scanned.
+create index if not exists tickets_live_idx
+  on public.tickets (project_id, status, position)
+  where deleted_at is null;
 
 create or replace function public.tickets_assign_num()
 returns trigger
@@ -215,7 +300,20 @@ revoke all on public.tickets       from anon, authenticated;
 revoke all on public.board_project from anon, authenticated;
 revoke all on public.board_member  from anon, authenticated;
 
-grant select, insert, update, delete on public.tickets to authenticated;
+-- DELETE is deliberately not granted. Deleting a ticket sets deleted_at and hides it; the
+-- row, its number and its whole running record survive, and board-cli.js restore brings it
+-- back. Ticket numbers are never reused, because tickets_assign_num takes max(num) across the
+-- project and a hidden row still holds its number.
+--
+-- The revoke is the control, not the column. A flag that the application is merely trusted to
+-- honour is not a control at all: PostgREST is reachable directly, so anyone with the
+-- publishable key and a shell can issue whatever the page chose not to. Taking the privilege
+-- away means a hard delete cannot be issued by the page, by the CLI, or by curl.
+--
+-- The service-role key still bypasses this. That is the intended escape hatch and it lives
+-- with whoever owns this database, not with a project.
+grant select, insert, update on public.tickets to authenticated;
+revoke delete on public.tickets from authenticated;
 grant select on public.board_project to authenticated;
 grant select on public.board_member  to authenticated;
 
@@ -257,6 +355,11 @@ end $$;
 --     values ('your-slug', 'Your Project', 'ABC')
 --     on conflict (slug) do nothing;
 --
+-- Optionally restrict who a ticket may be assigned to. Leave it null for no restriction.
+--
+--   update public.board_project set assignees = array['SQUAD','FOUNDER','CC']
+--    where slug = 'your-slug';
+--
 --   insert into public.board_member (project_id, user_id)
 --   select p.id, '<user-uuid>'
 --   from public.board_project p where p.slug = 'your-slug'
@@ -278,3 +381,12 @@ end $$;
 --
 --   -- signed in as a member of one project, this must return that project's count only
 --   select project_id, count(*) from public.tickets group by project_id;
+--
+--   -- hard delete must be impossible for the signed-in role. This must return no rows.
+--   select grantee, privilege_type from information_schema.role_table_grants
+--   where table_schema='public' and table_name='tickets'
+--     and grantee='authenticated' and privilege_type='DELETE';
+--
+--   -- the column whose absence used to present as a missing table
+--   select count(*) from information_schema.columns
+--   where table_schema='public' and table_name='tickets' and column_name='image_count';

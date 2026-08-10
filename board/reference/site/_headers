@@ -1,0 +1,16 @@
+# Cloudflare Pages reads this at deploy time and does not serve it.
+#
+# A ticket board has no reason to be in a search index, and no reason to be framed, sniffed
+# or referred out. Everything here is default-deny.
+#
+# None of this is privacy. If the board has been changed to sign itself in as a shared
+# viewer account, anyone with the URL has full access, and noindex only asks search engines
+# not to list it. Access control is board_member, enforced by row-level security.
+
+/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()

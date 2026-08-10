@@ -482,8 +482,42 @@ function Invoke-GitCommitFile ([string]$RepoPath, [string]$Message, $IdArgs) {
 # fails closed rather than waving everything through.
 $LEAK_PATTERNS = if ($CONFIG.LeakPatterns) { $CONFIG.LeakPatterns } else { $null }
 
+# A scanner nobody has watched fail is a scanner nobody has tested.
+#
+# On 2026-08-07 this one ran, reported clean, and published a name it was configured to
+# block. The pattern was anchored at both ends and the name appeared inside a compound word,
+# so it never matched. It did not error and it did not warn, which is the whole problem: a
+# check that cannot fail is indistinguishable from a check that always passes.
+#
+# So every rule carries a sample it is REQUIRED to match, and the publish refuses to run if
+# any rule has no sample or fails its own. The samples live in studio.config.ps1, beside the
+# patterns. They cannot live in this file: this file is published, and a file listing a
+# known-bad example of every blocked name would leak precisely what the scanner protects.
+function Test-LeakPatterns {
+    $bad = @()
+    foreach ($rule in $LEAK_PATTERNS) {
+        $why = if ($rule.why) { $rule.why } else { $rule.p }
+        if (-not $rule.sample) {
+            $bad += "no sample to prove it fires  ->  $why"
+        } elseif ($rule.sample -notmatch $rule.p) {
+            $bad += "sample does NOT match its own pattern  ->  $why  [pattern $($rule.p), sample '$($rule.sample)']"
+        }
+    }
+    $bad
+}
+
 function Invoke-LeakScan ([string]$Dir) {
     if (-not $LEAK_PATTERNS) { throw "No leak patterns configured. Refusing to publish without a scan. Add LeakPatterns to studio.config.ps1." }
+
+    # Fails closed, before anything is scanned. A pattern that cannot catch its own known-bad
+    # sample will not catch the real thing either, and a clean report from it means nothing.
+    $selfTest = Test-LeakPatterns
+    if ($selfTest) {
+        throw ("Leak scanner SELF-TEST FAILED. Refusing to publish.`n  " + ($selfTest -join "`n  ") +
+               "`n`nEvery rule in LeakPatterns needs a `sample` that it matches. Fix the pattern, or fix the sample.")
+    }
+    Write-Host ("  self-test passed, {0} patterns each proved against a known-bad sample" -f $LEAK_PATTERNS.Count) -ForegroundColor DarkGray
+
     $findings = @()
     # Scan EVERY file, not a list of extensions. LICENSE and CNAME have no extension and
     # were silently skipped, which meant anything could have gone public inside them.

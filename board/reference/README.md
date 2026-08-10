@@ -9,9 +9,26 @@ cross between them.
 
 ## Files
 
-`board.html`          the board UI. Seven columns, drag to move, ticket detail panel.
-`board-cli.js`        the terminal CLI the agents drive. Node built-ins only.
-`tickets-schema.sql`  projects, membership, tickets, and the policies that separate them.
+```
+SETUP.md               the runbook. Start there; it is ordered and it names who does what.
+tickets-schema.sql     projects, membership, tickets, and the policies that separate them.
+register-project.sql   register one project and its members.
+isolation-checks.sql   five proofs, with the required result written next to each.
+board-cli.js           the terminal CLI the agents drive. Node built-ins only.
+board.ps1              loads .board.env and forwards, so credentials miss shell history.
+deploy.js              substitutes credentials into a gitignored .dist/ and publishes.
+hygiene-check.js       fails if a privileged credential reaches a tracked file.
+.board.env.example     names only, no values.
+site/                  what actually gets deployed: board.html, index.html, robots.txt, _headers.
+```
+
+**A note on where this came from.** The first four versions of this reference were extracted
+from a board that had been running for months, and inherited that board's undocumented drift:
+a column added by hand and never written back, another project's ticket code hardcoded, a
+sign-out that cleared the wrong storage key, an allow-list whose empty state locked everyone
+out, and a dead script tag. Every one of them worked on the board it came from and failed on
+the first clean install. If you are the first to install this after a change, you are testing
+the reference as much as your own project, and what you find belongs back here the same day.
 
 ## How isolation actually works
 
@@ -31,37 +48,38 @@ migrations. `board-cli.js` refuses to start if it finds one in the environment.
 That is the whole design. The CLI is not trusted to stay in its lane. It is given a
 credential that cannot leave it.
 
+## Deleting a ticket
+
+Deletion is soft. A deleted ticket is flagged and hidden; its number and its whole running
+record survive, and `board-cli.js restore <id>` brings it back.
+
+The control is the revoke, not the flag. `DELETE` is taken away from the signed-in role in
+`tickets-schema.sql`, so a hard delete cannot be issued by the page, by the CLI, or by anyone
+with the publishable key and a shell. A flag the application is merely trusted to honour would
+not have been a control at all, because the data API is reachable directly.
+
+Ticket numbers are never reused: a hidden row keeps its number, so restoring one can never
+collide with a number handed out after it was hidden.
+
 ## Setup
 
-1. Run `tickets-schema.sql` against your database. It is safe to re-run.
-2. Register the project:
-   `insert into public.board_project (slug, name, ticket_prefix) values ('your-slug', 'Your Project', 'ABC');`
-3. Create a bot user for this project in the auth panel. One per project, never shared.
-4. Add the humans and the bot to `board_member` for that project. Membership is the only
-   thing that grants access; nothing in `board.html` does.
-5. Set `SB_URL`, `SB_KEY` and `BOARD_PROJECT` at the top of `board.html`, and serve it with
-   a `noindex` header. A board has no reason to be in a search index.
-6. Give the CLI its environment: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `BOARD_PROJECT`,
-   `BOARD_BOT_EMAIL`, `BOARD_BOT_PASSWORD`. Never hardcode them, and add the file holding
-   them to `.gitignore` before the first commit, not after.
-7. Add a hygiene test that fails the build if a privileged key appears in any tracked file.
-8. Replace the assignee list (`SQUAD`, `FOUNDER`) with your own.
+Follow `SETUP.md`. It is ordered, it says which steps need a browser, and it starts by having
+you check that the free tier will actually take another project, which is not obvious until
+the dashboard refuses you.
 
 ## Prove it rather than trusting it
+
+Run `isolation-checks.sql` and paste the raw output. A summary is not evidence.
 
 ```bash
 node board-cli.js whoami      # names the board and counts what this credential can reach
 ```
 
-```sql
-set role anon;                          -- must return no rows
-select count(*) from public.tickets;
-reset role;
-```
-
-If you have two boards, point `BOARD_PROJECT` at the one the bot does not belong to and
-confirm the CLI refuses with "not visible to this bot user". A control you have never seen
-fail is a control you have not tested.
+The one that matters is the negative control: point `BOARD_PROJECT` at a board the bot does
+not belong to and confirm the CLI refuses with "not visible to this bot user". Every other
+check confirms the bot can see what it should. Only this one confirms it cannot see what it
+should not, and those are different claims. A control you have never seen fail is a control
+you have not tested.
 
 ## What you must not change
 

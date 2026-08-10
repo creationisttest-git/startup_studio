@@ -37,8 +37,9 @@ a later column, because a ticket that appears mid-board has skipped the queue.
 | `description` | Where the real requirements live, and the running record. Agents append progress, decisions and assumptions here as they work. |
 | `status` | One of the eight above. |
 | `release_version` | The build tag at UAT and at PROD. **Writable by the agents only, read-only in the UI.** |
-| `assignee` | The agent squad, the founder, or unassigned. |
+| `assignee` | Whoever the project says. Declared per board, and declaring nothing means no restriction. A fixed studio-wide list is what made one existing board impossible to migrate. |
 | `created_at` / `updated_at` | Timestamps. |
+| `deleted_at` | Set when a ticket is hidden. Never removed. See below. |
 
 ## The ownership boundary, non-negotiable
 
@@ -69,7 +70,9 @@ assign <id|titleMatch> <who>
 title <id|titleMatch> "New title"
 desc <id|titleMatch> "New description"
 version <id|titleMatch> "uat-YYYYMMDD"
-rm <id|titleMatch>
+rm <id|titleMatch>                  hides it, does not destroy it
+restore <id|titleMatch>             brings a hidden ticket back
+deleted                             list what is hidden
 ```
 
 Matching accepts a full id, an id prefix, or a unique case-insensitive title substring.
@@ -77,21 +80,46 @@ Matching accepts a full id, an id prefix, or a unique case-insensitive title sub
 **`list` prints titles only.** That is why the standing rule exists that a ticket is never
 judged from its title. Open it and read the description first.
 
+## Deletion is recoverable, and the database is what makes it so
+
+Deleting a ticket hides it. The row, its number and its whole running record survive, and
+`restore` brings it back. Ticket numbers are never reused, so a restored ticket cannot
+collide with one handed out after it was hidden.
+
+**The control is the revoke, not the flag.** Hard delete is taken away from the signed-in
+role, so it cannot be issued by the UI, by the CLI, or by anyone holding the publishable key
+and a shell. A flag that the application is merely trusted to honour is not a control at all,
+because the data API is reachable directly and does not care what the page chose to send.
+
+The confirmation dialog must say what actually happens. It said "permanently" and "cannot be
+undone" for some time after both became false, and a warning that overstates its consequence
+teaches people to ignore the ones that do not.
+
 ## Security, learned the hard way
 
-The CLI holds a privileged key that bypasses row-level access rules. Three rules follow,
-and they are not optional.
+**No project ever holds a key that bypasses row-level security.** The CLI used to authenticate
+with exactly such a key, which meant that on a shared backend every project would have held a
+credential able to read and write every other project's board, and no policy could have
+revoked it. A policy cannot constrain a key that is defined as outranking policies.
 
-The CLI file is **server-side only** and never copied into any public or client directory.
+So the CLI signs in as a **per-project bot user** and obeys the same rules as the UI and the
+API. One bot per project, never shared: a bot that is a member of two boards can reach both.
+The CLI **refuses to start** if it finds a service-role key in its environment, and the deploy
+step refuses to publish with one in scope.
 
-The CLI file is **in `.gitignore`**, so the key cannot be committed by accident.
+Credentials are read from the environment, never embedded. The file holding them is
+gitignored, **and the ignore rule goes in before the first commit**. A credential removed
+afterwards is a history rewrite, not a delete, and it stays valid until it is rotated.
 
-The repository carries a **hygiene test that fails if a privileged key appears in any
-tracked file**. A rule nobody checks is a rule that eventually breaks, so the check is
-automated rather than remembered.
+The repository carries a **hygiene check that fails if a privileged credential appears in any
+tracked file**. A rule nobody checks is a rule that eventually breaks, so it is automated
+rather than remembered. `reference/hygiene-check.js` is that check.
 
-Better still, read the key from the environment rather than embedding it. The reference
-implementation does this.
+**Prove the isolation, do not assert it.** `reference/isolation-checks.sql` carries the
+proofs with the required result written beside each. The one that counts is the negative
+control: a bot pointed at a board it does not belong to must be refused by name. Every other
+check confirms a bot can see what it should; only that one confirms it cannot see what it
+should not, and a control nobody has seen fail is a control nobody has tested.
 
 ---
 

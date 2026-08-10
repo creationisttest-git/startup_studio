@@ -1,11 +1,10 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>PROJECT Board</title>
-<script src="/lib/config.js?v=c2be67881c"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
@@ -208,7 +207,8 @@
 </head>
 <body>
   <header class="top">
-    <span class="brand"><span class="dot">M</span> PROJECT <small>Board</small></span>
+    <!-- Both the letter and the word are placeholders. Change them together. -->
+    <span class="brand"><span class="dot">P</span> PROJECT <small>Board</small></span>
     <input id="q" class="q" type="search" placeholder="Search number, title, description" autocomplete="off" spellcheck="false" hidden>
     <span class="qcount" id="qcount" hidden></span>
     <span class="spacer"></span>
@@ -265,7 +265,7 @@
         </div>
       </div>
       <div class="sheet-foot">
-        <button class="btn danger" id="d-delete">Delete</button>
+        <button class="btn danger" id="d-delete">Hide</button>
         <span class="spacer"></span>
         <span class="save-state" id="d-save-state"></span>
         <button class="btn primary" id="d-save">Save</button>
@@ -276,11 +276,14 @@
   <!-- delete confirmation -->
   <div class="modal" id="confirm-del" hidden>
     <div class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="cf-title">
-      <h3 id="cf-title">Delete ticket?</h3>
-      <p id="cf-msg">This permanently deletes the ticket. This cannot be undone.</p>
+      <!-- A warning that overstates its consequence teaches people to ignore the ones that
+           do not. This said "permanently" and "cannot be undone" long after both became
+           false. If deletion ever becomes permanent again, change this back. -->
+      <h3 id="cf-title">Hide ticket?</h3>
+      <p id="cf-msg">This hides the ticket. It can be restored.</p>
       <div class="cf-actions">
         <button class="btn ghost" id="cf-cancel">Cancel</button>
-        <button class="btn danger" id="cf-confirm">Delete</button>
+        <button class="btn danger" id="cf-confirm">Hide</button>
       </div>
     </div>
   </div>
@@ -322,11 +325,15 @@
    * authority on who sees what is the board_member table, enforced by row-level security.
    * This list only decides whether the page bothers rendering before the database has its
    * say. Adding a user id here grants nothing; adding them to board_member does. Keep the
-   * two in step, or empty this list and let the membership lookup do the refusing. */
+   * two in step, or empty this list and let the membership lookup do the refusing.
+   *
+   * Empty MUST mean "defer to membership", which is what the paragraph above promises. Read
+   * unguarded, an empty list matches nobody and locks out every user including the owner, on
+   * a page whose own comment says to empty it. allowedToRender is that guard. */
   var ALLOWED = [
-    '<team-member-uid-1>',
-    '<team-member-uid-2>'
+    // Supabase user ids. Optional: leave empty and let board_member do the refusing.
   ];
+  function allowedToRender(uid){ return ALLOWED.length === 0 || ALLOWED.indexOf(uid) !== -1; }
   // Columns shown on the board (display groups).
   var COLUMNS = ['backlog','todo','in_progress','uat','prod_ready','prod_deployed','done'];
   // The single per-ticket status, ordered (drives the move arrows and the Status dropdown).
@@ -380,7 +387,10 @@
     showGate('<h1>Board needs setup</h1><p>The <b>tickets</b> table is not there yet. Run <b>supabase-tickets.sql</b> in the Supabase SQL editor, then reload this page.</p><button class="btn ghost" id="do-reload">Reload</button>');
     $('#do-reload').onclick = function(){ location.reload(); };
   }
-  function doSignOut(){ sb.auth.signOut().finally(function(){ try{ localStorage.removeItem('PROJECT-auth'); }catch(e){} location.reload(); }); }
+  /* The key MUST match the storageKey given to createClient above. These were two different
+   * strings for the whole life of the reference, so sign-out cleared nothing and the token
+   * outlived the sign-out that was supposed to end it. If you rename one, rename both. */
+  function doSignOut(){ sb.auth.signOut().finally(function(){ try{ localStorage.removeItem('PROJECT-board-auth'); }catch(e){} location.reload(); }); }
 
   /* â”€â”€ data â”€â”€ */
   function loadTickets(){
@@ -391,7 +401,7 @@
      * is opened. Naming the columns rather than excluding one is deliberate: a column added later
      * should have to be opted IN to the list query, not silently arrive in it. */
     if(!PROJECT){ toast('Board not resolved yet'); return Promise.resolve(null); }
-    return sb.from('tickets').select('id,num,title,description,status,assignee,position,release_version,created_by,created_at,updated_at,image_count').eq('project_id', PROJECT.id).order('status').order('position').order('created_at').then(function(res){
+    return sb.from('tickets').select('id,num,title,description,status,assignee,position,release_version,created_by,created_at,updated_at,image_count').eq('project_id', PROJECT.id).is('deleted_at', null).order('status').order('position').order('created_at').then(function(res){
       if(res.error){
         var m = res.error.message || '';
         if(res.error.code==='42P01' || m.indexOf('does not exist')!==-1 || m.indexOf('Could not find the table')!==-1){ showSetup(); return null; }
@@ -442,10 +452,18 @@
       return res.data;
     });
   }
+  /* Hides the ticket rather than destroying it. It keeps its number and its whole running
+   * record, and `board-cli.js restore <id>` brings it back.
+   *
+   * This is the convenience, not the control. Hard delete is REVOKED from the signed-in role
+   * in tickets-schema.sql, so a caller with the publishable key and curl cannot destroy a
+   * ticket either. If this page were the only thing standing in the way, it would not be
+   * standing in the way. */
   function deleteTicket(id){
-    return sb.from('tickets').delete().eq('id', id).then(function(res){
-      if(res.error){ toast('Delete failed: '+res.error.message); return; }
+    return sb.from('tickets').update({ deleted_at: new Date().toISOString() }).eq('id', id).then(function(res){
+      if(res.error){ toast('Could not hide ticket: '+res.error.message); return; }
       state.tickets = state.tickets.filter(function(t){ return t.id!==id; }); render();
+      toast('Ticket hidden. It can be restored from the command line.');
     });
   }
   function moveTicket(id, toStatus, beforeId){
@@ -473,8 +491,11 @@
       '</section>';
     }).join('');
   }
-  var PROJECT_CODE = 'MUS';
-  function ticketCode(t){ return (t && t.num != null) ? PROJECT_CODE + '-' + t.num : ''; }
+  /* The prefix comes from board_project, never from a constant. This used to be a hardcoded
+   * code while ticketRef() above read the project's real prefix, so the same ticket showed
+   * two different references depending on where it was drawn, and every new board wore the
+   * original project's code on its cards. One source, so the two cannot disagree. */
+  function ticketCode(t){ return (t && t.num != null) ? ticketRef(t) : ''; }
   function cardHtml(t){
     /* No thumbnail: the list query no longer carries images, by design. Rendering one here would
      * mean pulling every image on every ticket on every refresh, which is what this change exists
@@ -625,7 +646,7 @@
     var t = state.tickets.filter(function(x){ return x.id===id; })[0];
     var code = t ? ticketCode(t) : '';
     var title = t ? t.title : '';
-    $('#cf-msg').textContent = 'This permanently deletes ' + (code ? code + ' ' : '') + '"' + (title || 'this ticket') + '". This cannot be undone.';
+    $('#cf-msg').textContent = 'This hides ' + (code ? code + ' ' : '') + '"' + (title || 'this ticket') + '" from the board. Nothing is destroyed and it can be restored.';
     $('#confirm-del').hidden = false;
   }
   function hideDeleteConfirm(){ _pendingDelId = null; $('#confirm-del').hidden = true; }
@@ -836,13 +857,13 @@
     sb.auth.getSession().then(function(res){
       var session = res.data && res.data.session;
       if(!session || !session.user){ showSignIn(); return; }
-      if(ALLOWED.indexOf(session.user.id)===-1){ showNoAccess(session.user.email); return; }
+      if(!allowedToRender(session.user.id)){ showNoAccess(session.user.email); return; }
       bootBoard(session.user);
     }).catch(function(){ showSignIn(); });
   }
   sb.auth.onAuthStateChange(function(event, session){
     if(event==='SIGNED_IN' && session && session.user && $('#board').hidden){
-      if(ALLOWED.indexOf(session.user.id)===-1) showNoAccess(session.user.email);
+      if(!allowedToRender(session.user.id)) showNoAccess(session.user.email);
       else if(!state.user) bootBoard(session.user);
     }
   });

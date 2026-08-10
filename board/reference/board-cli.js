@@ -24,11 +24,13 @@
  *   node board-cli.js list [status]
  *   node board-cli.js add "Title text" [status] [assignee]
  *   node board-cli.js move <id|titleMatch> <status>
- *   node board-cli.js assign <id|titleMatch> <SQUAD|FOUNDER|CC|none>
+ *   node board-cli.js assign  <id|titleMatch> <name|none>
  *   node board-cli.js title   <id|titleMatch> "New title"
  *   node board-cli.js desc    <id|titleMatch> "New description"
  *   node board-cli.js version <id|titleMatch> "uat-20260715"   (code-only release tag)
- *   node board-cli.js rm      <id|titleMatch>
+ *   node board-cli.js rm      <id|titleMatch>                  (hides it, does not destroy it)
+ *   node board-cli.js restore <id|titleMatch>                  (brings a hidden ticket back)
+ *   node board-cli.js deleted                                  (list what is hidden)
  *   node board-cli.js whoami                                   (prove the scoping)
  *
  *   status   = backlog | todo | in_progress | uat | uat_complete | prod_ready | prod_deployed | done
@@ -63,7 +65,9 @@ const PROJECT_SLUG = process.env.BOARD_PROJECT;
 
 const STATUSES = ['backlog','todo','in_progress','uat','uat_complete','prod_ready','prod_deployed','done'];
 const LABELS = { backlog:'BACKLOG', todo:'TO DO', in_progress:'IN PROGRESS', uat:'UAT', uat_complete:'UAT COMPLETE', prod_ready:'PROD READY', prod_deployed:'PROD DEPLOYED', done:'DONE' };
-const ASSIGNEES = ['SQUAD','FOUNDER','CC'];
+// Permitted assignees are a property of the board, in board_project.assignees, not a constant
+// here. This file used to hardcode the three names used by the board the reference came from,
+// which made every other board unmigratable. No list on the board means no restriction.
 function normStatus(s){ return s === 'uat_deployed' ? 'uat' : s; }
 
 let TOKEN = null;      // the bot user's access token, not a key
@@ -103,7 +107,7 @@ async function signIn() {
 // Resolving the slug through RLS is itself the membership check: a project this bot does
 // not belong to simply does not exist as far as this query is concerned.
 async function loadProject() {
-  const r = await req('GET', '/rest/v1/board_project?select=id,slug,name,ticket_prefix&slug=eq.' + encodeURIComponent(PROJECT_SLUG));
+  const r = await req('GET', '/rest/v1/board_project?select=id,slug,name,ticket_prefix,assignees&slug=eq.' + encodeURIComponent(PROJECT_SLUG));
   if (r.status >= 400) throw new Error('project lookup failed (' + r.status + '): ' + JSON.stringify(r.body));
   if (!r.body || !r.body.length) {
     throw new Error('project "' + PROJECT_SLUG + '" is not visible to this bot user. Either the slug is wrong or the bot is not a member.');
@@ -114,13 +118,16 @@ async function loadProject() {
 const scope = () => 'project_id=eq.' + PROJECT.id;
 const ref = t => PROJECT.ticket_prefix + '-' + t.num;
 
-async function getAll() {
-  const r = await req('GET', '/rest/v1/tickets?select=*&' + scope() + '&order=status,position');
+// Deleted tickets are hidden, never removed. Everything defaults to live tickets only; pass
+// true to reach the hidden ones, which restore and `deleted` need.
+async function getAll(includeDeleted) {
+  const filter = includeDeleted ? '' : '&deleted_at=is.null';
+  const r = await req('GET', '/rest/v1/tickets?select=*&' + scope() + filter + '&order=status,position');
   if (r.status >= 400) throw new Error('load failed ('+r.status+'): ' + JSON.stringify(r.body));
   return r.body || [];
 }
-async function findOne(match) {
-  const all = await getAll();
+async function findOne(match, includeDeleted) {
+  const all = await getAll(includeDeleted);
   let hits = all.filter(t => t.id === match || t.id.indexOf(match) === 0);
   if (!hits.length) hits = all.filter(t => t.title.toLowerCase().indexOf(String(match).toLowerCase()) !== -1);
   if (!hits.length) throw new Error('no ticket matches: ' + match);
@@ -141,7 +148,15 @@ async function patch(id, body) {
 }
 
 function reqStatus(s){ if(STATUSES.indexOf(s)===-1) throw new Error('bad status "'+s+'". use: '+STATUSES.join(', ')); return s; }
-function reqAssignee(a){ if(a==='none'||a===''||a==null) return null; if(ASSIGNEES.indexOf(a)===-1) throw new Error('bad assignee "'+a+'". use: '+ASSIGNEES.join(', ')+', none'); return a; }
+// Permitted names come from the board, not from this file. No list on the board means no
+// restriction, and the database enforces the same rule from its side either way.
+function allowedAssignees(){ return (PROJECT && PROJECT.assignees && PROJECT.assignees.length) ? PROJECT.assignees : null; }
+function reqAssignee(a){
+  if(a==='none'||a===''||a==null) return null;
+  const allowed = allowedAssignees();
+  if(allowed && allowed.indexOf(a)===-1) throw new Error('bad assignee "'+a+'". use: '+allowed.join(', ')+', none');
+  return a;
+}
 
 async function main() {
   const [cmd, a1, a2, a3] = process.argv.slice(2);
@@ -171,7 +186,10 @@ async function main() {
   if (cmd==='add') {
     if (!a1) throw new Error('add needs a title');
     const status = a2 ? reqStatus(a2) : 'backlog';
-    const assignee = a3 ? reqAssignee(a3) : 'SQUAD';
+    // Unassigned by default. The old default named a role that only existed on the board this
+    // reference came from, so every new board opened its tickets already assigned to a team
+    // that was not theirs.
+    const assignee = a3 ? reqAssignee(a3) : null;
     const row = { project_id: PROJECT.id, title:a1, status, assignee, position: await nextPos(status), description:'', images:[] };
     const r = await req('POST', '/rest/v1/tickets', row, { 'Prefer':'return=representation' });
     if (r.status >= 400) throw new Error('add failed ('+r.status+'): ' + JSON.stringify(r.body));
@@ -199,11 +217,27 @@ async function main() {
     console.log('tagged "'+t.title+'" -> '+(v||'(cleared)'));
     return;
   }
+  // Hides the ticket. It keeps its number and its whole running record, and restore brings it
+  // back. Hard delete is revoked at the database, so there is no flag that would make this
+  // permanent and no way to issue one from here.
   if (cmd==='rm') {
     const t = await findOne(a1);
-    const r = await req('DELETE', '/rest/v1/tickets?id=eq.'+t.id+'&'+scope());
-    if (r.status >= 400) throw new Error('delete failed ('+r.status+'): '+JSON.stringify(r.body));
-    console.log('deleted "'+t.title+'"');
+    await patch(t.id, { deleted_at: new Date().toISOString() });
+    console.log('hidden "'+t.title+'" ('+ref(t)+'). Restore with: restore '+t.id.slice(0,8));
+    return;
+  }
+  if (cmd==='restore') {
+    const t = await findOne(a1, true);
+    if (!t.deleted_at) { console.log('"'+t.title+'" is not deleted'); return; }
+    await patch(t.id, { deleted_at: null });
+    console.log('restored "'+t.title+'" ('+ref(t)+') to '+LABELS[normStatus(t.status)]);
+    return;
+  }
+  if (cmd==='deleted') {
+    const gone = (await getAll(true)).filter(t => t.deleted_at);
+    console.log('\n' + PROJECT.name + ': hidden tickets (' + gone.length + ')');
+    gone.forEach(t => console.log('  ['+t.id.slice(0,8)+'] '+ref(t)+' '+t.title+'  hidden '+t.deleted_at.slice(0,10)));
+    console.log('');
     return;
   }
   throw new Error('unknown command: ' + cmd);

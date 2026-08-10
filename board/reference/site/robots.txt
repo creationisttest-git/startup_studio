@@ -1,0 +1,5 @@
+# Internal ticket board. Not for indexing by anything, ever.
+# The X-Robots-Tag header in _headers is the real control; this is the courtesy copy.
+
+User-agent: *
+Disallow: /

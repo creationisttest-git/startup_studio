@@ -6,6 +6,130 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-10
+
+### The thing that decides what may be published had never been watched fail
+
+**The problem.** The leak scanner is the only control between the private repository and a
+public one. It ran, reported clean, and published a name it was configured to block. It did
+not error and it did not warn.
+
+The pattern was anchored at both ends, so it required a non-word character after the name,
+and the name appeared inside a compound word. The list was inconsistent about this: some
+entries would catch compounds and some could not, and nothing distinguished them from the
+outside. Today that cost one low-value word. The same list also guards AWS keys, GitHub
+tokens, service keys and JWTs, and those patterns looked equally correct.
+
+A check that cannot be seen to fail is indistinguishable from a check that always passes.
+
+**What changed.** Every pattern now carries a known-bad sample it is required to match, and
+the publish refuses to run if any pattern has no sample or fails its own. Where the blocked
+thing is a name, the sample is a compound rather than the bare word, because the bare word
+would have passed on the day it leaked.
+
+The samples live in the private configuration beside the patterns, and deliberately not in
+the published script: a file listing a known-bad example of every blocked name is exactly the
+leak the scanner exists to prevent.
+
+Both failure paths were then proved rather than assumed, by reintroducing the original defect
+and confirming the publish refused, and by removing a sample and confirming the same. That is
+the discipline this whole entry is about, and it came from another project in the studio,
+which had already learned it the hard way: it proved each of its own content checks by
+re-injecting a defect the check was supposed to catch, and found two that had never fired.
+That lesson existed here for three days before this scanner needed it.
+
+### The board reference had five defects that could only appear on a fresh install
+
+**The problem.** The board reference was lifted from a board that had been running for months
+and working fine. That board's database had drifted away from the schema file that supposedly
+built it: a column had been added by hand and never written back, and the project it belonged
+to was the one whose ticket code sat hardcoded in the page. None of this was visible from the
+reference, because on the board it came from, every one of these defects was masked.
+
+The first project to stand a board up from the reference alone hit all five in one sitting.
+
+1. **A missing column reported itself as a missing table.** The page selects `image_count` and
+   the schema file never creates it. The page detects a missing table by matching the error
+   text for "does not exist", so a missing *column* produced "the tickets table is not there
+   yet", which sends you to re-run a schema file that is already correctly applied. That is the
+   worst kind of error message: it is confident, it is specific, and it points at the one thing
+   that is not wrong.
+
+2. **Cards showed another project's ticket code.** One function read the project's real prefix
+   from the database and another used a hardcoded constant, so the same ticket displayed two
+   different references depending on where it was drawn.
+
+3. **Sign-out did not sign you out.** The session was stored under one browser storage key and
+   cleared under a different one, so the token survived the sign-out it was supposed to end.
+
+4. **An empty allow-list locked out everybody, including the owner.** Its own comment said an
+   empty list should defer to board membership. The code read the list unguarded, so an empty
+   list matched nobody.
+
+5. **The header wore the original project's initial** on every board built from it.
+
+**What changed.** All five are fixed at the source, so no project hits them again. The lesson
+worth keeping is the one about where they came from: a reference implementation extracted from
+a running system inherits that system's undocumented drift, and every defect it carries stays
+invisible until somebody installs it clean. The first install is therefore a test of the
+reference, not just of the project doing it, and its findings belong upstream the same day.
+
+**Deleting a ticket is now recoverable, and the database enforces that, not the page.** A
+deleted ticket is flagged and hidden; its number and its whole running record survive, and it
+can be restored. The half that matters is a revoke rather than a flag: hard delete is taken
+away from the signed-in role, so it cannot be issued by the page, by the command line, or by
+anyone holding the publishable key and a shell. A flag the application is merely trusted to
+honour would not have been a control, because the data API is reachable directly whatever the
+page chooses to send.
+
+The confirmation dialog used to say the deletion was permanent and could not be undone. That
+had quietly become false, and a warning that overstates its consequence teaches people to
+ignore the ones that do not.
+
+**The assignee constraint no longer hardcodes one studio's role names.** It allowed exactly
+three values, which meant any existing board whose tickets used different ones could not be
+migrated onto the shared backend at all: the constraint is added part-way through the schema
+file, so the run fails with the table already half-altered. Projects now declare their own
+permitted assignees, and declaring none means no restriction.
+
+**And the reference now carries the tooling a project actually needs to stand a board up.** A
+credential hygiene check that fails if a privileged key reaches a tracked file, a deploy step
+that substitutes secrets at publish time and refuses to publish if a placeholder survives, the
+isolation checks including the negative control that proves one project cannot read another,
+and a setup runbook. All of it existed only inside the first project to do this, which meant
+the second project would have written it again.
+
+### Free tiers run out, and they run out across the whole account
+
+**The problem.** The studio's cost rule is that nothing bills for existing, and every default
+in the stack has a free tier that honours it. That was read as though free meant available,
+which is a different claim.
+
+A dedicated database was planned, agreed and half-scripted before the dashboard refused to
+create it: the free plan allows two projects and both slots were already used by other
+products. Nothing was misconfigured. The capacity simply was not there, and nothing said so
+until the moment of creation, by which point the plan had been built around having it.
+
+**What changed.** The infrastructure standard now carries what actually bites, per vendor,
+and the discipline around it: check the headroom before promising the thing rather than while
+building it, know which limits are per project and which are shared across the whole account,
+and expect exhaustion to arrive as a refusal to create, a silently paused project or a build
+that queues forever rather than as the error you were watching for. The account-wide half is
+the one that surprises people, because it means another project's build loop can take yours
+down.
+
+The devops engineer, tech lead and PM now carry it as a standing check, and the answer is
+recorded with its date in the project's warm start rather than left in somebody's memory.
+
+### The board's own security rules were describing a model that had been replaced
+
+`BOARD_SPEC.md` and the devops engineer both still said the board CLI holds a privileged key
+and told you how to look after it. That stopped being true when the CLI moved to a per-project
+bot user, precisely because such a key on a shared backend would give every project access to
+every other board that no policy could revoke. Both now say what is actually true, which
+matters more than usual here: the old text told a reader to protect a credential the design
+no longer issues, which reads as permission to have one.
+
 ## 2026-08-06
 
 ### The reviewers learned five ways an animated sequence hides a defect from its own tests
