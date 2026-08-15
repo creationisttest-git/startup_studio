@@ -8,6 +8,64 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-16
 
+### A second skill, /reality-check, because nothing in this method ever made anyone look
+
+**The problem.** A studio can be immaculate and still be several projects nobody has checked
+the numbers for. Every document current, every roster composed, every deploy green, and no
+idea whether any of it sells anything.
+
+One project here took real card payments for six weeks. Every session in that period worked
+on the top of the funnel: the journal, social posts, SEO, a video rotation. Its entire written
+record was silent on whether a single order had been placed. Nobody was careless. Building is
+pleasant and looking is not, and no step in the process ever forced the look.
+
+The board tracks work inside a project. The wind-down records what a session learned. Nothing
+asked whether the project was working.
+
+**What changed.** `/reality-check` is the step that asks, and the discipline is the product
+rather than any automation.
+
+It takes the founder's **guess first**, before anything is opened. That costs thirty seconds
+and converts a chore into calibration: someone who guessed forty orders and finds three has
+learned something that someone who only reads three has not, and the size of that gap over
+several readings says how well they understand their own product.
+
+It names its sources **before** reading them, which is a cherry-picking guard, because after
+you have seen the numbers it is very easy to decide which dashboard was the meaningful one.
+
+It records six things and not a dashboard's worth: revenue, the denominator over the same
+period, conversion, where the converting traffic came from, what the project costs per month,
+and how much attention it consumed. The last two are what make it a founder's instrument
+rather than a marketing report. Revenue alone says almost nothing; revenue against cost
+against attention is the entire question.
+
+**The founder chooses how the data arrives.** Automatically where a project already holds the
+access, pasted from a dashboard, or simply spoken aloud. A figure read off a phone is a real
+figure. What matters is that it is attributed and dated, never how it was fetched, and the
+skill will not ask for a credential a project does not already have.
+
+**It fails closed.** It will not invent a figure to complete a row, because a number nobody
+sourced reads as evidence while being none. It refuses "up" and "growing" as results. It
+records zero plainly, since most readings on most projects are zero and that is the
+information. Everything unsourceable goes in a "Not known" line, which doubles as the list of
+instruments the project does not yet have.
+
+It states what the numbers imply and then stops. Deciding what to do is the founder's, needs
+more than one reading, and a skill that hands down verdicts is a skill founders quietly stop
+running.
+
+**Declining is a legitimate answer, and it is recorded as one.** When a reading is overdue and
+a build decision is being made anyway, the skill raises it once, before the decision rather
+than after. If the founder says not now, that becomes a DEFERRED row with their reason, so the
+gap shows in the trend instead of looking like a month nobody thought about. It is not raised
+again that session, because a nagging check gets switched off. Two consecutive deferrals is a
+different thing and gets a decision row, since running a project without knowing whether it
+works may be perfectly deliberate, and deliberate decisions get written down.
+
+**`-Doctor` gained a REALITY section** listing when each project was last read. On the first
+run every single project reported "never", which is the correct answer and is precisely why
+the section exists.
+
 ### You probably never needed to restart, and the advice to do so hid the real defect
 
 **The problem.** This tool has told you to restart your session after every sync and compose,

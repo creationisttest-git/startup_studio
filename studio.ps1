@@ -1070,6 +1070,54 @@ function Show-Status ([switch]$Fix) {
         Write-Host "  fix: add a line reading '@WARM_START.md' to that project's CLAUDE.md." -ForegroundColor Yellow
     }
 
+    # When did anyone last check whether these projects actually work?
+    #
+    # A studio can be perfectly maintained, fully composed, every document current, and still
+    # be six projects nobody has looked at the numbers for. One took real card payments for
+    # six weeks while every session worked on the top of the funnel, and its whole record was
+    # silent on whether it had sold anything. That is not carelessness, it is the default:
+    # building is pleasant and looking is not, so nothing forces the look.
+    #
+    # This makes the silence visible. A DEFERRED row counts as looking, deliberately: the
+    # founder was asked and said not now, which is an answer and is recorded as one.
+    Write-Host ""
+    Write-Host "REALITY" -ForegroundColor Cyan
+    $overdue = 0; $never = 0
+    foreach ($p in Find-Projects) {
+        $name = $p.Replace("$ProjectsRoot\", '')
+        $root = Get-GovRoot $p
+        if (-not $root) { $root = $p }
+        $wow  = Join-Path $root 'WAYS_OF_WORKING.md'
+        if (-not (Test-Path $wow)) { continue }
+        $lines = Get-Content $wow -ErrorAction SilentlyContinue
+        $inTable = $false; $last = $null
+        foreach ($l in $lines) {
+            if ($l -match '^\s*\|.*\bRead\b.*\bPeriod\b') { $inTable = $true; continue }
+            if ($inTable) {
+                if ($l -match '^\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|') {
+                    $d = [datetime]$matches[1]
+                    if ($null -eq $last -or $d -gt $last) { $last = $d }
+                } elseif ($l -notmatch '^\s*\|') { $inTable = $false }
+            }
+        }
+        if ($null -eq $last) {
+            $never++
+            Write-Host ("  never    {0}   no reading has ever been recorded" -f $name) -ForegroundColor Yellow
+        } else {
+            $age = [int]((Get-Date) - $last).TotalDays
+            if ($age -gt 30) {
+                $overdue++
+                Write-Host ("  OVERDUE  {0}   last read {1}, {2} days ago" -f $name, $last.ToString('yyyy-MM-dd'), $age) -ForegroundColor Yellow
+            } else {
+                Write-Host ("  ok       {0}   last read {1}, {2} days ago" -f $name, $last.ToString('yyyy-MM-dd'), $age) -ForegroundColor Gray
+            }
+        }
+    }
+    if ($overdue -or $never) {
+        Write-Host "  run /reality-check in that project's session BEFORE deciding what to build next." -ForegroundColor Yellow
+        Write-Host "  declining is a valid answer and gets recorded; not asking is not." -ForegroundColor Yellow
+    }
+
     # Every place the studio standard has been bent, in one view. Without this a register
     # is just somewhere deviations go to be forgotten.
     $allDevs = @()
