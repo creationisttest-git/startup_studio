@@ -6,6 +6,45 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-16
+
+### A claim about a thing is not evidence about the thing
+
+**The problem.** A project ran five rounds of content review on the same body of work, and all
+five failed on the same defect wearing a different hat each time: a confident sentence written
+from a filename, or from a metadata field, rather than from the artefact it described.
+
+Copy described what was in a photograph, and the photograph showed something else. Copy stated
+how long a video was and who made it, taken from the record rather than from the file. A price
+claim contradicted the product's own listing. Each round the reviewers read the words carefully
+and passed them, because the words were well written, internally consistent, and about
+something nobody opened.
+
+That is the whole failure mode, and it is not about photographs. **A string cannot be evidence
+for a claim the string is making.** Reviewing copy against itself will confirm it is
+well-formed and tell you nothing about whether it is true.
+
+**It generalises further than its own project, and further than copy.** The same week, the same
+team found two more instances in their own documentation, both load-bearing. A brand standard
+named one typeface while the product shipped another, and would have been copied forward into a
+new document as fact. And a decision to keep a live credential rested on the claim that a weekly
+job depended on it; the job had been reading a different source since months earlier. Both were
+caught the same way, by opening the artefact instead of trusting the description of it. The
+second one would have left a credential in place to protect a dependency that did not exist.
+
+Documentation is an artefact too, and an old document is exactly as unverified as a filename.
+
+**What changed.** The content reviewer gains a sixth hard failure: a claim whose truth depends
+on an artefact must be checked against that artefact, or against the stored record of it, and
+reporting PASS on a claim nobody verified is itself the failure. Unverifiable is not a pass. The
+content lead gains the writing-side rule, which is the cheaper end: open the thing before
+describing it, and treat your own project's older documents as claims rather than as facts.
+
+The test reviewer already carried the companion rule from an earlier lesson, that a check
+guarding a defect must be mutation tested by reintroducing the defect, so it needed nothing.
+
+---
+
 ## 2026-08-15
 
 ### Thirteen of the sixteen agents have never loaded, in any project, for weeks

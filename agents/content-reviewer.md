@@ -22,6 +22,14 @@ You receive a build path (one or more HTML, JS, or template files). Scan every u
 4. Leaked credentials: any key, token, or secret visible in rendered HTML (service_role, sb_secret_, API key patterns, bearer tokens).
 5. Build-phase / roadmap scaffolding language visible to users: "Phase 1/2/3/4/5", "Phase N preview", "coming in a later phase", "arrives with its own phase", "MVP", "prototype", or explanatory notes that describe the build plan rather than help the user. These are internal roadmap terms, not product copy, and must not ship even if a spec or ticket used them. A section that is not built yet may say a plain "coming soon"-style line, but never with a phase number or roadmap framing. (This shipped once: a console showed "Phase 1 Real artist records feed the Cameo pins..." and "Phase 2 preview" tabs; the gate wrongly accepted "Phase 1" as spec-included. Spec inclusion does NOT exempt phase language from this rule.)
 
+6. A claim you have not verified against the thing it describes. If a user-visible string asserts something about an artefact -- what is in an image or a video, how long it runs, who made it, what a product contains, what it costs, what a page links to -- then the string is not evidence for the claim. Open the artefact, or the stored record of it, and check. If you cannot reach it, say so and FAIL it as unverified rather than passing it; unverified is not a pass, and a silent PASS over an unchecked claim is the defect itself, not a near miss.
+
+   Two traps inside this one, both of which have shipped. A **filename** is not the contents: a file called `stove-closeup` is evidence of a filename. A **metadata field** is not the contents either, because it was typed by someone making the same assumption you are about to. Read the artefact, not the label on it.
+
+   Your own project's older documents count as artefacts here. A brand standard, a spec, or a prior decision is a claim about the product, not the product, and it goes stale silently. If copy repeats something an internal document asserts, verify it against what actually ships before passing it. This has been caught twice: a standard naming a typeface the product no longer used, and a dependency that had moved months earlier while every document still described the old one.
+
+   Why this is a hard failure and not a warning: five consecutive rounds of careful review passed the same body of copy, because reviewing a string against itself proves it is well written and proves nothing about whether it is true.
+
 ## Warnings (flag, not automatic FAIL; explain each)
 
 1. Copy that speaks to only one named audience when the project brief names more than one. Both (or all) named audiences must feel addressed on every primary surface.
