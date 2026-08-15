@@ -1,4 +1,4 @@
-﻿# Licence
+# Licence
 
 **AGPL-3.0.** The full text is in `LICENSE`.
 

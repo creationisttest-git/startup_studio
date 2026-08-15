@@ -285,6 +285,24 @@ function Read-InstallManifest ([string]$Target) {
     $h
 }
 
+# Every file this script writes goes through here.
+#
+# `Set-Content -Encoding utf8` means UTF-8 WITH a byte order mark on Windows PowerShell 5.1,
+# and that BOM is not cosmetic. An agent file begins with `---` opening its YAML frontmatter;
+# put three bytes in front of that and the frontmatter no longer parses, so the agent has no
+# name and is never registered. It is composed, it is on disk, `-Doctor` reports it current,
+# and it does not exist as far as the session is concerned.
+#
+# That shipped for weeks. Thirteen of sixteen roles were silently absent in every project,
+# which is why work ran with no PM, no tech lead and no content writer while the roster
+# looked healthy. The same call also wrote the STUDIO block into project CLAUDE.md files and
+# corrupted them the same way.
+#
+# So: never Set-Content. This, always.
+function Write-Utf8NoBom ([string]$Path, [string]$Text) {
+    [System.IO.File]::WriteAllText($Path, $Text, (New-Object System.Text.UTF8Encoding $false))
+}
+
 function Write-InstallManifest ([string]$Target, [hashtable]$Map) {
     $p = Join-Path $Target $INSTALL_MANIFEST
     $json = ($Map.GetEnumerator() | Sort-Object Name | ForEach-Object { [pscustomobject]@{ n = $_.Name; v = $_.Value } } |
@@ -409,7 +427,7 @@ sign-off recorded in governance.
 
 [Naming, folder layout, ticket prefix, branch and release conventions, anything a new
 agent would otherwise guess at.]
-"@ | Set-Content $cardPath -Encoding utf8
+"@ | ForEach-Object { Write-Utf8NoBom $cardPath $_ }
     Write-Host "  created stack card: $cardPath" -ForegroundColor Green
     Write-Host "  Fill it in, then: studio.ps1 -Compose -Project `"$Name`"" -ForegroundColor DarkGray
 }
@@ -428,11 +446,11 @@ function Build-Project ([string]$ProjectPath, [switch]$Quiet, [switch]$Silent) {
 
     $manifest = @{}
     foreach ($f in $files) {
-        if (-not $WhatIf) { Set-Content (Join-Path $agentDir $f.Name) (New-ComposedAgent $f $ProjectPath $proj) -Encoding utf8 -NoNewline }
+        if (-not $WhatIf) { Write-Utf8NoBom (Join-Path $agentDir $f.Name) (New-ComposedAgent $f $ProjectPath $proj) }
         $manifest[$f.BaseName] = @{ base = Get-Sha $f.FullName }
     }
     if (-not $WhatIf) {
-        $manifest | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $agentDir '.sync-manifest.json') -Encoding utf8
+        Write-Utf8NoBom (Join-Path $agentDir '.sync-manifest.json') ($manifest | ConvertTo-Json -Depth 5)
         Get-ChildItem $agentDir -Filter *.md -File | Where-Object { $files.Name -notcontains $_.Name } | ForEach-Object { Remove-Item $_.FullName -Force }
     }
     if (-not $Silent) {
@@ -863,13 +881,13 @@ $end
             $pattern = [regex]::Escape($begin) + '[\s\S]*?' + [regex]::Escape($end)
             $new = [regex]::Replace($c, $pattern, $block.Replace('$','$$'))
             if ($new -eq $c) { return 'current' }
-            if (-not $WhatIf) { Set-Content $file $new -Encoding utf8 -NoNewline }
+            if (-not $WhatIf) { Write-Utf8NoBom $file $new }
             return 'updated'
         }
-        if (-not $WhatIf) { Set-Content $file ($c.TrimEnd() + "`r`n`r`n" + $block + "`r`n") -Encoding utf8 -NoNewline }
+        if (-not $WhatIf) { Write-Utf8NoBom $file ($c.TrimEnd() + "`r`n`r`n" + $block + "`r`n") }
         return 'appended'
     }
-    if (-not $WhatIf) { Set-Content $file ("# $name`r`n`r`n" + $block + "`r`n") -Encoding utf8 -NoNewline }
+    if (-not $WhatIf) { Write-Utf8NoBom $file ("# $name`r`n`r`n" + $block + "`r`n") }
     return 'created'
 }
 
@@ -962,6 +980,37 @@ function Show-Status ([switch]$Fix) {
     if ($unknown.Count) { Write-Host "  differs, and no record of what it was installed from, so the direction is unknown." -ForegroundColor Yellow
                           Write-Host "  diff it against base\agents before syncing. -Sync records the answer for next time." -ForegroundColor Yellow
                           Write-Host "    $($unknown -join ', ')" -ForegroundColor Yellow }
+
+    # Will these agents actually LOAD? Everything above only says the files are present and
+    # match the base. That is not the same question, and the difference cost weeks.
+    #
+    # An agent file has to open with `---` at byte zero for its YAML frontmatter to parse. A
+    # byte order mark in front of it means no frontmatter, so no name, so the agent is never
+    # registered. It is on disk, it matches the base, and it does not exist. Thirteen of
+    # sixteen roles were absent from every project while this section printed all clear.
+    #
+    # So the check is not "is the file right", it is "can it be loaded".
+    Write-Host ""
+    Write-Host "LOADABLE" -ForegroundColor Cyan
+    $unloadable = @()
+    foreach ($dir in @($g) + @(Find-Projects | ForEach-Object { Join-Path $_ $AGENT_DIR })) {
+        if (-not (Test-Path $dir)) { continue }
+        foreach ($f in (Get-ChildItem $dir -Filter *.md -File -ErrorAction SilentlyContinue)) {
+            $b = [System.IO.File]::ReadAllBytes($f.FullName) | Select-Object -First 3
+            if ($b.Count -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF) {
+                $unloadable += "$($f.BaseName)  ($dir)"
+            }
+        }
+    }
+    if ($unloadable.Count) {
+        Write-Host ("  {0} agent file(s) begin with a byte order mark and WILL NOT LOAD" -f $unloadable.Count) -ForegroundColor Red
+        Write-Host "  their frontmatter cannot parse, so they are composed, current, and absent from the session." -ForegroundColor Red
+        $unloadable | Select-Object -First 12 | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+        if ($unloadable.Count -gt 12) { Write-Host ("    ... and {0} more" -f ($unloadable.Count - 12)) -ForegroundColor Red }
+        Write-Host "  fix: strip the mark from base\agents, then -Sync -Force. Writers must use Write-Utf8NoBom." -ForegroundColor Red
+    } else {
+        Write-Host "  every composed agent opens with parseable frontmatter" -ForegroundColor Green
+    }
 
     Write-Host ""
     Write-Host "PROJECTS" -ForegroundColor Cyan

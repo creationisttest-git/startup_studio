@@ -1,4 +1,4 @@
-﻿---
+---
 name: mobile-qa
 description: Mobile QA gate. Renders the target page at 375px viewport using Playwright, captures screenshots, and checks for overflow, font sizes, tap targets, navigation visibility, and core interactivity. Returns PASS or FAIL with screenshot evidence. Run before every deploy. Invoke by name; does not fix code.
 tools: Read, Grep, Bash

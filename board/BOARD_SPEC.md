@@ -1,4 +1,4 @@
-﻿# Startup Studio Kanban: required contract
+# Startup Studio Kanban: required contract
 
 Every project runs the Startup Studio Kanban, and it is the single work queue. This file is the
 contract. Build to it exactly rather than inventing a shape per project, because the

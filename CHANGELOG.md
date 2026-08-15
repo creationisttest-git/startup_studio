@@ -1,8 +1,56 @@
-﻿# Changelog
+# Changelog
 
 What changed and why, written for someone who did not build it.
 
 Newest first. Dates are when the change went public.
+
+---
+
+## 2026-08-15
+
+### Thirteen of the sixteen agents have never loaded, in any project, for weeks
+
+**If you have installed this roster, you have been running three of sixteen roles.** Update,
+run `studio.ps1 -Sync -Force`, and restart your session. `-Doctor` now tells you if it happens
+again.
+
+**The problem.** An agent file has to begin with `---` at the very first byte, because that
+opens the YAML frontmatter carrying its name and description. Thirteen of the sixteen files
+began with a byte order mark instead: three invisible bytes in front of the `---`. The
+frontmatter therefore never parsed, the agent had no name, and it was silently not registered.
+
+Every check said everything was fine. The files were present. They matched the base
+byte-for-byte. `-Doctor` reported "composed and current" for every project. The agents simply
+were not there, and nothing anywhere said so, because presence and loadability are different
+questions and only the first was being asked.
+
+The effect was not subtle in hindsight. Work ran with no product manager, no tech lead, no
+design lead and no content writer, while the reviewers, which happened to be among the three
+clean files, kept working. One project's record blames repeated rounds of copy coming back as
+unusable on exactly this, without knowing the cause.
+
+**Two separate faults, which is why a partial fix would have looked like a fix.** Thirteen of
+the source files already carried the mark, so the byte-copy that installs them propagated it
+faithfully. And the composer wrote its output with an encoding flag that means "UTF-8 with a
+byte order mark" on Windows PowerShell 5.1, so it added the mark even to the three clean ones.
+Repairing the generated files without repairing both writers would have worked until the next
+compose.
+
+**What changed.** Every file this tool writes now goes through one function that writes UTF-8
+without a byte order mark. The source files are repaired. The same defective call was also
+writing the studio block into projects' own `CLAUDE.md` files and corrupting those; that is
+fixed by the same change, and it explains a corruption another project reported and correctly
+refused to paper over locally.
+
+Script files keep their byte order mark deliberately. Windows PowerShell 5.1 reads a script
+without one as legacy-encoded, which mangles any non-ASCII character in it. Stripping the mark
+everywhere would have introduced the very corruption being removed here.
+
+**And `-Doctor` now asks the question that was missing.** A new LOADABLE section checks that
+every composed agent opens with parseable frontmatter, and names any that does not. Verified
+by putting the mark back and watching the check fail, then removing it and watching it pass.
+The lesson is the one this changelog keeps re-learning: a check that reports on the artefact
+is not a check on the behaviour, and only the second one was ever the point.
 
 ---
 

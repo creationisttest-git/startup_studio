@@ -1,4 +1,4 @@
-﻿# The studio method
+# The studio method
 
 How the agent roster and shared governance are managed across every project.
 

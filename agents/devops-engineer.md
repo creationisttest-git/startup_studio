@@ -1,4 +1,4 @@
-﻿---
+---
 name: devops-engineer
 description: DevOps and infrastructure engineer. Owns environments, the deploy pipeline, DNS and CDN, secrets handling, and performance. Invoke by name for anything about shipping, hosting, or environments.
 tools: Read, Write, Edit, Bash, Grep, Glob

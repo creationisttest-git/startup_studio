@@ -1,4 +1,4 @@
-﻿---
+---
 name: wind-down
 description: Close a session safely by updating the project's governance documents from disk. Use when the user says wind down, shutting down, closing up, end of session, or any equivalent. Also use before deliberately restarting a session, because a session that ends without this loses everything since the last update.
 ---

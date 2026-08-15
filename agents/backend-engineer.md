@@ -1,4 +1,4 @@
-﻿---
+---
 name: backend-engineer
 description: Senior backend engineer. Server, data, security, APIs, and integrations, per the project's stack. Invoke by name; multiple instances can run in parallel on separate modules.
 tools: Read, Write, Edit, Bash, Grep, Glob

@@ -1,4 +1,4 @@
-﻿---
+---
 name: marketing-lead
 description: Growth and marketing strategist. Joins requirements, then builds the go-to-market in parallel with the build (not after it), and presents it back for the PM and CEO. Invoke by name from requirements onward.
 tools: Read, Grep, Glob, Write

@@ -1,4 +1,4 @@
-﻿---
+---
 name: data-engineer
 description: Data and analytics engineer. Owns event tracking, the analytics pipeline, aggregation (including any heat map or behavioral rollups), and dashboards. Invoke by name for anything measurement-related.
 tools: Read, Write, Edit, Bash, Grep, Glob

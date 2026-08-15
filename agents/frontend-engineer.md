@@ -1,4 +1,4 @@
-﻿---
+---
 name: frontend-engineer
 description: Senior frontend engineer. UI, design system, responsive desktop and mobile, and accessibility, per the project's stack and brand. Invoke by name; multiple instances can run in parallel on separate views.
 tools: Read, Write, Edit, Bash, Grep, Glob
