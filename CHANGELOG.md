@@ -8,6 +8,34 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-16
 
+### You probably never needed to restart, and the advice to do so hid the real defect
+
+**The problem.** This tool has told you to restart your session after every sync and compose,
+and the method document made it step 5 of setting up a project. That advice was wrong often
+enough to be worth correcting, and worse, it was absorbing a real failure.
+
+A project once lost a role mid-session immediately after a sync. That was recorded as the
+session dropping agents and failing to re-register them, and a guard warning before syncing
+into active projects was proposed on the strength of it.
+
+The likelier explanation is the byte order mark fixed yesterday. Compose was stamping one onto
+every file it wrote, so the role was not dropped by the session; it was rewritten into a file
+that could no longer be parsed. The agent that disappeared was the one that had just been
+rewritten, which is precisely what a sync does and precisely what dropping would look like.
+
+An explanation that fits the symptom is not the same as the cause, and this one was comfortable
+enough to stop anybody measuring for weeks.
+
+**What changed.** Agent files re-register live. Confirmed twice independently, once in the
+studio's own session when thirteen repaired roles became available the moment the marks came
+off, and once in a project session that re-measured its own bytes before agreeing.
+
+So the tool now asks you to have the session name its roles rather than telling you to restart,
+the method document says the same, and the proposed guard is cancelled rather than built.
+
+**The rule underneath it.** Composed on disk and loaded in the session are different claims,
+and only the second one matters. Every check the studio had was answering the first.
+
 ### A claim about a thing is not evidence about the thing
 
 **The problem.** A project ran five rounds of content review on the same body of work, and all

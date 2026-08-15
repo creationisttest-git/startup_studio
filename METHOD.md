@@ -173,9 +173,20 @@ Both are solved the same way. One base, layered overlays, generated output.
    single highest-value file for a project: it tells all sixteen roles what the stack is,
    how access is really enforced, and which studio rules are waived.
 4. Run `.\studio.ps1 -Compose -Project "<name>"`.
-5. Restart the Claude Code session.
+5. Check the roles are there. Ask the session to name them. Composed on disk and loaded in
+   the session are different claims, and only the second one matters.
 
 A project with no tuning needs none of steps 3 and 4. It runs on the base install.
+
+**You probably do not need to restart.** Agent files re-register live, confirmed twice
+independently. Restart only if the roles do not appear, and if they still do not, run
+`studio.ps1 -Doctor` and read its LOADABLE section before assuming the session is at fault.
+
+That check exists because of the failure it was built from. An agent file must open with
+`---` at the first byte for its frontmatter to parse. Anything in front of it, most commonly a
+byte order mark from a writer defaulting to UTF-8-with-BOM, means no name, so the agent is
+never registered and nothing reports an error. Thirteen of sixteen roles were absent from
+every project for weeks while every other check said the roster was current.
 
 ---
 

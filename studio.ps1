@@ -1133,7 +1133,7 @@ if ($Update) {
 Install-GlobalAgents
     Install-GlobalSkills
     foreach ($p in Find-Projects) { Build-Project $p -Quiet }
-    Write-Host ""; Write-Host "Restart the Claude Code session to pick up agent changes." -ForegroundColor Green; Write-Host ""
+    Write-Host ""; Write-Host "Ask the session to name its roles. They normally re-register live; restart only if they do not appear." -ForegroundColor Green; Write-Host ""
     return
 }
 
@@ -1162,7 +1162,7 @@ if ($Compose) {
     if ($All)         { foreach ($p in Find-Projects) { Build-Project $p -Quiet } }
     elseif ($Project) { Build-Project (Resolve-Project $Project) }
     else              { throw "-Compose needs -Project <name> or -All" }
-    Write-Host ""; Write-Host "Restart the Claude Code session to pick up agent changes." -ForegroundColor Green; Write-Host ""
+    Write-Host ""; Write-Host "Ask the session to name its roles. They normally re-register live; restart only if they do not appear." -ForegroundColor Green; Write-Host ""
     return
 }
 
@@ -1189,7 +1189,7 @@ if ($Sync -or $Global) {
         Write-Host ""; Write-Host "COMPOSE" -ForegroundColor Cyan
         foreach ($p in Find-Projects) { Build-Project $p -Quiet }
     }
-    Write-Host ""; Write-Host "Restart the Claude Code session to pick up agent changes." -ForegroundColor Green; Write-Host ""
+    Write-Host ""; Write-Host "Ask the session to name its roles. They normally re-register live; restart only if they do not appear." -ForegroundColor Green; Write-Host ""
     return
 }
 
