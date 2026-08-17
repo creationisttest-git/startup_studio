@@ -564,7 +564,15 @@ $PUBLIC_MANIFEST = @(
     @{ from = 'base\agents';  to = 'agents' },
     @{ from = 'new-project';  to = 'new-project' },
     @{ from = 'studio.ps1';   to = 'studio.ps1' },
-    @{ from = 'index.html';   to = 'index.html' },
+    # The site is five real pages now, not one long scroll. Each needs its own title and
+    # description to be worth anything in a search result, which a single document cannot do.
+    @{ from = 'index.html';      to = 'index.html' },
+    @{ from = 'problem.html';    to = 'problem.html' },
+    @{ from = 'solution.html';   to = 'solution.html' },
+    @{ from = 'prototypes.html'; to = 'prototypes.html' },
+    @{ from = 'how-to.html';     to = 'how-to.html' },
+    @{ from = 'site.css';        to = 'site.css' },
+    @{ from = 'site.js';         to = 'site.js' },
     @{ from = 'METHOD.md';    to = 'METHOD.md' },
     @{ from = 'CHANGELOG.md'; to = 'CHANGELOG.md' },
     @{ from = 'LICENSE';      to = 'LICENSE' },

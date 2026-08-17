@@ -111,3 +111,8 @@ Where a behaviour is only observable by running it, the guard runs it. Where a s
 assertion is genuinely the right tool, say in the comment why, and pair it with something that
 exercises the behaviour. And mutation test anything guarding a defect: reintroduce the defect and
 confirm the test fails. A guard that has never been seen to fail has not been shown to work.
+
+## Two ways a suite reports health it does not have
+
+- **A test that reads a file excluded from version control passes by never running.** A conformance test opened a canonical reference, returned early when the file was absent, and asserted nothing on every continuous integration run for its entire life, because the directory holding that reference was ignored. It reported green the whole time. The day the reference was finally tracked, the test ran for the first time and immediately found a real disagreement. Any test whose subject is a file outside the tested tree is inert until proven otherwise. Either track the reference, or make the absent case FAIL loudly rather than skip. A silent early return is the most expensive line in a suite.
+- **Turn every gate finding into a deterministic assertion before the ticket closes.** Manual and agent-driven review is the most expensive way to learn something twice. A viewport check, a minimum text size, a minimum touch target and an overflow probe are all machine-checkable, and once written they cost nothing on every future change. When a review gate reports a class of defect, the ticket is not done until that class is asserted by a test wired into the standard command. Prefer asserting on measured values rather than on screenshots, because a number means the same thing on every device.

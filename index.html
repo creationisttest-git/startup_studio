@@ -7,9 +7,8 @@
 <title>Startup Studio: a shared team of AI agents for solo founders</title>
 <meta name="description" content="An open source multi-agent framework that turns your idea into a working product in days, so you can spend your time validating it with real customers.">
 <link rel="canonical" href="https://startupstudio.projectfreedom.xyz/">
+<link rel="stylesheet" href="/site.css">
 
-<!-- Inline so it costs no request and cannot 404. A missing icon makes a search result
-     look abandoned next to results that have one. -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050806'/%3E%3Cpath d='M7 9l7 7-7 7' stroke='%2335d06a' stroke-width='3.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='17' y='20' width='9' height='3.4' fill='%2335d06a'/%3E%3C/svg%3E">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="color-scheme" content="dark">
@@ -29,7 +28,6 @@
 <meta name="twitter:title" content="Startup Studio: a shared team of AI agents for solo founders">
 <meta name="twitter:description" content="An open source multi-agent framework that turns your idea into a working product in days, so you can spend your time validating it with real customers.">
 <meta name="twitter:image" content="https://startupstudio.projectfreedom.xyz/og.png">
-
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -79,658 +77,61 @@
 </script>
 </head>
 <body>
-<style>
-  :root {
-    color-scheme: dark;
-
-    --void:      #050806;
-    --deep:      #0a1109;
-    --fill:      #0b2a16;
-    --rule:      #1a4a2b;
-    --dim:       #1e7a3e;
-    --phosphor:  #35d06a;
-    --bright:    #8fffb4;
-    --prose:     #bedcc8;
-    --muted:     #7e9c89;
-    --amber:     #ffb454;
-
-    --mono: ui-monospace, "SFMono-Regular", "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, "Liberation Mono", monospace;
-    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-
-    --measure: 64ch;
-    --gap: clamp(2.5rem, 6vw, 4.5rem);
-    --rail: 14rem;
-  }
-
-  /* A CRT has no light mode. This page commits to one world on purpose. */
-  :root[data-theme="light"] { color-scheme: dark; }
-
-  * { box-sizing: border-box; }
-
-  html { scroll-behavior: smooth; }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-
-  body {
-    margin: 0;
-    background: var(--void);
-    color: var(--prose);
-    font-family: var(--serif);
-    font-size: clamp(1rem, 0.96rem + 0.2vw, 1.09rem);
-    line-height: 1.72;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-  }
-
-  body::before {
-    content: "";
-    position: fixed; inset: 0; pointer-events: none; z-index: 40;
-    background: repeating-linear-gradient(to bottom,
-      rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px,
-      rgba(0,0,0,0.22) 3px, rgba(0,0,0,0.22) 4px);
-    opacity: 0.45;
-  }
-  body::after {
-    content: "";
-    position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background: radial-gradient(ellipse 120% 80% at 50% 0%, rgba(53,208,106,0.07), transparent 60%);
-  }
-
-  /* ---------- floating site map ---------- */
-
-  .sitemap {
-    position: fixed;
-    z-index: 30;
-    font-family: var(--mono);
-  }
-
-  .sitemap-title {
-    font-size: 0.64rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--dim);
-    margin: 0 0 0.9rem;
-  }
-
-  .sitemap a {
-    display: flex;
-    align-items: baseline;
-    gap: 0.6rem;
-    text-decoration: none;
-    color: var(--muted);
-    font-size: 0.78rem;
-    line-height: 1.3;
-    padding: 0.45rem 0.6rem;
-    border-left: 2px solid transparent;
-    transition: color 0.15s, border-color 0.15s, background 0.15s;
-  }
-  .sitemap a .n { color: var(--rule); font-size: 0.68rem; flex: none; }
-  .sitemap a:hover { color: var(--prose); background: rgba(53,208,106,0.05); }
-  .sitemap a[aria-current="true"] {
-    color: var(--bright);
-    border-left-color: var(--phosphor);
-    background: rgba(53,208,106,0.07);
-  }
-  .sitemap a[aria-current="true"] .n { color: var(--phosphor); }
-  .sitemap a:focus-visible { outline: 2px solid var(--phosphor); outline-offset: -2px; }
-
-  /* wide: a fixed rail beside the content */
-  @media (min-width: 68rem) {
-    .sitemap {
-      top: 0; left: 0; bottom: 0;
-      width: var(--rail);
-      padding: 2.5rem 0.8rem;
-      border-right: 1px solid var(--rule);
-      background: rgba(5,8,6,0.92);
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-    }
-    .sitemap-title { padding-left: 0.6rem; }
-    .wrap { margin-left: var(--rail); }
-  }
-
-  /* narrow: a thumb-reachable bar, scrollable, never covering content permanently */
-  @media (max-width: 67.999rem) {
-    .sitemap {
-      left: 0; right: 0; bottom: 0;
-      border-top: 1px solid var(--rule);
-      background: rgba(5,8,6,0.96);
-      backdrop-filter: blur(6px);
-      padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
-      display: flex;
-      gap: 0.25rem;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .sitemap::-webkit-scrollbar { display: none; }
-    .sitemap-title { display: none; }
-    .sitemap a {
-      border-left: 0;
-      border-bottom: 2px solid transparent;
-      white-space: nowrap;
-      min-height: 44px;
-      align-items: center;
-      padding: 0.5rem 0.75rem;
-    }
-    .sitemap a[aria-current="true"] {
-      border-left: 0;
-      border-bottom-color: var(--phosphor);
-    }
-    .sitemap a .n { display: none; }
-    body { padding-bottom: 4.5rem; }
-  }
-
-  .wrap {
-    position: relative;
-    z-index: 1;
-    max-width: 66rem;
-    padding: 0 clamp(1.1rem, 5vw, 3.5rem) 5rem;
-  }
-
-  /* ---------- masthead ---------- */
-
-  .masthead { padding: clamp(3rem, 10vh, 6.5rem) 0 var(--gap); border-bottom: 1px solid var(--rule); }
-
-  .boot {
-    font-family: var(--mono);
-    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--dim); margin: 0 0 2.2rem;
-  }
-  .boot b { color: var(--phosphor); font-weight: 500; }
-
-  h1 {
-    font-family: var(--mono); font-weight: 500;
-    font-size: clamp(2rem, 1.1rem + 4.2vw, 4.2rem);
-    line-height: 1.02; letter-spacing: -0.02em;
-    margin: 0; color: var(--bright); text-wrap: balance;
-    text-shadow: 0 0 24px rgba(53,208,106,0.42), 0 0 60px rgba(53,208,106,0.16);
-  }
-  h1 span.sub { color: var(--dim); }
-
-  .caret {
-    display: inline-block; width: 0.58em; height: 0.92em;
-    margin-left: 0.14em; background: var(--phosphor); vertical-align: -0.08em;
-    box-shadow: 0 0 16px rgba(53,208,106,0.7);
-    animation: blink 1.25s steps(1) infinite;
-  }
-  @keyframes blink { 0%,45% { opacity: 1; } 50%,100% { opacity: 0; } }
-
-  .thesis {
-    max-width: 52ch; margin: 2rem 0 0;
-    font-size: clamp(1.12rem, 1rem + 0.6vw, 1.5rem);
-    line-height: 1.55; text-wrap: pretty;
-  }
-  .thesis strong { color: var(--bright); font-weight: 400; }
-
-  /* The turn from problem to claim, and the reason it is open. Set below the thesis
-     rather than inside it: the opening line has to survive on its own when it is the
-     only thing a share card or a search result shows. */
-  .thesis-more { max-width: 62ch; margin: 1.5rem 0 0; }
-  .thesis-more p { margin: 0 0 0.9rem; line-height: 1.65; text-wrap: pretty; }
-  .thesis-more p:last-child { margin-bottom: 0; }
-  .thesis-more strong { color: var(--bright); font-weight: 400; }
-
-  /* the repo link sits in the masthead so nobody has to hunt for it */
-  .repo {
-    margin: 1.8rem 0 0;
-    display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem;
-    font-family: var(--mono); font-size: 0.82rem;
-  }
-  .repo a {
-    display: inline-flex; align-items: center; gap: 0.6rem;
-    color: var(--bright); text-decoration: none;
-    border: 1px solid var(--rule); background: var(--deep);
-    padding: 0.6rem 0.95rem;
-    min-height: 44px;
-    transition: border-color 0.15s, background 0.15s;
-    word-break: break-all;
-  }
-  .repo a:hover { border-color: var(--phosphor); background: var(--fill); }
-  .repo a:focus-visible { outline: 2px solid var(--phosphor); outline-offset: 2px; }
-  .repo-mark { color: var(--phosphor); font-size: 0.7em; flex: none; }
-  .repo-note { color: var(--muted); font-size: 0.78rem; }
-
-  /* Answers the "will this work with my tool" question at the point someone is deciding
-     whether to clone, which is the only place they will think to ask it. */
-  .tooling {
-    max-width: 62ch; margin: 1rem 0 0;
-    color: var(--muted); font-size: 0.86rem; line-height: 1.6; text-wrap: pretty;
-  }
-
-  /* ---------- sections ---------- */
-
-  section { padding: var(--gap) 0; border-bottom: 1px solid var(--rule); scroll-margin-top: 1.5rem; }
-  section:last-of-type { border-bottom: 0; }
-
-  .eyebrow {
-    font-family: var(--mono); font-size: 0.7rem;
-    letter-spacing: 0.2em; text-transform: uppercase;
-    color: var(--dim); margin: 0 0 1.4rem;
-    display: flex; align-items: center; gap: 0.85rem;
-  }
-  .eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
-
-  h2 {
-    font-family: var(--mono); font-weight: 500;
-    font-size: clamp(1.3rem, 1.05rem + 1vw, 1.95rem);
-    line-height: 1.2; letter-spacing: -0.01em;
-    color: var(--bright); margin: 0 0 1.5rem;
-    max-width: 26ch; text-wrap: balance;
-  }
-
-  h3 { font-family: var(--mono); font-weight: 500; font-size: 0.95rem; color: var(--phosphor); margin: 0 0 0.5rem; }
-
-  p { max-width: var(--measure); margin: 0 0 1.15rem; text-wrap: pretty; }
-  p:last-child { margin-bottom: 0; }
-
-  strong { color: var(--bright); font-weight: 600; }
-  em { color: var(--phosphor); font-style: italic; }
-
-  code {
-    font-family: var(--mono); font-size: 0.86em; color: var(--phosphor);
-    background: var(--deep); border: 1px solid var(--rule);
-    padding: 0.08em 0.38em; border-radius: 2px;
-  }
-
-  a { color: var(--bright); text-decoration-color: var(--dim); text-underline-offset: 3px; }
-  a:hover { text-decoration-color: var(--phosphor); }
-  a:focus-visible { outline: 2px solid var(--phosphor); outline-offset: 3px; }
-
-  .letter { max-width: 60ch; }
-  .letter p { font-size: 1.06em; }
-  .letter .lead {
-    font-size: clamp(1.15rem, 1rem + 0.7vw, 1.4rem);
-    line-height: 1.5; color: var(--bright); margin-bottom: 1.6rem;
-  }
-
-  /* ---------- portfolio ---------- */
-
-  .portfolio {
-    display: grid; gap: 1px; background: var(--rule);
-    border: 1px solid var(--rule); margin-top: 2rem;
-  }
-  @media (min-width: 46rem) { .portfolio { grid-template-columns: repeat(2, 1fr); } }
-  .proj { background: var(--deep); padding: 1.4rem 1.4rem 1.5rem; display: flex; flex-direction: column; gap: 0.55rem; }
-  .proj .domain {
-    font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.2em;
-    text-transform: uppercase; color: var(--dim);
-  }
-  .proj .name { font-family: var(--mono); font-size: 1rem; color: var(--bright); }
-  .proj p { font-size: 0.94rem; color: var(--muted); margin: 0; max-width: none; line-height: 1.6; }
-
-  .breadth {
-    margin-top: 2rem; padding: 1.2rem 1.4rem;
-    border: 1px solid var(--rule); border-left: 2px solid var(--phosphor);
-    background: var(--deep); max-width: var(--measure);
-  }
-  .breadth p { margin: 0; font-size: 0.98rem; }
-
-  /* ---------- pipeline ---------- */
-
-  .pipeline { margin: 2.5rem 0 0; overflow-x: auto; padding-bottom: 0.5rem; }
-  .pipeline-inner {
-    display: grid; grid-template-columns: repeat(3, minmax(15rem, 1fr));
-    gap: 1px; background: var(--rule); border: 1px solid var(--rule); min-width: 46rem;
-  }
-  .stage { background: var(--deep); padding: 1.5rem 1.4rem; }
-  .stage:nth-child(2) { background: #0c1810; }
-  .stage:nth-child(3) { background: var(--fill); }
-  .stage-n { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.2em; color: var(--dim); display: block; margin-bottom: 0.8rem; }
-  .stage-path { font-family: var(--mono); font-size: 0.82rem; color: var(--bright); display: block; margin-bottom: 0.9rem; word-break: break-word; }
-  .stage p { font-size: 0.94rem; line-height: 1.6; color: var(--muted); margin: 0; max-width: none; }
-  .stage:nth-child(3) p { color: var(--prose); }
-
-  .flow {
-    font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.16em;
-    text-transform: uppercase; color: var(--dim);
-    display: flex; gap: 0.6rem; margin: 1.1rem 0 0; flex-wrap: wrap;
-  }
-  .flow b { color: var(--phosphor); font-weight: 500; }
-
-  /* ---------- three kinds ---------- */
-
-  .kinds { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 2rem; }
-  @media (min-width: 52rem) { .kinds { grid-template-columns: repeat(3, 1fr); } }
-  .kind { background: var(--deep); padding: 1.5rem 1.4rem; }
-  .kind.risk { border-left: 2px solid var(--amber); }
-  .kind.risk h3 { color: var(--amber); }
-  .kind p { font-size: 0.94rem; color: var(--muted); max-width: none; margin: 0; }
-  .kind .verdict {
-    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.16em;
-    text-transform: uppercase; color: var(--dim); display: block; margin-top: 1rem;
-  }
-  .kind.risk .verdict { color: var(--amber); }
-
-  /* ---------- roles ---------- */
-
-  .roles {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
-    gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin-top: 2rem;
-  }
-  .role {
-    background: var(--deep); padding: 0.95rem 1rem;
-    font-family: var(--mono); font-size: 0.8rem; color: var(--phosphor);
-    display: flex; flex-direction: column; gap: 0.35rem;
-  }
-  .role small { color: var(--muted); font-size: 0.72rem; line-height: 1.45; font-family: var(--serif); }
-  .role.gate { background: var(--fill); }
-  .role.gate b { color: var(--bright); font-weight: 500; }
-  /* the human on the team, held apart from the sixteen agents */
-  .role.you {
-    background: #0d2a18;
-    box-shadow: inset 2px 0 0 var(--phosphor);
-  }
-  .role.you b {
-    color: var(--bright); font-weight: 500;
-    text-shadow: 0 0 14px rgba(53,208,106,0.5);
-  }
-  .role.you small { color: var(--prose); }
-  .gatenote { font-family: var(--mono); font-size: 0.76rem; color: var(--dim); margin-top: 1rem; letter-spacing: 0.04em; }
-
-  /* ---------- swimlanes ---------- */
-
-  .lanes {
-    display: grid; gap: 1px; background: var(--rule);
-    border: 1px solid var(--rule); margin-top: 1.8rem;
-    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-  }
-  .lane { background: var(--deep); padding: 1rem 1rem 1.1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-  .lane-n {
-    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.16em;
-    text-transform: uppercase; color: var(--phosphor);
-  }
-  .lane p { font-size: 0.86rem; line-height: 1.55; color: var(--muted); margin: 0; max-width: none; }
-  /* the one lane that is the founder's, not the team's */
-  .lane.you { background: #0d2a18; box-shadow: inset 0 2px 0 var(--phosphor); }
-  .lane.you .lane-n { color: var(--bright); text-shadow: 0 0 14px rgba(53,208,106,0.5); }
-  .lane.you p { color: var(--prose); }
-
-  /* ---------- steps ---------- */
-
-  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 2rem 0 0; max-width: var(--measure); }
-  ol.steps li { counter-increment: s; padding: 0 0 1.3rem 3rem; position: relative; }
-  ol.steps li::before {
-    content: counter(s, decimal-leading-zero);
-    position: absolute; left: 0; top: 0.1rem;
-    font-family: var(--mono); font-size: 0.78rem; color: var(--dim); letter-spacing: 0.1em;
-  }
-  ol.steps li:last-child { padding-bottom: 0; }
-  ol.steps b { display: block; font-family: var(--mono); font-size: 0.9rem; color: var(--bright); font-weight: 500; margin-bottom: 0.25rem; }
-
-  pre {
-    font-family: var(--mono); font-size: 0.82rem; line-height: 1.75;
-    color: var(--phosphor); background: var(--deep);
-    border: 1px solid var(--rule); border-left: 2px solid var(--dim);
-    padding: 1.1rem 1.3rem; overflow-x: auto; margin: 1.6rem 0 0;
-  }
-  pre .c { color: var(--muted); }
-
-  .signoff { font-family: var(--mono); font-size: 1rem; color: var(--bright); margin-top: 2.2rem; letter-spacing: 0.02em; }
-  .ps {
-    margin-top: 2.2rem; padding: 1.3rem 1.5rem;
-    border: 1px solid var(--rule); border-left: 2px solid var(--phosphor);
-    background: var(--deep); max-width: var(--measure);
-  }
-  .ps p { margin: 0; font-size: 0.98rem; }
-  .ps .label {
-    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.2em;
-    text-transform: uppercase; color: var(--phosphor); display: block; margin-bottom: 0.6rem;
-  }
-
-  footer {
-    border-top: 1px solid var(--rule); margin-top: var(--gap); padding-top: 1.6rem;
-    font-family: var(--mono); font-size: 0.74rem; color: var(--dim);
-    letter-spacing: 0.08em; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .caret { animation: none; opacity: 1; }
-    .sitemap a { transition: none; }
-  }
-</style>
-
-<nav class="sitemap" aria-label="Sections">
-  <p class="sitemap-title">Contents</p>
-  <a href="#why"><span class="n">01</span> Why</a>
-  <a href="#built"><span class="n">02</span> What it built</a>
-  <a href="#problem"><span class="n">03</span> The problem</a>
-  <a href="#model"><span class="n">04</span> The model</a>
-  <a href="#rules"><span class="n">05</span> House rules</a>
-  <a href="#team"><span class="n">06</span> The team</a>
-  <a href="#using"><span class="n">07</span> Using it</a>
-  <a href="#close"><span class="n">08</span> Closing</a>
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var home = !location.hash || location.hash === "#home";
+  if (!reduce && home) document.documentElement.classList.add("arm-ceremony");
+})();
+</script>
+<nav class="sitemap" aria-label="Pages">
+  <button class="navtoggle" type="button" aria-expanded="false" aria-controls="navlinks">
+    <span class="navicon" aria-hidden="true">&#9776;</span><span class="navlabel">Menu</span>
+  </button>
+  <p class="sitemap-title">Startup Studio</p>
+  <div class="sitemap-links" id="navlinks">
+    <a href="/index.html" aria-current="page"><span class="n">01</span> Home</a>
+    <a href="/problem.html"><span class="n">02</span> The Problem</a>
+    <a href="/solution.html"><span class="n">03</span> The Solution</a>
+    <a href="/prototypes.html"><span class="n">04</span> Product prototypes</a>
+    <a href="/how-to.html"><span class="n">05</span> How to run it</a>
+  </div>
+  <div class="sitemap-cta">
+    <a class="bar-cta" href="https://github.com/creationisttest-git/startup_studio">Get the agents <span aria-hidden="true">&#8594;</span></a>
+  </div>
 </nav>
 
 <div class="wrap">
 
-  <header class="masthead">
+<header class="masthead">
     <p class="boot">for founders and startups <b>&gt;</b> your agents build <b>&gt;</b> you validate</p>
-    <h1>Startup<br><span class="sub">Studio</span><span class="caret" aria-hidden="true"></span></h1>
-    <p class="thesis">As a struggling founder I had two big problems: validating the idea, and building it into anything real, even a rough prototype or a simple demo. <strong>With Claude and Codex, the building is no longer the hard part.</strong></p>
+    <h1><span class="type">Startup</span><br><span class="sub type">Studio</span><span class="caret" aria-hidden="true"></span></h1>
+    <p class="thesis"><span class="type">As a struggling founder, I faced </span><strong class="type">two problems.</strong></p>
 
-    <div class="thesis-more">
-      <p>Even with AI there is a lot still left on the table. What I wanted was an idea turned into a real working product in under two days: Google sign-in, features that deliver genuine value, and deep usage analytics, not a demo that falls over when someone touches it.</p>
+    <ul class="termlist">
+      <li class="cue"><span class="pr">1 &gt;</span> <span class="type">Working out whether the problem is worth solving at all.</span></li>
+      <li class="cue"><span class="pr">2 &gt;</span> <span class="type">Getting to something real enough to prove it either way.</span></li>
+    </ul>
+
+    <p class="turn cue"><span class="type">Claude and Codex solved the second, </span><strong class="type">which only made the first one louder.</strong></p>
+
+    <div class="hero-cta">
+      <a class="hcta primary" href="https://github.com/creationisttest-git/startup_studio">Get the agents &#8594;</a>
+      <a class="hcta" href="#problem">The problem</a>
+      <a class="hcta" href="#squad">Meet the AI Squad</a>
+    </div>
+    <p class="hero-cta-note"><span class="type-late">Free and open source, AGPL-3.0. Clone it and go.</span></p>
+
+    <details class="more after-ceremony">
+      <summary><span class="more-mark" aria-hidden="true">+</span> Why I built it, and what it runs on</summary>
+      <div class="more-body">
+        <p>Even with AI there is a lot still left on the table. What I wanted was an idea turned into a real working product in under two days: Google sign-in, features that deliver genuine value, and deep usage analytics, not a demo that falls over when someone touches it.</p>
       <p>I tried and tested a lot of setups before landing on this one. It is a multi-agent framework that automates the product build with proper guard rails, so you can focus on what matters most as a founder: <strong>validating with customers, and finding opportunities to deliver value to people you are passionate about.</strong> I made it open source hoping it helps other founders who are struggling.</p>
-    </div>
+        <p>It runs on Claude Code, which is what it was designed around. The roles themselves are just markdown files, so if you would rather use Codex, the only thing that needs changing is where those files land.</p>
+      </div>
+    </details>
 
-    <p class="repo">
-      <a href="https://github.com/creationisttest-git/startup_studio">
-        <span class="repo-mark" aria-hidden="true">&#9679;</span>
-        github.com/creationisttest-git/startup_studio
-      </a>
-      <span class="repo-note">Free and open, AGPL-3.0. Clone it and go.</span>
-    </p>
-
-    <p class="tooling">It runs on Claude Code, which is what it was designed around. The roles themselves are just markdown files, so if you would rather use Codex, the only thing that needs changing is where those files land.</p>
   </header>
-
-  <section id="why">
-    <p class="eyebrow">Why this exists</p>
-    <div class="letter">
-      <p class="lead">I'm a solo founder with a limited budget. My focus is finding the ideas that will show traction in the real world, as fast as possible.</p>
-      <p>Nothing replaces a real working product for validating an idea with real customers. This framework was built to help founders like me get to v1 in days rather than months, with close to zero spend on infrastructure. You'll obviously need an AI coding tool :)</p>
-      <p>So I built myself a team of AI agents to do the building, and it worked well. But it didn't compound.</p>
-      <p>Each project ended up with its own copy of the team. I'm at different stages across all of them, so whatever one project learned never reached the others. The copies aged, too. One of them was still following a process I'd retired weeks earlier, and I had no idea.</p>
-      <p>Centralising it is what fixed that. One team, shared by every project, so if I improve it once then every project has it.</p>
-      <p>I built this for a few startup ideas of my own, ones I hope will add value to people and in turn become revenue-generating businesses. I'm striving to become financially independent and to create tangible value in this world. While I know there's a long way to go, I hope this helps another struggling compatriot kickstart towards their own goal in life.</p>
-
-      <p>That near-zero spend isn't luck. Every project runs on free tiers until it earns something, and it's a rule in the framework rather than just a preference. If I want to pay for anything, I have to justify it and rule out the free options first.</p>
-    </div>
-  </section>
-
-  <section id="built">
-    <p class="eyebrow">What it has built</p>
-    <h2>One framework, five cloned teams, five products in parallel</h2>
-    <p>These are real attempts rather than demos, and they run at the same time. Each one has its own team, cloned from the same framework, so what any one of them learns the rest inherit.</p>
-
-    <div class="portfolio">
-      <div class="proj">
-        <span class="domain">Events / marketplace</span>
-        <span class="name">Musiac</span>
-        <p>A global events platform for every form of artistic expression. Discovery, scheduling and mapping for artists, venues and audiences.</p>
-      </div>
-      <div class="proj">
-        <span class="domain">Fintech / analysis</span>
-        <span class="name">Investment Management Made Simple</span>
-        <p>Investment analysis that normally needs a professional, made readable by the person whose money is at stake.</p>
-      </div>
-      <div class="proj">
-        <span class="domain">Commerce / content</span>
-        <span class="name">The Cinnamon Estate</span>
-        <p>An online cinnamon shop with fully automated social media and content. A small producer with no marketing team.</p>
-      </div>
-      <div class="proj">
-        <span class="domain">Conservation / community</span>
-        <span class="name">Animals of Sri Lanka</span>
-        <p>Community-driven conservation. The people closest to the wildlife are the ones recording it.</p>
-      </div>
-      <div class="proj">
-        <span class="domain">Sales / automation</span>
-        <span class="name">GYGO</span>
-        <p>Automated cold-email campaigns for founders with no time for outreach.</p>
-      </div>
-      <div class="proj">
-        <span class="domain">Infrastructure</span>
-        <span class="name">This studio</span>
-        <p>Built by the same framework, on itself. Every rule here exists because one of the projects above paid for it first.</p>
-      </div>
-    </div>
-
-    <div class="breadth">
-      <p>A marketplace, a money tool, a shop, a conservation platform and a sales product have nothing in common, so anything the framework knows has to hold true for all of them. That's the test. A rule that only really works on one stack gets caught the first time another project reads it.</p>
-    </div>
-  </section>
-
-  <section id="problem">
-    <p class="eyebrow">The problem it solves</p>
-    <h2>Copies fall behind, and it's hard to keep track</h2>
-    <p>The easiest way to picture it is as a handbook that everyone works from.</p>
-    <p>When one project needs a different rule, the obvious thing to do is photocopy the handbook and change that one page. And it works, on the day you do it.</p>
-    <p>Meanwhile the original handbook keeps improving. Someone fixes a mistake, adds a lesson, drops a rule that turned out to be wrong. Your photocopy gets none of it, and nothing warns you. You usually find out months later, when that project repeats a mistake everyone else fixed ages ago.</p>
-    <p>It happens the other way round as well. Someone learns something useful and writes it in the margin of their own copy, because that's the copy in front of them. Nobody else ever sees it, and the next time handbooks are handed out the note is gone.</p>
-  </section>
-
-  <section id="model">
-    <p class="eyebrow">The model</p>
-    <h2>One shared handbook, printed fresh for each project</h2>
-    <p>So nobody photocopies anything. Each project keeps one short page of its own, listing the few things that are true there and nowhere else.</p>
-    <p>When a project needs its handbook, it gets printed fresh: the shared one and its own page together. Change either of them and it simply prints again.</p>
-    <p>A handbook that's reprinted every time can't go out of date, so there's nothing to keep track of.</p>
-
-    <div class="pipeline">
-      <div class="pipeline-inner">
-        <div class="stage">
-          <span class="stage-n">01 / SOURCE</span>
-          <span class="stage-path">base/agents/&lt;role&gt;.md</span>
-          <p>The shared handbook. True for every project, and the only thing a person writes by hand.</p>
-        </div>
-        <div class="stage">
-          <span class="stage-n">02 / LAYER</span>
-          <span class="stage-path">.claude/agent-overlays/</span>
-          <p>This project's own page. What is true here and nowhere else.</p>
-        </div>
-        <div class="stage">
-          <span class="stage-n">03 / OUTPUT</span>
-          <span class="stage-path">.claude/agents/</span>
-          <p>Printed fresh from the two on the left. Edit this and your change is gone the next time it prints.</p>
-        </div>
-      </div>
-    </div>
-
-    <p class="flow"><b>write it once</b> &rarr; every project reprints &rarr; <b>nobody else does anything</b></p>
-
-    <p style="margin-top:2rem">There's one question I ask to decide where anything new goes. <em>Would another project benefit from this?</em> If yes, it belongs in the shared handbook. If no, it belongs on that project's own page.</p>
-  </section>
-
-  <section id="rules">
-    <p class="eyebrow">Keeping the handbook worth reading</p>
-    <h2>Three ways a project can differ, and only one needs your sign-off</h2>
-    <p>A project's own page ends up holding three different kinds of thing, and at a glance they all look equally important. They aren't. Two of them you can just write down. The third can quietly undo a rule that every other project still follows, so it's the one worth stopping for.</p>
-
-    <div class="kinds">
-      <div class="kind">
-        <h3>A fact</h3>
-        <p>Something that's simply true here. What it's built with, how it works. It argues with nothing, and most of the page is this.</p>
-        <span class="verdict">Just write it</span>
-      </div>
-      <div class="kind">
-        <h3>An addition</h3>
-        <p>Something extra this project needs that the handbook doesn't cover. It only adds, so nothing clashes.</p>
-        <span class="verdict">Just write it</span>
-      </div>
-      <div class="kind risk">
-        <h3>An exception</h3>
-        <p>A shared rule switched off or changed for this project. It's the only risky kind, so it's the only one that needs a signature: what changed, why, who agreed, and when it gets looked at again.</p>
-        <span class="verdict">Needs a name and a date</span>
-      </div>
-    </div>
-
-    <p style="margin-top:2rem">Exceptions go at the top of the page rather than buried at the bottom, because a rule you've switched off is no use to anyone who never reads that far.</p>
-    <p>One check lists every exception across every project and flags anything nobody owns or that's overdue for another look. If nobody owns it, nobody can say why it's there, and nobody will ever dare turn it back on.</p>
-    <p>Safety checks are the one thing that can never be switched off this way. Allow it once and every awkward review becomes an exception.</p>
-  </section>
-
-  <section id="team">
-    <p class="eyebrow">The team</p>
-    <h2>A full product team, not a single assistant</h2>
-    <p>Each role is written to fight for its own goal first. Security argues for safety, design argues for the person using it, and the tech lead argues for shipping. They're told to make their strongest case with evidence and not to concede just to be agreeable.</p>
-    <p>That's the point. When every side is properly argued, what comes out is a real middle ground rather than whichever opinion happened to be voiced first. Where they genuinely can't agree, it goes up to the PM, who decides on the spec rather than on who pushed hardest.</p>
-
-    <div class="roles">
-      <div class="role you"><b>you</b><small>CEO. The vision, the gates, the final word. Nothing ships without you.</small></div>
-      <div class="role">pm<small>Owns the outcome and the metric</small></div>
-      <div class="role">tech-lead<small>Plan, architecture, integration</small></div>
-      <div class="role">design-lead<small>Vision, brand, the anti-slop bar</small></div>
-      <div class="role">designer<small>System, flows, every state</small></div>
-      <div class="role">backend-engineer<small>Data, auth, server correctness</small></div>
-      <div class="role">frontend-engineer<small>UI, responsive, accessible</small></div>
-      <div class="role">data-engineer<small>Tracking, pipeline, dashboards</small></div>
-      <div class="role">devops-engineer<small>Environments, deploys, secrets</small></div>
-      <div class="role">content-lead<small>Every word, in brand voice</small></div>
-      <div class="role">marketing-lead<small>Positioning and growth</small></div>
-      <div class="role">operations-lead<small>Onboarding, trust, support</small></div>
-      <div class="role">qa-tester<small>Verifies in a real browser</small></div>
-      <div class="role gate"><b>code-reviewer</b><small>Gate. Reads the diff for real defects</small></div>
-      <div class="role gate"><b>security-reviewer</b><small>Gate. Permissions and attack surface</small></div>
-      <div class="role gate"><b>content-reviewer</b><small>Gate. Every user-visible string</small></div>
-      <div class="role gate"><b>mobile-qa</b><small>Gate. Renders and proves it at 375px</small></div>
-    </div>
-    <p class="gatenote">Four checks have to pass, with proof, before anything goes out, and nobody signs off their own work. You can't see the thing you missed in something you just built.</p>
-  </section>
-
-  <section id="using">
-    <p class="eyebrow">Using it</p>
-    <h2>Install once, then tune only what genuinely differs</h2>
-
-    <ol class="steps">
-      <li><b>Install the shared team</b>Put the shared handbook where your tools look for it, and every project has the full team from then on.</li>
-      <li><b>Write a stack card, once per project</b>Say what it's built with, how it works, and which shared rules don't apply here. Skip it and sixteen roles will each assume something that was only ever true of a different product.</li>
-      <li><b>Build the project's team</b>Print it. What comes out is generated, so keep it out of version control. Edit it and your change disappears the next time it prints.</li>
-      <li><b>Improve the base whenever anything is learned</b>Write it into the shared handbook, keeping what's general and dropping what was specific to you. Then it's everywhere.</li>
-    </ol>
-
-    <h3 style="margin-top:2.5rem">How work reaches the team</h3>
-    <p style="margin-top:0.6rem">Everything goes through a kanban board, the same way you'd run it in Jira or Asana. You write a ticket with a title and a description, and the description is where the real requirements live. The board is the only queue, so nothing gets built that you didn't ask for and nothing you asked for quietly gets lost.</p>
-
-    <div class="lanes">
-      <div class="lane"><span class="lane-n">Backlog</span><p>Ideas not scheduled yet. Sitting here is a decision that it isn't next.</p></div>
-      <div class="lane"><span class="lane-n">To Do</span><p>The only place work is picked from. The team takes the top one and works down.</p></div>
-      <div class="lane"><span class="lane-n">In Progress</span><p>They play the plan back to you first, then build it in one go.</p></div>
-      <div class="lane you"><span class="lane-n">UAT</span><p>Your turn. You test it and confirm on the ticket. Nothing moves past here without you.</p></div>
-      <div class="lane"><span class="lane-n">PROD</span><p>Only on your explicit say-so, tagged with the release version.</p></div>
-      <div class="lane"><span class="lane-n">Done</span><p>Live, and only then.</p></div>
-    </div>
-
-    <p style="margin-top:1.8rem">The agents drive the board themselves from the terminal, moving tickets along and appending what they did, what they decided and anything they had to assume as they go. So the ticket becomes the history of that piece of work rather than something you reconstruct later.</p>
-    <p>They take it as far as UAT on their own. Then it stops, and you're the tester, exactly as you'd be in any product business. That's the one part I've never automated and don't intend to.</p>
-    <p>The board is called the Startup Studio Kanban and it's in the repo under <code>board/</code>, spec and working code both. Take it, it's the same one my projects run on.</p>
-
-<pre><span class="c"># the whole workflow</span>
-studio -Status              <span class="c"># what exists, what has drifted</span>
-studio -Doctor              <span class="c"># the same, plus the fix for each</span>
-studio -Sync                <span class="c"># push the base out, rebuild everyone</span>
-studio -Tune    -Project X  <span class="c"># start a project's layer</span>
-studio -Compose -Project X  <span class="c"># rebuild one project</span></pre>
-
-    <p style="margin-top:1.6rem">A check at the start of every session reprints a project if the shared handbook has changed, so nobody has to remember to do it.</p>
-  </section>
-
-  <section id="close">
-    <p class="eyebrow">Closing</p>
-    <div class="letter">
-      <p>If I had to boil it down to one thing: keep a single set of instructions for your AI team, and never copy them.</p>
-      <p>For each project, write down only what's different about that project, on one short page. The version that project actually uses gets built from those two together, and rebuilt whenever either one changes. Copy the instructions and edit the copy instead, and that project stops getting anything you learn afterwards. You won't notice for months.</p>
-      <p>Start smaller than you think you need to. One project, one page of what makes it different, and only add a second when the first one is genuinely working. Everything I've had to fix along the way came from letting a project quietly do its own thing.</p>
-      <p>If you're building something of your own, I hope this saves you a few of the months it took me to work this out the hard way.</p>
-      <p>And if you'd like to build something together, or you just want to tell me where I've got this wrong, please come and find me at <a href="https://www.projectfreedom.xyz">projectfreedom.xyz</a>. I'd genuinely like to hear from you.</p>
-      <p class="signoff">Good luck!</p>
-    </div>
-
-    <div class="ps">
-      <span class="label">P.S.</span>
-      <p>Please share back and improve this model for everyone's benefit. It's under AGPL-3.0, so that isn't just a request: change it and run it for other people, and your changes come back to everyone too. If that doesn't suit what you're doing, get in touch and we'll sort something out.</p>
-    </div>
-  </section>
 
   <footer>
     <span>STARTUP STUDIO</span>
@@ -740,37 +141,129 @@ studio -Compose -Project X  <span class="c"># rebuild one project</span></pre>
 
 </div>
 
+<script src="/site.js"></script>
 <script>
-  // Site map follows the reader. Nearest section to the top of the viewport wins,
-  // which behaves correctly for short trailing sections that never fill the screen.
-  (function () {
-    var links = Array.prototype.slice.call(document.querySelectorAll('.sitemap a'));
-    var sections = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+/* The opening ceremony.
+   The wordmark and the founder's two problems are typed one character at a time; the rest
+   of the page arrives in one go when they finish. Written as progressive enhancement: the
+   full text is in the HTML, and this clears it before typing, so a reader with no
+   JavaScript sees the finished page rather than an empty one. */
+(function(){
+  var root = document.documentElement;
+  if (!root.classList.contains("arm-ceremony")) return;
 
-    function mark() {
-      var best = 0, bestTop = Infinity;
-      for (var i = 0; i < sections.length; i++) {
-        if (!sections[i]) continue;
-        var top = sections[i].getBoundingClientRect().top;
-        if (top <= 120 && Math.abs(top) < bestTop) { bestTop = Math.abs(top); best = i; }
-      }
-      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) best = links.length - 1;
-      links.forEach(function (a, i) {
-        if (i === best) { a.setAttribute('aria-current', 'true'); } else { a.removeAttribute('aria-current'); }
-      });
-    }
+  var targets = Array.prototype.slice.call(document.querySelectorAll(".masthead .type"));
+  if (!targets.length) return;
 
-    var ticking = false;
-    function onScroll() {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(function () { mark(); ticking = false; });
+  document.body.classList.add("ceremony");
+  var caret = document.createElement("span");
+  caret.className = "tcaret";
+  caret.setAttribute("aria-hidden", "true");
+
+  var skip = document.createElement("button");
+  skip.className = "skip-ceremony";
+  skip.type = "button";
+  skip.textContent = "skip →";
+  document.body.appendChild(skip);
+
+  /* Reserve the finished layout BEFORE emptying anything.
+     The full text is still in the DOM at this point, and the elements that fade in later
+     are only transparent rather than removed, so measuring now gives the exact height the
+     masthead will end at. Without this the emptied lines collapse to nothing and every
+     character typed shoves the footer further down the page. */
+  var reserved = [];
+  document.querySelectorAll(
+    ".masthead h1, .masthead .thesis, .masthead .termlist li, .masthead .turn, .masthead .hero-cta-note"
+  ).forEach(function(el){
+    reserved.push(el);
+    el.style.minHeight = el.getBoundingClientRect().height + "px";
+  });
+
+  var script = targets.map(function(el){
+    var txt = el.textContent;
+    el.textContent = "";
+    el.setAttribute("aria-hidden", "true");
+    return { el: el, text: txt };
+  });
+
+  /* The caret's final home is the end of the last typed line, "the hard part".
+     Everything after that (the buttons, the licence note) arrives without it. */
+  var anchor = script[script.length - 1].el;
+  var note = document.querySelector(".type-late");
+  var noteText = note ? note.textContent : "";
+  if (note) { note.textContent = ""; note.setAttribute("aria-hidden","true"); }
+
+  var done = false;
+  function finish(){
+    if (done) return;
+    done = true;
+    script.forEach(function(s){
+      s.el.textContent = s.text;
+      s.el.removeAttribute("aria-hidden");
+      var cue = s.el.closest(".cue");
+      if (cue) cue.style.visibility = "visible";
+    });
+    anchor.parentNode.insertBefore(caret, anchor.nextSibling);
+    if (note) { note.textContent = noteText; note.removeAttribute("aria-hidden"); }
+    document.querySelectorAll(".hcta").forEach(function(b){ b.style.opacity = 1; b.style.transform = "none"; });
+    var n = document.querySelector(".hero-cta-note"); if (n) n.style.opacity = 1;
+    reserved.forEach(function(el){ el.style.minHeight = ""; });
+    document.body.classList.remove("ceremony");
+    document.body.classList.add("ceremony-done");
+    root.classList.remove("arm-ceremony");
+    skip.remove();
+  }
+
+  /* buttons in, one at a time, then the licence line types itself */
+  function afterTyping(){
+    anchor.parentNode.insertBefore(caret, anchor.nextSibling);
+    var btns = Array.prototype.slice.call(document.querySelectorAll(".hcta"));
+    btns.forEach(function(b, k){
+      setTimeout(function(){
+        if (done) return;
+        b.style.opacity = 1; b.style.transform = "none";
+      }, 140 + k * 320);
+    });
+    setTimeout(function(){
+      if (done || !note) { finish(); return; }
+      var n = document.querySelector(".hero-cta-note");
+      if (n) n.style.opacity = 1;
+      var k = 0;
+      (function typeNote(){
+        if (done) return;
+        if (k < noteText.length) {
+          note.textContent += noteText.charAt(k); k++;
+          setTimeout(typeNote, noteText.charAt(k-1) === "." ? 110 : 15);
+        } else { finish(); }
+      })();
+    }, 140 + btns.length * 320 + 260);
+  }
+
+  skip.addEventListener("click", finish);
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" || e.key === " ") finish(); });
+
+  var i = 0, j = 0;
+  function step(){
+    if (done) return;
+    if (i >= script.length) { afterTyping(); return; }
+    var cur = script[i];
+    if (j === 0) {
+      var cue = cur.el.closest(".cue");
+      if (cue) cue.style.visibility = "visible";
+      cur.el.parentNode.insertBefore(caret, cur.el.nextSibling);
     }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    mark();
-  })();
+    if (j < cur.text.length) {
+      cur.el.textContent += cur.text.charAt(j);
+      j++;
+      var ch = cur.text.charAt(j - 1);
+      setTimeout(step, ch === "." ? 130 : 17);
+    } else {
+      i++; j = 0;
+      setTimeout(step, 260);
+    }
+  }
+  setTimeout(step, 380);
+})();
 </script>
-
 </body>
 </html>

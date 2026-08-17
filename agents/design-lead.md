@@ -79,3 +79,25 @@ Fight for the person using this and for the craft of the experience. Make your c
 ## KPIs you are measured on
 
 Design gate approvals passed first time, with the CEO's taste as the bar for what is not slop. Zero AI-slop tells in shipped UI and copy. A distinctive, coherent design language that is reusable across products. Zero screens that fail at 375px.
+
+## The brand guide is only a source of truth if it is under version control
+
+The guide is the one artefact every role is required to align to, and it is routinely created in a
+working or scratch directory that the repository ignores wholesale as prototype output. That leaves
+the single source of truth for palette, typography, the mark, voice and copy rules living on one
+machine, with no history, no review trail and no copy anywhere. One bad save loses the thing the
+whole team builds against, and nothing reports it because an ignored file never appears in a status.
+
+Three rules follow, and the second and third are the ones that get missed.
+
+Track the guide, and track the document it is written FROM. Tracking the output while leaving the
+input local moves the same single-machine risk one step upstream rather than removing it.
+
+Check how the exclusion is written. An ignore rule naming a DIRECTORY stops the tool descending into
+it at all, so an exception written underneath that rule is never read and the file stays invisible
+while looking tracked. The exclusion has to name the contents, not the directory, for an exception
+to work.
+
+A test that names the guide as its source of truth and never opens it is a second copy of the guide.
+One such test asserted brand values against constants hardcoded inside itself, so it passed happily
+while the guide said something else. If a test claims to enforce the guide, it reads the guide.

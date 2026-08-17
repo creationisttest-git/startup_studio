@@ -6,6 +6,68 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-17
+
+### The site is five short pages instead of one long one
+
+**The problem.** Everything lived on a single scrolling document behind a floating side rail.
+That made every section compete with every other one, and it meant the whole site had one
+title and one description, so a search result for any part of it described all of it.
+
+**What changed.** Five real pages, each with its own address, title and description: the home
+page, the problem, the solution, the product prototypes, and how to run it. A top bar
+replaces the side rail, and collapses to a menu on a narrow screen with the repository link
+pinned so it never scrolls out of reach.
+
+The home page now opens by typing itself out, one character at a time, before anything else
+appears. The layout is measured and held at its finished size first, so the page does not
+shove itself around while the text arrives.
+
+**The content moved as well as the furniture.** The problem page now states three problems
+rather than one, because the framework had grown two more answers since it was written and
+only ever described the oldest. Each carries what it actually cost. The solution page picks
+those up, and the roster of sixteen roles moved onto it, since the page claimed sixteen
+agents and never showed them while a separate page listed them and never said how they
+worked.
+
+**One thing the split broke, and the check caught it.** Leak-scan exemptions are scoped by
+file name, and every one of them named `index.html`. Splitting the site into five files
+silently invalidated all of them, and the publish refused with nine findings before anything
+reached the internet. That is the check working exactly as intended, and it is a reminder
+that an exemption list is a piece of configuration that goes stale like any other.
+
+### Six lessons from a product build, encoded into the roles that should have caught them
+
+Contributed from a live project, each one written into the role responsible for it.
+
+**The tech lead could not delegate.** Its description promised orchestration across the other
+roles while its tool list contained no way to invoke one, so every project quietly fell back
+to the main session doing the coordinating by hand. A description is not a capability.
+
+**A test suite can certify a defect as safe.** A change arrived with tests whose names read as
+guarantees, every one passing, none of them exercising the thing its name claimed. That is
+worse than no suite, because it converts an unknown into a false assurance.
+
+**A test that reads an ignored file passes by never running.** A conformance check opened a
+reference file, returned early when it was absent, and asserted nothing on every run for its
+entire life.
+
+**A brand guide outside version control is not a source of truth.** It is routinely written
+into a scratch directory that the repository ignores wholesale, which leaves the one artefact
+every role aligns to living on a single machine with no history. Track the guide and the
+document it is written from, and check how the exclusion is worded: an ignore rule naming a
+directory stops the tool descending into it at all, so an exception written underneath is
+never read.
+
+**Defaults applied while parsing poison everything downstream.** An importer filled in sensible
+values while reading each row, which is correct when creating a record and destructive when
+updating one.
+
+**Deleting copy can delete the element other code writes into.** A line removed as redundant
+turned out to be the container several error handlers rendered into.
+
+---
+
 ## 2026-08-16
 
 ### A second skill, /reality-check, because nothing in this method ever made anyone look
