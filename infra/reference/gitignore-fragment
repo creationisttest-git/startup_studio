@@ -10,6 +10,12 @@
 .env
 .env.*
 !.env.example
+# Named env files do NOT match the patterns above. `.board.env` matched none of them while
+# three documents claimed it was ignored, which left a live bot password untracked but not
+# ignored: one `git add -A` from permanent.
+*.env
+!*.env.example
+.board.env
 .dev.vars
 .dev.vars.*
 

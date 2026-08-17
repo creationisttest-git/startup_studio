@@ -64,6 +64,21 @@ if (env.BOARD_VIEWER_PASSWORD && env.BOARD_VIEWER_PASSWORD === env.BOARD_BOT_PAS
   process.exit(1);
 }
 
+// The key about to be written into a page served on the public internet. A name check cannot
+// see this: what matters is the role inside the key, not the variable it arrived in.
+function keyRole(tok) {
+  try {
+    return JSON.parse(Buffer.from(String(tok).split('.')[1], 'base64url').toString('utf8')).role || null;
+  } catch { return null; }
+}
+if (/^sb_secret_/i.test(env.SUPABASE_ANON_KEY) ||
+    (!/^sb_publishable_/i.test(env.SUPABASE_ANON_KEY) && keyRole(env.SUPABASE_ANON_KEY) !== 'anon')) {
+  console.error('REFUSING: SUPABASE_ANON_KEY does not hold a publishable key, and this script\n' +
+                'publishes it. A service-role key on a public URL is published, not leaked:\n' +
+                'rotate it rather than deleting the page.');
+  process.exit(1);
+}
+
 // ---- build ----------------------------------------------------------------------------
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });

@@ -1,7 +1,8 @@
 -- Startup Studio Kanban -- shared backend, one board per project, hard isolation.
 --
 -- Run in the Supabase SQL editor. Safe to re-run: it creates what is missing, upgrades an
--- existing single-project board, and never touches existing ticket data.
+-- existing single-project board. It DOES touch ticket data: it normalises legacy status
+-- values, backfills ticket numbers and image counts, and adopts orphaned rows into a project.
 --
 -- A ticket has ONE status. Statuses map to board columns by a rule in board.html
 -- (uat_complete shows in the UAT column). In order:
@@ -42,6 +43,13 @@ create table if not exists public.board_project (
   created_at    timestamptz not null default now()
 );
 
+-- RLS on immediately, in the same breath as the table. Enabling it 200 lines below the
+-- create leaves a window where the table exists, is already reachable through the data
+-- API, and is wide open. The window only has to be survived once to not matter, and only
+-- has to be lost once to matter permanently. With no policies yet, this denies everything,
+-- which is the correct state for a table whose policies have not been written.
+alter table public.board_project enable row level security;
+
 -- Permitted assignee names, declared per project. Null or empty means no restriction, which
 -- is what a new board gets. See tickets_check_assignee below for why this is not a check
 -- constraint with a fixed list of values.
@@ -55,6 +63,8 @@ create table if not exists public.board_member (
   created_at timestamptz not null default now(),
   primary key (project_id, user_id)
 );
+
+alter table public.board_member enable row level security;
 
 create index if not exists board_member_user_idx on public.board_member (user_id);
 
@@ -98,10 +108,11 @@ create table if not exists public.tickets (
   updated_at      timestamptz not null default now()
 );
 
+alter table public.tickets enable row level security;
+
 alter table public.tickets add column if not exists project_id uuid references public.board_project(id) on delete cascade;
 alter table public.tickets add column if not exists num integer;
 alter table public.tickets add column if not exists release_version text;
-alter table public.tickets drop column if exists stage_status;
 
 -- board.html selects image_count so it can show an image tag without fetching the images
 -- themselves, which is right: the payload is large and the count is all a card needs.
@@ -116,6 +127,12 @@ alter table public.tickets add column if not exists image_count integer not null
 
 -- Soft delete. See the revoke further down, which is the half that actually enforces it.
 alter table public.tickets add column if not exists deleted_at timestamptz;
+
+-- Normalise BEFORE constraining. `uat_deployed` is a legacy value that board.html and
+-- board-cli.js both still map, so a board carrying it fails this constraint. That failure
+-- lands AFTER the drop column above, which is the S18 shape exactly: the run stops with the
+-- table already altered and the error reads as a schema bug rather than a data mismatch.
+update public.tickets set status = 'uat' where status = 'uat_deployed';
 
 alter table public.tickets drop constraint if exists tickets_status_check;
 alter table public.tickets add constraint tickets_status_check
@@ -137,14 +154,23 @@ alter table public.tickets drop constraint if exists tickets_assignee_check;
 -- wants typo protection sets its own list and gets exactly the old behaviour, in its own
 -- vocabulary rather than in the vocabulary of whichever project happened to be first.
 
+-- Deliberately NOT security definer. A before-insert trigger runs before the row-level
+-- security check, so an elevated function here would answer for any project_id a caller cared
+-- to name, and its exception message would hand back that board's permitted assignee list.
+-- A real member already has select on their own board_project row, so invoker rights are
+-- enough for the legitimate path and return nothing for anyone else.
 create or replace function public.tickets_check_assignee()
 returns trigger
 language plpgsql
-security definer
 set search_path = ''
 as $$
 declare allowed text[];
 begin
+  -- `update of assignee` fires whenever the column appears in the SET list, changed or not,
+  -- and the UI sends every field on every save. Without this guard, declaring a list makes
+  -- every pre-existing ticket holding an older name uneditable: you could not fix a typo in
+  -- the description without the save being refused on a field you never touched.
+  if tg_op = 'UPDATE' and new.assignee is not distinct from old.assignee then return new; end if;
   if new.assignee is null then return new; end if;
   select p.assignees into allowed from public.board_project p where p.id = new.project_id;
   if allowed is null or array_length(allowed, 1) is null then return new; end if;
@@ -390,3 +416,9 @@ end $$;
 --   -- the column whose absence used to present as a missing table
 --   select count(*) from information_schema.columns
 --   where table_schema='public' and table_name='tickets' and column_name='image_count';
+
+-- Destructive, and therefore LAST. Nothing after this line can fail, so no run can leave the
+-- table already altered behind an error that reads as a schema bug. `stage_status` was
+-- replaced by `status` and is dropped rather than left to rot: a retired column still answers
+-- queries, and code written against it looks correct right up until the data stops arriving.
+alter table public.tickets drop column if exists stage_status;

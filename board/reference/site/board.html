@@ -341,10 +341,19 @@
   var STATUSES = ['backlog','todo','in_progress','uat','uat_complete','prod_ready','prod_deployed','done'];
   var LABELS = { backlog:'Backlog', todo:'To Do', in_progress:'In Progress', uat:'UAT', uat_complete:'UAT Complete', prod_ready:'PROD Ready', prod_deployed:'PROD Deployed', done:'Done' };
   var ADD_IN = ['backlog','todo']; // columns that get a "+ Add ticket" control
-  var ASSIGNEES = ['SQUAD','FOUNDER','CC']; // Claude Code PROJECT Squad, FOUNDER, CC (partner)
+  /* Permitted assignees come from board_project.assignees, never from a constant here.
+     This list used to be hardcoded to the three names used by the board this reference was
+     lifted from, while the schema and the CLI had already moved to a per-project list. On any
+     board that declares its own vocabulary the trigger then rejected every ticket the page
+     created, and all three buttons offered names the database refuses. An empty list means no
+     restriction, matching the CLI. */
+  function assignees(){ return (PROJECT && PROJECT.assignees && PROJECT.assignees.length) ? PROJECT.assignees : []; }
   var USER_LOCKED = { prod_deployed:true }; // only Claude Code sets the PROD Deployed status
   // Hard-coded status -> column mapping (simple workflows come later). uat_complete lives in the UAT
-  // column; the legacy 'uat_deployed' value also maps there until the schema migration runs.
+  // column. 'uat_deployed' is a retired value: tickets-schema.sql rewrites it to 'uat' and the
+  // status constraint no longer accepts it. The mapping stays because a client is not always
+  // newer than the board it is pointed at, and without it those tickets match no column and
+  // disappear from the page rather than failing visibly.
   var STATUS_COL = { uat_complete:'uat', uat_deployed:'uat' };
   function colOf(t){ return STATUS_COL[t.status] || t.status; }
   var MAX_IMG_DIM = 1400;
@@ -416,7 +425,7 @@
    * a slug they are not a member of comes back empty rather than forbidden. Treat empty as
    * "not yours" and stop, rather than falling through to an unscoped read. */
   function loadProject(){
-    return sb.from('board_project').select('id,slug,name,ticket_prefix').eq('slug', BOARD_PROJECT).maybeSingle().then(function(res){
+    return sb.from('board_project').select('id,slug,name,ticket_prefix,assignees').eq('slug', BOARD_PROJECT).maybeSingle().then(function(res){
       if(res.error){
         var m = res.error.message || '';
         if(res.error.code==='42P01' || m.indexOf('does not exist')!==-1 || m.indexOf('Could not find the table')!==-1){ showSetup(); return null; }
@@ -436,7 +445,7 @@
     return mx + 1;
   }
   function createTicket(title, status){
-    var row = { project_id: PROJECT.id, title:title, status:status, position:nextPosition(status), description:'', images:[], assignee:'SQUAD', created_by: state.user.id };
+    var row = { project_id: PROJECT.id, title:title, status:status, position:nextPosition(status), description:'', images:[], assignee:null, created_by: state.user.id };
     return sb.from('tickets').insert(row).select().single().then(function(res){
       if(res.error){ toast('Could not add: '+res.error.message); return null; }
       state.tickets.push(res.data); render(); return res.data;
@@ -589,7 +598,7 @@
   function buildDetailControls(){
     $('#d-status').innerHTML = STATUSES.map(function(s){ var lock = USER_LOCKED[s] ? ' disabled' : ''; return '<option value="'+s+'"'+lock+'>'+LABELS[s]+(USER_LOCKED[s]?' (Claude Code only)':'')+'</option>'; }).join('');
     $('#d-status').onchange = function(){ setDetailStatus(this.value); };
-    $('#d-assignee').innerHTML = '<button data-a="">Unassigned</button>' + ASSIGNEES.map(function(a){ return '<button data-a="'+a+'">'+a+'</button>'; }).join('');
+    $('#d-assignee').innerHTML = '<button data-a="">Unassigned</button>' + assignees().map(function(a){ return '<button data-a="'+a+'">'+a+'</button>'; }).join('');
     $$('#d-assignee button').forEach(function(b){ b.onclick = function(){ setDetailAssignee(b.getAttribute('data-a')); }; });
   }
   function setDetailStatus(st){

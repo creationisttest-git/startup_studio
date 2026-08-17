@@ -32,6 +32,29 @@ if (!REPO) {
   process.exit(1);
 }
 
+// ---- samples ----------------------------------------------------------------------------
+//
+// Every pattern below carries a sample it is REQUIRED to match, and the scan refuses to run
+// if any pattern has no sample or fails its own. This check is the only thing standing
+// between a live credential and a public remote; it reports "clean" on a healthy repository,
+// which is also exactly what it would report if every pattern were broken. A check nobody has
+// watched fail cannot be told apart from a check that always passes.
+//
+// The samples are ASSEMBLED rather than written out, and that is not decoration. A scanner's
+// own test data is by definition indistinguishable from the thing it hunts, so writing these
+// literally would make this file trip its own patterns, trip the studio's publish scan, and
+// trip any other credential scanner pointed at the repository. Splitting each literal at a
+// quote leaves the runtime value intact and leaves nothing in the source for a pattern to
+// match. It also means this file needs no exemption from its own scan: an earlier version
+// skipped itself by FILENAME, which quietly skipped any other file that happened to share the
+// name, and an exemption granted on a filename is not an exemption you can reason about.
+function jwt(role) {
+  const seg = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+  return seg({ alg: 'HS256', typ: 'JWT' }) + '.' +
+         seg({ role: role, iss: 'supabase', exp: 2000000000 }) + '.' +
+         'c2lnbmF0dXJlLXBsYWNlaG9sZGVyLXZhbHVl';
+}
+
 // Each pattern names the thing it is looking for, so a hit explains itself.
 //
 // A Supabase publishable ("anon") key is MEANT to be in a public file: it is embedded in
@@ -56,17 +79,88 @@ const PATTERNS = [
       // through. Known-anon passes; anything else is reported.
       return jwtRole(m[0]) !== 'anon';
     },
+    sample: 'SB_KEY = "' + jwt('service_role') + '"',
+    // The negative control. Without it this pattern could be "fixed" into flagging every JWT
+    // and still pass its own sample, which would fail the build on a correct board.html and
+    // get the check disabled by the second person who hit it.
+    clean: 'var SB_KEY = "' + jwt('anon') + '";',
   },
-  { name: 'service_role reference with a value', re: /service_?role["'\s:=]+[A-Za-z0-9_.-]{20,}/i },
-  { name: 'SUPABASE_SERVICE_KEY with a value', re: /SUPABASE_SERVICE(_ROLE)?_KEY\s*[:=]\s*\S+/ },
-  { name: 'AWS access key id', re: /\bAKIA[0-9A-Z]{16}\b/ },
-  { name: 'GitHub token', re: /\bgh[pousr]_[A-Za-z0-9]{20,}\b/ },
-  { name: 'OpenAI key', re: /\bsk-[A-Za-z0-9_-]{20,}\b/ },
-  { name: 'private key block', re: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
+  {
+    name: 'service_role reference with a value',
+    re: /service_?role["'\s:=]+[A-Za-z0-9_.-]{20,}/i,
+    sample: 'service' + '_role: "' + 'k'.repeat(28) + '"',
+  },
+  {
+    name: 'SUPABASE_SERVICE_KEY with a value',
+    re: /SUPABASE_SERVICE(_ROLE)?_KEY\s*[:=]\s*\S+/,
+    sample: 'SUPABASE_SERVICE_ROLE' + '_KEY=' + 'v'.repeat(24),
+  },
+  {
+    name: 'Supabase secret key',
+    re: /\bsb_secret_[A-Za-z0-9_-]{8,}\b/,
+    sample: 'sb_secret' + '_' + 'A1b2C3d4E5f6G7h8',
+  },
+  {
+    name: 'board bot or viewer password',
+    // Naming the variable is not disclosing it. The first version of this pattern flagged
+    // `env.BOARD_VIEWER_PASSWORD === env.BOARD_BOT_PASSWORD` in deploy.js, which is the line
+    // that STOPS the bot credential being published, and an empty placeholder in the example
+    // file the setup guide tells you to copy. Both are correct code. A check that fails a
+    // correct repository on its first run is a check the next person deletes, so what it
+    // looks for is an assigned literal, not a mention.
+    test: line => {
+      const m = line.match(/BOARD_(?:BOT|VIEWER)_PASSWORD\s*[:=]{1,3}\s*(\S+)/);
+      if (!m) return false;
+      const v = m[1].replace(/^["'`]|["'`][,;)]*$/g, '');
+      if (!v) return false;                                        // blank placeholder
+      if (/^(env|process|os|import|config|opts|args)[.\[]/.test(v)) return false;   // a lookup
+      if (/^[$%]/.test(v)) return false;                           // shell or template ref
+      if (/^(<|__|\{\{|your-|changeme|change-me|xxx)/i.test(v)) return false;   // placeholder
+      return true;
+    },
+    sample: 'BOARD_BOT' + '_PASSWORD=' + 'not-the-real-one',
+    clean: 'if (env.BOARD_VIEWER_PASSWORD === env.BOARD_BOT_PASSWORD) {',
+  },
+  {
+    name: 'AWS access key id',
+    re: /\bAKIA[0-9A-Z]{16}\b/,
+    sample: 'AKIA' + 'EXAMPLE0KEY0ID12',
+  },
+  {
+    name: 'GitHub token',
+    re: /\bgh[pousr]_[A-Za-z0-9]{20,}\b/,
+    sample: 'ghp' + '_' + '0123456789abcdefghij',
+  },
+  {
+    name: 'OpenAI key',
+    re: /\bsk-[A-Za-z0-9_-]{20,}\b/,
+    sample: 'sk' + '-' + '0123456789abcdefghij',
+  },
+  {
+    name: 'private key block',
+    re: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/,
+    sample: '-----BEGIN ' + 'PRIVATE KEY' + '-----',
+  },
 ];
 
-// This file names every pattern it hunts for, so it would always match itself.
-const SELF = path.basename(__filename);
+const match = (p, line) => (p.test ? p.test(line) : p.re.test(line));
+
+// ---- self-test --------------------------------------------------------------------------
+// Runs before the scan, every run, not behind a flag. A self-test you have to remember to run
+// is the same thing as no self-test.
+const broken = [];
+for (const p of PATTERNS) {
+  if (!p.sample) { broken.push(p.name + ': no sample, so nothing proves it still fires'); continue; }
+  if (!match(p, p.sample)) broken.push(p.name + ': did not match its own sample');
+  if (p.clean && match(p, p.clean)) broken.push(p.name + ': matched its negative control, so it will cry wolf');
+}
+if (broken.length) {
+  console.error('hygiene-check: REFUSING TO RUN. The scanner failed its own test.\n');
+  for (const b of broken) console.error('  ' + b);
+  console.error('\nA scan that reports clean with a broken pattern is worse than no scan, because');
+  console.error('it is the evidence someone will cite when the credential turns up in public.');
+  process.exit(1);
+}
 
 let tracked;
 try {
@@ -80,7 +174,6 @@ try {
 const findings = [];
 
 for (const rel of tracked) {
-  if (path.basename(rel) === SELF) continue;
   const abs = path.join(REPO, rel);
 
   let stat;
@@ -96,14 +189,14 @@ for (const rel of tracked) {
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     for (const p of PATTERNS) {
-      const hit = p.test ? p.test(lines[i]) : p.re.test(lines[i]);
-      if (hit) findings.push({ file: rel, line: i + 1, what: p.name, text: lines[i].trim().slice(0, 120) });
+      if (match(p, lines[i])) findings.push({ file: rel, line: i + 1, what: p.name, text: lines[i].trim().slice(0, 120) });
     }
   }
 }
 
 if (!findings.length) {
-  console.log('hygiene-check: clean. ' + tracked.length + ' tracked files scanned, no privileged credential found.');
+  console.log('hygiene-check: clean. ' + PATTERNS.length + ' patterns passed their own samples, ' +
+              tracked.length + ' tracked files scanned, no privileged credential found.');
   process.exit(0);
 }
 

@@ -1,0 +1,6 @@
+# SETUP.md tells you to create .board.env right here, so the rule lives right here too.
+# It holds the bot password and the backend URL. Ignored before the first commit, never after:
+# a credential removed later is a history rewrite, not a delete, and it stays valid until
+# somebody rotates it.
+.board.env
+.dist/

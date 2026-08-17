@@ -57,10 +57,40 @@ if (missing.length) {
   process.exit(1);
 }
 
+// Name checks are not enough. The refusal below used to test only whether a variable called
+// SUPABASE_SERVICE_KEY existed, so pasting the service-role key into SUPABASE_ANON_KEY passed
+// every control in the toolchain and ran every request with a credential that bypasses
+// row-level security across every project on the shared backend. The two keys sit next to each
+// other on the same dashboard page this project's setup sends you to.
+//
+// So decode the key and assert the role. Fail closed on anything undecodable.
+function keyRole(tok) {
+  try {
+    return JSON.parse(Buffer.from(String(tok).split('.')[1], 'base64url').toString('utf8')).role || null;
+  } catch { return null; }
+}
+function assertPublishableKey(value, name) {
+  if (/^sb_secret_/i.test(value)) {
+    console.error('REFUSING TO RUN: ' + name + ' holds a secret key (sb_secret_...).');
+    process.exit(1);
+  }
+  if (/^sb_publishable_/i.test(value)) return;
+  const role = keyRole(value);
+  if (role !== 'anon') {
+    console.error(
+      'REFUSING TO RUN: ' + name + ' does not hold a publishable key.\n' +
+      'Its role claim is "' + (role || 'unreadable') + '", not "anon". A service-role key\n' +
+      'bypasses row-level security, so this would read and write every project on the backend.'
+    );
+    process.exit(1);
+  }
+}
+
 const https = require('https');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const ANON_KEY     = process.env.SUPABASE_ANON_KEY;
+assertPublishableKey(ANON_KEY, 'SUPABASE_ANON_KEY');
 const PROJECT_SLUG = process.env.BOARD_PROJECT;
 
 const STATUSES = ['backlog','todo','in_progress','uat','uat_complete','prod_ready','prod_deployed','done'];
@@ -68,6 +98,9 @@ const LABELS = { backlog:'BACKLOG', todo:'TO DO', in_progress:'IN PROGRESS', uat
 // Permitted assignees are a property of the board, in board_project.assignees, not a constant
 // here. This file used to hardcode the three names used by the board the reference came from,
 // which made every other board unmigratable. No list on the board means no restriction.
+// 'uat_deployed' is retired; the schema rewrites it and the constraint refuses it. Kept for the
+// same reason as board.html: against a board that has not run the migration, dropping this makes
+// the affected tickets match no column and vanish from `list` instead of erroring.
 function normStatus(s){ return s === 'uat_deployed' ? 'uat' : s; }
 
 let TOKEN = null;      // the bot user's access token, not a key

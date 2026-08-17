@@ -8,6 +8,57 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-17
 
+### The gates were run against the studio's own work, and stopped it
+
+Three review agents were pointed at code and copy published earlier the same day. None of it
+had been independently reviewed, which is the thing the method exists to prevent, so the run
+was as much a test of the gates as of the work. They found one critical each and did not sign
+it off.
+
+**A name check is not a key check.** The board CLI refused to start if a variable called
+`SUPABASE_SERVICE_KEY` existed. It never looked at what was actually inside `SUPABASE_ANON_KEY`.
+Paste the service-role key into the publishable slot, which sits next to it on the same
+dashboard page the setup guide sends you to, and every control in the toolchain passed while
+every request ran with a credential that bypasses row-level security across every project on
+the shared backend. Worse, the deploy step substitutes that value into the page and publishes
+it, so the end state was a service-role key on a public URL. All three programs now decode the
+key and assert its role claim, and refuse anything that is not publishable. Proved by pasting a
+service-role key in and watching each one refuse.
+
+**A migration that fails after it has already destroyed something.** The schema drops a column,
+then adds a status constraint that omits a legacy value the page and the CLI both still map. On
+a board carrying that value the run stops with the table already altered, and the error reads
+as a schema bug rather than a data mismatch. That is the same failure recorded a week earlier
+for a different column, in the same file, fixed there and left standing here. The values are
+now normalised before the constraint is added.
+
+**Per-project assignees shipped in two of the three places that needed them.** The schema and
+the command line read the project's own list; the page kept a hardcoded one, never fetched the
+column, and stamped a name from another studio onto every ticket it created. Any board
+declaring its own vocabulary would have had every ticket creation refused by the very trigger
+that was added to help it. The page now reads the list from the board.
+
+**An elevated trigger answering for boards you are not a member of.** The assignee check ran
+with definer rights and fired before the row-level security check, so naming any project id
+returned that board's permitted names in the error message, and a removed member kept the
+read. It does not need the elevation and no longer has it.
+
+**And the ignore rule that three documents promised did not exist.** The fragment every project
+is told to paste covers `.env` and `.env.*`. It does not match `.board.env`, which is the file
+the board setup tells you to create, holding a live bot password. Untracked but not ignored is
+one command away from permanent. Fixed in the fragment, in the reference directory, and in this
+repository, which turned out to carry no secret rules at all while shipping them to everyone
+else. The credential scanner also gained patterns for the current secret-key format and for the
+board password it exists to protect.
+
+**What the exercise says about the method.** Every one of these was found by pointing an agent
+at work with instructions to disbelieve it, and three of them are recurrences of lessons already
+written down here. A rule in a file does not stop the same mistake; a reviewer who did not write
+the code does. The gates were also caught skipping their own standard: the credential check
+shipped with no sample and no self-test five days after the studio decided that every check must
+prove it fires.
+
+
 ### Two large things at once, and nothing said out loud is allowed to evaporate
 
 **The problem.** Two failures, and they feed each other.
