@@ -8,6 +8,50 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-17
 
+### Every session now scores itself, and the score is the first thing the next one reads
+
+**The problem.** A method is only followed while somebody is checking, and nothing was
+checking. The studio could be immaculate on every measure it had, and every measure it had
+reported on artefacts rather than on behaviour: files present, rosters composed, documents
+current. None of them could tell you whether the way of working had actually been followed.
+
+**What changed.** `/wind-down` now closes a session by scoring it against eight standing
+checks and writing the result into `WARM_START.md`. Because that file is imported by
+`CLAUDE.md`, the next session reads it on the way in without any hook having to fire, which
+matters given the one hook this studio has has never been observed firing.
+
+The checks are chosen because each leaves evidence: whether every role was actually
+dispatchable, whether anything shipped that broke, whether any check ran with nothing to act
+on, whether a check was added and never watched fail, whether work happened off the board,
+whether anything reached acceptance without test notes or was called done without a measure,
+and whether the project's own records are somewhere durable.
+
+**It is reported as two numbers rather than a percentage: gaps open, and gaps with no owner.**
+A target of a hundred percent makes people stop measuring, because falling short creates work
+and the sessions that break a rule are the least likely to volunteer it. It also treats every
+gap as a failure when some are deliberate, which is what the deviation register exists for. An
+owned gap with a review date is a plan. An unowned one is the defect.
+
+**The first score is three gaps, and they are left visible on purpose.** A balance count that
+reported green twice while the thing it checked was structurally wrong. This new table itself,
+which has been filled in exactly once by the session that wrote it, and which earns its place
+only when it catches something nobody had already noticed. And a site shipped with no measure
+agreed beforehand, eight days after the studio published the rule that nothing gets built
+until someone can say how we will know it worked.
+
+### The last outstanding lesson is routed, and the intake queue is empty
+
+Data arriving from a third party does not match its own documentation: column names spelled
+differently between releases, header rows in another case, rows that break the shape entirely.
+Rejecting the file at parse time makes an import brittle in exactly the situation it exists
+for. The data engineer now tolerates known variations through a named alias table that records
+when each was first seen, keeps the safety nets downstream of the cleaner because a converter
+can only absorb the anomalies somebody has already met, and treats defaults applied during
+parsing as the specific trap: correct when creating a record, quietly destructive when
+updating one.
+
+Every lesson identified across the portfolio has now been written into the base and published.
+
 ### The site is five short pages instead of one long one
 
 **The problem.** Everything lived on a single scrolling document behind a floating side rail.

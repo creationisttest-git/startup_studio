@@ -156,6 +156,39 @@ unexpected came along.
 
 ---
 
+## Step 5b: score the session against the standing checks
+
+Write the result into a `## Compliance` section in `WARM_START.md`, replacing the previous
+table. The next session reads that file on its own, so this is what makes the standing checks
+arrive at the start without any new tooling to remember.
+
+Answer each line from evidence, never from impression. A line you cannot evidence is `unknown`,
+and `unknown` is a gap.
+
+| Check | How it is answered |
+|---|---|
+| All roles dispatchable | the count named at session start. Composed on disk and loaded in the session are different claims |
+| Defects introduced | anything shipped that broke, or a gate stepped around |
+| Checks that proved nothing | any check that skipped, or ran with nothing to act on |
+| New check never watched fail | anything added this session and not yet proven by re-injecting the defect |
+| Built off-board | work done with no ticket behind it |
+| UAT without test notes | the board's own history |
+| Done without a measure | the measure field on the ticket |
+| State is durable | repository exists, has a remote, documents committed |
+
+Record each as `ok`, `n/a`, or a gap with an **owner and a review date**.
+
+**Report two numbers, not a percentage: how many gaps are open, and how many have no owner.**
+A score out of a hundred makes people stop looking, because falling short creates work and the
+sessions that break a rule are the ones least likely to volunteer it. It also treats every gap
+as a failure when some are deliberate, which is what the deviation register is for. An owned
+gap with a date is a plan. An unowned one is the defect.
+
+Do not carry a gap forward silently. If a gap from the previous table is still open, say how
+long it has been open.
+
+---
+
 ## Step 6: confirm and stop
 
 Say "wind-down complete" and stop. State in one line what a fresh session should do next.

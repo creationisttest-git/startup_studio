@@ -17,6 +17,40 @@ that someone new could describe the project accurately without reading the code.
 
 ---
 
+## Compliance
+
+*Written by `/wind-down` at the end of every session, read by the next one on the way in.
+This file loads automatically, so the checks below arrive at session start without anything
+having to fire.*
+
+**At session start, before planning anything:**
+
+1. *Name the roles you can dispatch, and count them. Expect sixteen. Composed on disk and
+   loaded in the session are different claims, and confusing the two once hid thirteen
+   missing roles for weeks.*
+2. *Read the open gaps below.*
+3. *Confirm the state documents were read from disk this session, not recalled.*
+
+**Last scored:** *never*
+
+| Check | State | Owner | Review by |
+|---|---|---|---|
+| All roles dispatchable | | | |
+| Defects introduced | | | |
+| Checks that proved nothing | | | |
+| New check never watched fail | | | |
+| Built off-board | | | |
+| UAT without test notes | | | |
+| Done without a measure | | | |
+| State is durable | | | |
+
+**Open gaps:** *0.* &nbsp; **Unowned:** *0.*
+
+*Two numbers, not a percentage. A target of 100% makes people stop measuring, and some gaps
+are deliberate. An owned gap with a date is a plan; an unowned one is the defect.*
+
+---
+
 ## Next action
 
 *The single next thing, specific enough to start without asking a question.*
