@@ -174,6 +174,8 @@ and `unknown` is a gap.
 | Built off-board | work done with no ticket behind it |
 | UAT without test notes | the board's own history |
 | Done without a measure | the measure field on the ticket |
+| Loose ends | anything the CEO raised this session that did not become a ticket or a backlog row |
+| In-flight ceiling | count of large items In Progress. Two large and three small is the ceiling |
 | State is durable | repository exists, has a remote, documents committed |
 
 Record each as `ok`, `n/a`, or a gap with an **owner and a review date**.
@@ -183,6 +185,11 @@ A score out of a hundred makes people stop looking, because falling short create
 sessions that break a rule are the ones least likely to volunteer it. It also treats every gap
 as a failure when some are deliberate, which is what the deviation register is for. An owned
 gap with a date is a plan. An unowned one is the defect.
+
+**The two hardest to answer honestly are the last ones you should skip.** A loose end is
+invisible by definition: it is the idea nobody wrote down, so the only way to find it is to
+re-read what was actually discussed rather than what was done. And a ticket that has sat In
+Progress across three sessions is not in progress, it is abandoned with the light left on.
 
 Do not carry a gap forward silently. If a gap from the previous table is still open, say how
 long it has been open.

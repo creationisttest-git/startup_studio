@@ -42,6 +42,8 @@ having to fire.*
 | Built off-board | | | |
 | UAT without test notes | | | |
 | Done without a measure | | | |
+| Loose ends | | | |
+| In-flight ceiling | | | |
 | State is durable | | | |
 
 **Open gaps:** *0.* &nbsp; **Unowned:** *0.*

@@ -8,6 +8,41 @@ Newest first. Dates are when the change went public.
 
 ## 2026-08-17
 
+### Two large things at once, and nothing said out loud is allowed to evaporate
+
+**The problem.** Two failures, and they feed each other.
+
+An idea raised in conversation is the easiest thing in the world to lose. Everyone is mid-task
+when it is said, it sounds like thinking aloud rather than a request, and nobody writes it
+down. Weeks later it resurfaces and nobody can say whether it was rejected, forgotten, or
+quietly done already. An idea that was never recorded is indistinguishable from one that was
+never had.
+
+Meanwhile the work that did get started accumulates. Nothing in the method ever said no, or
+even said "there are already four of these". Silently accepting more is the cheapest thing an
+agent can do in the moment and the most expensive over a month: it produces several features
+at sixty per cent, none of which can ship, each decaying while it waits.
+
+**What changed. A ceiling, stated out loud.** Two large items in progress and three small ones,
+where large means more than one session of work or work crossing more than one discipline.
+It is a ceiling rather than a target. When the board is at it and more arrives, the product
+manager and the tech lead now say so with the count, name what is already running, and ask what
+gets parked. Going over is a legitimate call and it is the founder's to make knowingly, recorded
+on the ticket with the reason. What is no longer available is absorbing it in silence.
+
+**Everything raised becomes a ticket or a backlog row before the conversation moves on**, even
+when the answer is no. "Not now" is a backlog row, and a backlog row is a decision that
+something is not next.
+
+**And everything that starts, ends explicitly.** No ticket is left in progress at the end of a
+session without its real state written into it: what is done, what is not, what the next
+session picks up. Finished, parked with a reason, and killed are all endings. Going quiet is
+not, and a ticket that has been in progress across three sessions is not in progress, it is
+abandoned with the light left on.
+
+Both are now scored at wind-down, because a rule that only lives in a role file is a rule
+nobody can audit.
+
 ### Every session now scores itself, and the score is the first thing the next one reads
 
 **The problem.** A method is only followed while somebody is checking, and nothing was
