@@ -36,6 +36,10 @@ silently invalidated all of them, and the publish refused with nine findings bef
 reached the internet. That is the check working exactly as intended, and it is a reminder
 that an exemption list is a piece of configuration that goes stale like any other.
 
+Links, canonicals and the sitemap all use the address the host actually serves. The host
+rewrites `/problem.html` to `/problem`, so shipping the longer form meant every click paid for
+a redirect and every canonical pointed at a URL that immediately moved.
+
 ### Six lessons from a product build, encoded into the roles that should have caught them
 
 Contributed from a live project, each one written into the role responsible for it.
