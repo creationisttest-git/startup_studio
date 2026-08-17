@@ -40,6 +40,9 @@ Links, canonicals and the sitemap all use the address the host actually serves. 
 rewrites `/problem.html` to `/problem`, so shipping the longer form meant every click paid for
 a redirect and every canonical pointed at a URL that immediately moved.
 
+The prototypes page links the products that are actually public, and labels the two that are
+not rather than leaving them looking like an oversight.
+
 ### Six lessons from a product build, encoded into the roles that should have caught them
 
 Contributed from a live project, each one written into the role responsible for it.
