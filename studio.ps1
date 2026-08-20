@@ -84,9 +84,156 @@ $CARD_NAME   = '_project.md'
 # WAYS_OF_WORKING and WARM_START are its own and never distributed.
 $SHARED_GOV = @('GLOBAL_WAYS_OF_WORKING.md','AGENTS.md','BRIDGE_PROTOCOL.md')
 
+# Get-Content -Raw decodes a file WITHOUT a byte order mark using the ANSI code page on
+# PowerShell 5.1, not UTF-8. Agent files are deliberately BOM-less (S24), so reading one and
+# writing it back re-encodes every non-ASCII character into mojibake that GROWS on each pass:
+# an em dash went 8 bytes to 18 in one round trip, and -Sync never converged because three
+# roles were "changed" on every run, by the sync itself. The old code escaped this only
+# because Copy-Item never decodes anything.
+function Read-TextUtf8 ([string]$Path) {
+    [System.IO.File]::ReadAllText($Path, (New-Object System.Text.UTF8Encoding $false))
+}
+
 function Get-Sha ([string]$Path) {
     if (-not (Test-Path $Path)) { return $null }
     (Get-FileHash -Path $Path -Algorithm SHA256).Hash
+}
+
+# --------------------------------------------------------------- fragments
+
+# The advocacy block appears in 11 of the 16 roles and the ticket rule in 9, near-identical
+# every time. Changing one rule meant editing eleven files by hand, which is not a chore, it is
+# a defect: the edit that is too tedious to do is the edit that does not get done, and the
+# roster drifts one careless paste at a time. Worse, nothing could see it. Eleven copies of a
+# rule and ten of them updated looks exactly like eleven copies all updated.
+#
+# So a rule that belongs to every role is written once in base\fragments\<name>.md and pulled
+# in with {{include: name}}.
+function Get-FragmentPath ([string]$Name) { Join-Path $StudioRoot ('base\fragments\' + $Name + '.md') }
+
+function Get-Fragment ([string]$Name) {
+    $p = Get-FragmentPath $Name
+    if (-not (Test-Path $p)) { return $null }
+    # HTML comments are stripped. A fragment carries notes explaining itself to whoever edits
+    # it next, and those are for the maintainer, not for the agent that loads the role. Two
+    # fragments were shipping their own rationale into eighteen generated files.
+    $body = [regex]::Replace((Read-TextUtf8 $p), '(?s)<!--.*?-->', '')
+    ($body -replace '
+?
+\s*
+?
+\s*$', '').Trim()
+}
+
+# Missing fragment THROWS. It does not warn and it does not leave the marker in place.
+# A role that silently loses a rule is the byte-order-mark failure again in a new costume:
+# composed, current, present on disk, and quietly not doing the thing it says it does. Better
+# to refuse to build than to ship sixteen agents with a hole where a rule should be.
+function Expand-Fragments ([string]$Text, [string]$Where) {
+    if (-not $Text) { return $Text }
+    $re  = [regex]'\{\{\s*include:\s*([A-Za-z0-9_-]+)\s*\}\}'
+    $out = $Text
+    # Loop rather than a single pass, so a fragment may include another. One pass would insert
+    # the inner marker verbatim and the leftover check below would then refuse the whole build,
+    # which is a confusing way to say "nesting is not supported".
+    $depth = 0
+    while ($true) {
+        $found = @($re.Matches($out))
+        if ($found.Count -eq 0) { break }
+        $depth++
+        # A cycle cannot be detected by looking at one fragment, only by noticing the work never
+        # finishes. Five is far past any legitimate nesting and turns an infinite loop into a
+        # sentence naming the file.
+        if ($depth -gt 5) {
+            throw ("fragment nesting deeper than 5 in " + $Where + ", which almost certainly means two fragments include each other. Break the cycle.")
+        }
+        # Descending, so replacing one marker cannot shift the offsets of the ones before it.
+        foreach ($m in ($found | Sort-Object -Property Index -Descending)) {
+            $name = $m.Groups[1].Value
+            $body = Get-Fragment $name
+            if ($null -eq $body) {
+                throw ("fragment '$name' does not exist. " + $Where + " asks for it, and base\fragments\$name.md is not there. Refusing to compose: an agent missing a rule looks identical to one that has it.")
+            }
+            # An empty fragment is almost always a half-finished edit, and inserting nothing
+            # produces exactly the outcome this whole mechanism exists to prevent: a role that
+            # names a rule and does not carry it.
+            if (-not $body.Trim()) {
+                throw ("fragment '$name' is empty. " + $Where + " asks for it, so composing would silently drop the rule it names.")
+            }
+            $out = $out.Remove($m.Index, $m.Length).Insert($m.Index, $body)
+        }
+    }
+    # Anything still wearing braces is a marker this function declined to understand: a name
+    # with a dot, a slash, a space. Shipping it writes a literal marker into a live agent,
+    # which is worse than refusing -- the rule is missing AND the file looks deliberate.
+    # Two braces are enough to be a marker. Requiring the CLOSING pair meant an unclosed
+    # '{{include: brevity' sailed through compose, install AND the public export, silently,
+    # with the health check reporting the fragment fine because its own scan needs a closing
+    # pair too. A typo is the likeliest way a marker is ever malformed, and a truncated one
+    # is the likeliest typo.
+    # Only an INCLUDE marker. The previous pattern matched any '{{' at all, so a role could
+    # never document Vue, Handlebars, Django or the fragment syntax itself in prose: it threw
+    # naming a fragment that was never a fragment. The property being kept is narrow, an
+    # include the expander declined to understand, and the pattern should be that narrow too.
+    $left = [regex]::Match($out, '(?i)\{\{\s*include[^{}]{0,120}')
+    if ($left.Success) {
+        throw ("unresolved marker '" + $left.Value + "' in " + $Where + ". A fragment name is letters, digits, hyphen and underscore with no extension: {{include: brevity}}, not {{include: brevity.md}}.")
+    }
+    $out
+}
+
+# The full text of a base role with its fragments resolved. This, not the file on disk, is what
+# gets installed and what gets hashed -- otherwise the installed copy would never again match
+# its source and every role would report as drifted forever.
+function Get-AgentText ([string]$Path) {
+    $raw = Read-TextUtf8 $Path
+    # A marker in FRONTMATTER is refused, not expanded. The overlay half of this was fixed twice
+    # and the base half never was: composing left the marker literal in the generated agent, and
+    # installing expanded a multi-line rule INTO the frontmatter block so it never closed, while
+    # the loadability check still reported the file parseable. Frontmatter is a key-value header;
+    # a rule does not belong in one under any reading.
+    $lines = $raw -split "`r?`n"
+    # Only scan a frontmatter block that actually CLOSES. Without this the loop ran to end of
+    # file on any role whose header was absent or malformed and refused a marker sitting
+    # legitimately in the body, which broke every fixture at once.
+    $fmEnd = -1
+    if ($lines.Count -gt 1 -and $lines[0].Trim() -eq '---') {
+        # No line cap. 40 was arbitrary and a header closing at line 47 walked straight past it.
+        for ($k = 1; $k -lt $lines.Count; $k++) {
+            if ($lines[$k].Trim() -eq '---') { $fmEnd = $k; break }
+        }
+    }
+    if ($fmEnd -gt 0) {
+        for ($i = 1; $i -lt $fmEnd; $i++) {
+            if ($lines[$i] -match '(?i)\{\{\s*include') {
+                throw ("frontmatter of " + (Split-Path $Path -Leaf) + " contains a fragment marker on line " + ($i + 1) + ". Fragments are rules and belong in the body; expanding one into a frontmatter block leaves it unclosed and the agent silently unparseable.")
+            }
+        }
+    }
+    Expand-Fragments $raw ("base\agents\" + (Split-Path $Path -Leaf))
+}
+function Get-TextSha ([string]$Text) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try { (($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($Text)) | ForEach-Object { $_.ToString('X2') }) -join '') }
+    finally { $sha.Dispose() }
+}
+
+function Get-FileTextSha ([string]$Path) {
+    if (-not (Test-Path $Path)) { return $null }
+    Get-TextSha (Read-TextUtf8 $Path)
+}
+
+function Get-AgentTextOrNull ([string]$Path) {
+    try { Get-AgentText $Path } catch { $null }
+}
+
+# Which fragments each role asks for. Used by -Doctor to report a fragment nobody includes,
+# which is a rule that has quietly stopped applying to anyone.
+function Get-FragmentRefs ([string]$Path) {
+    # Deliberately looser than the expander. This feeds the report, and a marker too
+    # malformed to expand is exactly the one a person needs told about.
+    $re = [regex]'\{\{\s*include:\s*([A-Za-z0-9_.-]+)'
+    @($re.Matches((Read-TextUtf8 $Path)) | ForEach-Object { $_.Groups[1].Value })
 }
 
 # Stamped into every composed agent so a surprising instruction can be traced back to
@@ -150,14 +297,23 @@ function Save-Archive ([string]$Path, [string]$Tag) {
 # --------------------------------------------------------------- markdown
 
 function Split-Doc ([string]$Path) {
-    $raw   = Get-Content $Path -Raw
+    $raw   = Read-TextUtf8 $Path
     $lines = $raw -split "`r?`n"
-    if ($lines[0].Trim() -ne '---') { return @{ Front = [ordered]@{}; Body = $raw } }
+    if ($lines.Count -eq 0 -or $lines[0].Trim() -ne '---') { return @{ Front = [ordered]@{}; Body = $raw } }
     $front = [ordered]@{}; $i = 1
     while ($i -lt $lines.Count -and $lines[$i].Trim() -ne '---') {
         $idx = $lines[$i].IndexOf(':')
         if ($idx -gt 0) { $front[$lines[$i].Substring(0,$idx).Trim()] = $lines[$i].Substring($idx+1).Trim() }
         $i++
+    }
+    # An opening --- with no closing one is a MALFORMED document, not a document with a very
+    # long header. The old code walked to the end and then sliced [$i+1 .. count-1], which in
+    # PowerShell is a DESCENDING range once $i+1 passes the end: the body came back reversed,
+    # the whole file was silently treated as frontmatter, and a fragment marker in it shipped
+    # into the generated agent with the rule it named missing. Refusing is the only honest
+    # reading; a header that never closes cannot be parsed by anything downstream either.
+    if ($i -ge $lines.Count) {
+        throw ((Split-Path $Path -Leaf) + " opens a frontmatter block with --- and never closes it. Nothing downstream can parse that, and the previous behaviour was to treat the entire file as a header and return the body reversed.")
     }
     @{ Front = $front; Body = ($lines[($i+1)..($lines.Count-1)] -join "`r`n").Trim() }
 }
@@ -180,17 +336,43 @@ function New-ComposedAgent ($BaseFile, $ProjectPath, $ProjectName) {
     $cardPath    = Join-Path $ProjectPath "$OVERLAY_DIR\$CARD_NAME"
     $overlayPath = Join-Path $ProjectPath "$OVERLAY_DIR\$role.md"
 
+    # The header, checked here as well as in Get-AgentText. Compose reads through Split-Doc and
+    # install reads through Get-AgentText; guarding only the second left a marker in a CLOSED
+    # header sailing through compose and into the generated agent verbatim. Two readers, two
+    # checks, or the guard is only as good as the path you happened to test.
     $front = [ordered]@{}
-    foreach ($k in $base.Front.Keys) { $front[$k] = $base.Front[$k] }
+    foreach ($k in $base.Front.Keys) {
+        if (("$k" + ' ' + [string]$base.Front[$k]) -match '(?i)\{\{\s*include') {
+            throw ("frontmatter of base\agents\$role.md contains a fragment marker in key '$k'. Fragments are rules and belong in the body; a marker in a header is copied out verbatim and the rule it names never arrives.")
+        }
+        $front[$k] = $base.Front[$k]
+    }
+
+    # Overlays are deliberately NOT expanded: a fragment is a studio-wide rule, and a project
+    # including one would duplicate what the base above already gave it. But "not expanded" was
+    # silently shipping the marker itself into the generated agent, at exit 0, which falsifies
+    # the promise METHOD.md makes that a generated agent never carries a marker. Refusing is the
+    # only reading of that sentence that stays true.
+    $rejectMarker = {
+        param($Text, $Where)
+        if ($Text -and [regex]::IsMatch($Text, '(?i)\{\{\s*include')) {
+            throw ("$Where uses {{include: ...}}. Fragments are studio-wide rules and are resolved from base\fragments only; an overlay including one would duplicate what the base already gave this role. Write the rule out, or put it in the base if every project needs it.")
+        }
+    }
 
     $sections = @()
     if (Test-Path $cardPath) {
         $c = Split-Doc $cardPath
+        # Frontmatter as well as body. A marker one line above the closing --- was invisible to
+        # a body-only check and shipped into the live agent, and expanding it there leaves the
+        # frontmatter block unclosed while LOADABLE still calls the file parseable.
+        & $rejectMarker (Read-TextUtf8 $cardPath) "the stack card $CARD_NAME in $ProjectName"
         if ($c.Body) { $sections += $c.Body }
     }
     if (Test-Path $overlayPath) {
         $ov = Split-Doc $overlayPath
         foreach ($k in $ov.Front.Keys) { $front[$k] = $ov.Front[$k] }
+        & $rejectMarker (Read-TextUtf8 $overlayPath) "the $role overlay in $ProjectName"
         if ($ov.Body) { $sections += "## $role, rules specific to $ProjectName`r`n`r`n" + $ov.Body }
     }
 
@@ -221,7 +403,11 @@ function New-ComposedAgent ($BaseFile, $ProjectPath, $ProjectName) {
         }
     }
 
-    $parts = @((Format-Front $front), '', $header) + $preface + @('', $base.Body)
+    # Fragments resolve here, so a composed agent carries the rule itself and never a marker.
+    # Overlays are deliberately NOT expanded: a fragment is a studio-wide rule, and a project
+    # including one would duplicate what the base above already gave it.
+    $baseBody = Expand-Fragments $base.Body ("base\agents\$role.md")
+    $parts = @((Format-Front $front), '', $header) + $preface + @('', $baseBody)
     if ($sections.Count) {
         $parts += @('', '---', '', "# Project layer: $ProjectName", '',
             'Everything above is the studio-wide standard. Everything below is specific to',
@@ -235,6 +421,10 @@ function New-ComposedAgent ($BaseFile, $ProjectPath, $ProjectName) {
 
 # --------------------------------------------------------------- discovery
 
+# Projects only. The leading-underscore skip is deliberate and stays: everything this returns
+# is fed to writers as well as to reports, so a folder in here gets composed, synced and
+# written into. The studio must never be in that list. It is reported on separately, by
+# Get-StudioSelf below, which is what stops the exclusion from also meaning "unwatched".
 function Find-Projects {
     $found = @()
     Get-ChildItem $ProjectsRoot -Directory -Force |
@@ -246,13 +436,79 @@ function Find-Projects {
                     if ((Test-Path (Join-Path $_.FullName '.git')) -or (Test-Path (Join-Path $_.FullName 'CLAUDE.md'))) { $found += $_.FullName }
                 }
         }
-    $found | Sort-Object -Unique
+    # Belt and braces. The name test above happens to exclude the studio because this one is
+    # called _STUDIO; the path test below excludes it because it IS the studio. Rename the
+    # folder without the underscore and the first test silently stops working, at which point
+    # -Sync and -Compose -All would start writing into the guardian.
+    $found | Sort-Object -Unique | Where-Object { -not (Test-IsInStudio $_) }
+}
+
+# -LiteralPath throughout. Test-Path and Resolve-Path treat [ ] ? and * as WILDCARDS, so
+# -Compose -Project '_STUDI[O]' resolved to the studio, sailed past a guard that compares exact
+# paths, reported "2 roles composed" and created a phantom folder. A guard that fails open is
+# worse than no guard, because it reports success.
+# Refuse to write, for two different reasons that belong in one place.
+#
+# STUDIO_SAFE exists because a subagent under instruction not to touch live projects composed
+# one anyway, and an instruction is not a control. Anything automated sets this and the writers
+# refuse rather than trusting the caller to have read the brief.
+#
+# The subtree test is the other half. Composition was refused for the studio by EXACT path while
+# discovery excluded the whole subtree, so -Compose -Project "_STUDIO\new-project" was
+# accepted
+# and wrote a full roster inside the guardian.
+function Assert-Writable ([string]$Path, [string]$What) {
+    if ($env:STUDIO_SAFE) {
+        throw "$What refused: STUDIO_SAFE is set, so this run may not write to a project. Unset it to write for real."
+    }
+    if (Test-IsInStudio $Path) {
+        throw "$What refused for '$Path'. That is the studio or a folder inside it. The studio OWNS the base roster; composing from it would create a private fork of the thing every project shares."
+    }
 }
 
 function Resolve-Project ([string]$Name) {
-    $p = if (Test-Path $Name) { (Resolve-Path $Name).Path } else { Join-Path $ProjectsRoot $Name }
-    if (-not (Test-Path $p)) { throw "Project not found: $p" }
+    $p = if (Test-Path -LiteralPath $Name) { (Resolve-Path -LiteralPath $Name).Path } else { Join-Path $ProjectsRoot $Name }
+    if (-not (Test-Path -LiteralPath $p)) { throw "Project not found: $p" }
     $p
+}
+
+# The studio is not a project, and it is not exempt from inspection either. Those two facts
+# were treated as one: Find-Projects skips folders starting with an underscore, so the
+# guardian of the method became the only thing the method never looked at. It reported on
+# eight projects and nothing at all on itself.
+#
+# So the studio is added back to the REPORTS by name and tagged as the studio, and to nothing
+# that writes. It is deliberately NOT a project: it has no overlays and composing it would
+# hand the owner of the base roster a private generated copy of that roster, which is the one
+# fork this whole model exists to prevent.
+function Get-StudioSelf {
+    [pscustomobject]@{
+        Name = Split-Path $StudioRoot -Leaf
+        Path = $StudioRoot
+    }
+}
+
+# Compare resolved paths, never folder names. A name test would be defeated by renaming the
+# folder or by a project that happens to be called the same thing.
+function Get-NormalPath ([string]$P) {
+    if (-not $P) { return '' }
+    $full = $P
+    try { $full = [System.IO.Path]::GetFullPath($P) } catch { }
+    $full.TrimEnd('\', '/')
+}
+
+
+# The studio root or anything beneath it. Discovery counts a folder as a project when it holds
+# a .git or a CLAUDE.md, and new-project\ holds a CLAUDE.md, so without this a studio folder
+# that did not start with an underscore would be discovered as a project in its own right. Only
+# that one folder qualifies today; the guard is written for the subtree because the next
+# subfolder to gain a CLAUDE.md will not come with a reminder.
+function Test-IsInStudio ([string]$P) {
+    if (-not $P) { return $false }
+    $n = Get-NormalPath $P
+    $s = Get-NormalPath $StudioRoot
+    if ($n -eq $s) { return $true }
+    $n.StartsWith($s + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
 }
 
 # a project's governance lives at its root, or at its parent when the parent is a venture
@@ -312,21 +568,39 @@ function Write-InstallManifest ([string]$Target, [hashtable]$Map) {
 }
 
 function Install-GlobalAgents {
+    # STUDIO_SAFE covers this too. It was added after a subagent wrote into a live project,
+    # and the machine-wide install is the SAME incident class with a wider blast radius: it
+    # is the roster every untuned project loads. Guarding only the composer left the hole
+    # open in exactly the place the variable exists for.
+    if ($env:STUDIO_SAFE -and -not $WhatIf) {
+        throw "'-Sync agents' refused: STUDIO_SAFE is set, so this run may not write the machine-wide install. Unset it to write for real."
+    }
+
     $files  = Get-BaseAgents
     $target = Join-Path $env:USERPROFILE '.claude\agents'
     if (-not (Test-Path $target) -and -not $WhatIf) { New-Item -ItemType Directory -Path $target -Force | Out-Null }
     $man = Read-InstallManifest $target
     $upd=@(); $same=@(); $skip=@(); $unknown=@()
     foreach ($f in $files) {
-        $d = Join-Path $target $f.Name; $dh = Get-Sha $d; $bh = Get-Sha $f.FullName
+        # Hash the EXPANDED text on both sides. Copying the file verbatim would install a
+        # literal {{include:}} marker into every untuned project, and comparing the raw source
+        # against an expanded install would report every role as drifted, permanently.
+        $d = Join-Path $target $f.Name
+        $text = Get-AgentText $f.FullName
+        $dh = Get-FileTextSha $d; $bh = Get-TextSha $text
         $rec = $man[$f.BaseName]
-        if ($null -eq $dh)     { if(-not $WhatIf){Copy-Item $f.FullName $d -Force}; $upd+=$f.BaseName;  $man[$f.BaseName] = $bh }
+        if ($null -eq $dh)     { if(-not $WhatIf){Write-Utf8NoBom $d $text}; $upd+=$f.BaseName;  $man[$f.BaseName] = $bh }
         elseif ($dh -eq $bh)   { $same+=$f.BaseName;                                                    $man[$f.BaseName] = $bh }
         # The install still matches what it was installed from, so the base is simply newer
         # and there is nothing here to lose. Overwrite without ceremony. A guard that fires
         # on every base change is a guard people learn to pass -Force to reflexively.
-        elseif ($rec -and $dh -eq $rec) { if(-not $WhatIf){Copy-Item $f.FullName $d -Force}; $upd+=$f.BaseName; $man[$f.BaseName] = $bh }
-        elseif ($Force)        { if(-not $WhatIf){Copy-Item $f.FullName $d -Force}; $upd+=$f.BaseName;  $man[$f.BaseName] = $bh }
+        # Accept the legacy hash too. Every manifest written before fragments existed stores a
+        # FILE hash of the base, and this now compares EXPANDED TEXT hashes. Without this, the
+        # first sync after upgrading reports the entire roster as hand-edited and refuses to
+        # touch it -- on every machine, for everyone, at once. The entry is rewritten in the
+        # new form on the way through, so the shim stops applying after one sync.
+        elseif ($rec -and ($dh -eq $rec -or (Get-Sha $d) -eq $rec)) { if(-not $WhatIf){Write-Utf8NoBom $d $text}; $upd+=$f.BaseName; $man[$f.BaseName] = $bh }
+        elseif ($Force)        { if(-not $WhatIf){Write-Utf8NoBom $d $text}; $upd+=$f.BaseName;  $man[$f.BaseName] = $bh }
         elseif ($rec)          { $skip+=$f.BaseName }
         else                   { $unknown+=$f.BaseName }
         # A skipped role keeps whatever it was last installed from. That stale entry is the
@@ -349,6 +623,14 @@ function Install-GlobalAgents {
 # composed per project, because a procedure is the same everywhere. A project needing a
 # variant overrides by name in its own .claude/skills.
 function Install-GlobalSkills {
+    # STUDIO_SAFE covers this too. It was added after a subagent wrote into a live project,
+    # and the machine-wide install is the SAME incident class with a wider blast radius: it
+    # is the roster every untuned project loads. Guarding only the composer left the hole
+    # open in exactly the place the variable exists for.
+    if ($env:STUDIO_SAFE -and -not $WhatIf) {
+        throw "'-Sync skills' refused: STUDIO_SAFE is set, so this run may not write the machine-wide install. Unset it to write for real."
+    }
+
     if (-not (Test-Path $SKILL_BASE)) { return }
     $target = Join-Path $env:USERPROFILE '.claude\skills'
     if (-not (Test-Path $target) -and -not $WhatIf) { New-Item -ItemType Directory -Path $target -Force | Out-Null }
@@ -369,6 +651,13 @@ function Install-GlobalSkills {
 }
 
 function Sync-Governance ([string]$GovRoot, [string]$Label) {
+    # Harmless today only because Get-GovRoot returns null for a studio that holds no
+    # GLOBAL_WAYS_OF_WORKING.md, which is an accident of content rather than a guard.
+    if ($env:STUDIO_SAFE -and -not $WhatIf) {
+        throw "-Sync governance refused: STUDIO_SAFE is set. Unset it to write for real."
+    }
+    Assert-Writable $GovRoot '-Sync governance'
+
     $upd=@(); $same=@(); $drift=@()
     foreach ($f in $SHARED_GOV) {
         $src = Join-Path $GOV_BASE $f
@@ -387,6 +676,10 @@ function Sync-Governance ([string]$GovRoot, [string]$Label) {
 
 function Initialize-Tuning ([string]$Name) {
     $path = Resolve-Project $Name
+    # Tuning is the only door to composing. Leaving it open would let the studio be given an
+    # overlay folder that Build-Project then refuses to act on, which is a worse state than
+    # either: a stack card that looks live and is never applied to anything.
+    Assert-Writable $path '-Tune'
     $dir  = Join-Path $path $OVERLAY_DIR
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     $cardPath = Join-Path $dir $CARD_NAME
@@ -434,6 +727,21 @@ agent would otherwise guess at.]
 
 function Build-Project ([string]$ProjectPath, [switch]$Quiet, [switch]$Silent) {
     $proj       = Split-Path $ProjectPath -Leaf
+    # Refused here rather than only at the -Compose switch, because every path that composes
+    # anything comes through this function: -Compose -Project, -Compose -All, -Sync, -Update
+    # and the autoload hook. A guard on one entry point is a guard the other five walk past.
+    if (Test-IsInStudio $ProjectPath) {
+        if (-not $Quiet -and -not $Silent) {
+            Write-Host "  $proj is the studio, or inside it. Nothing to compose: it OWNS the base roster." -ForegroundColor DarkGray
+        }
+        return
+    }
+    # An automated run must not write into a live project. This is a control rather than an
+    # instruction because an instruction was already given, and a subagent composed a real
+    # project anyway.
+    if ($env:STUDIO_SAFE -and -not $WhatIf) {
+        throw "compose refused for '$proj': STUDIO_SAFE is set. Unset it to write for real."
+    }
     $overlayDir = Join-Path $ProjectPath $OVERLAY_DIR
     $agentDir   = Join-Path $ProjectPath $AGENT_DIR
     if (-not (Test-Path $overlayDir)) { if (-not $Quiet) { Write-Host "  $proj has no overlays, runs on the base install" -ForegroundColor DarkGray }; return }
@@ -447,7 +755,13 @@ function Build-Project ([string]$ProjectPath, [switch]$Quiet, [switch]$Silent) {
     $manifest = @{}
     foreach ($f in $files) {
         if (-not $WhatIf) { Write-Utf8NoBom (Join-Path $agentDir $f.Name) (New-ComposedAgent $f $ProjectPath $proj) }
-        $manifest[$f.BaseName] = @{ base = Get-Sha $f.FullName }
+        # Record the hash of the EXPANDED text, not of the base file. A fragment edit does not
+        # change one byte of base\agents\<role>.md, so a file hash cannot see it: every tuned
+        # project reported "composed and current" while carrying the old wording of a rule that
+        # had just been changed studio-wide. The reader in -Status already accepted either form;
+        # it was this writer that never produced the one that can move. Readers still accept the
+        # file hash, so a manifest written before this line changed is not treated as drifted.
+        $manifest[$f.BaseName] = @{ base = Get-TextSha (Get-AgentText $f.FullName) }
     }
     if (-not $WhatIf) {
         Write-Utf8NoBom (Join-Path $agentDir '.sync-manifest.json') ($manifest | ConvertTo-Json -Depth 5)
@@ -466,7 +780,7 @@ function Build-Project ([string]$ProjectPath, [switch]$Quiet, [switch]$Silent) {
 function Get-ReleaseNote {
     $clPath = Join-Path $StudioRoot 'CHANGELOG.md'
     if (-not (Test-Path $clPath)) { return $null }
-    $cl = Get-Content $clPath -Raw
+    $cl = Read-TextUtf8 $clPath
     # the boundary must be a DATED heading; a '##' inside a fenced example would end it early
     $sec = [regex]::Match($cl, '(?ms)^## (\d{4}-\d{2}-\d{2})\s*\r?\n(.*?)(?=^## \d{4}-\d{2}-\d{2}|^## Earlier|\z)')
     if (-not $sec.Success) { return $null }
@@ -562,6 +876,10 @@ function Invoke-LeakScan ([string]$Dir) {
 # The public export. Only these paths ever leave the private repo.
 $PUBLIC_MANIFEST = @(
     @{ from = 'base\agents';  to = 'agents' },
+    # Published so the mechanism travels with the roster. Agent files are ALSO expanded on
+    # the way out, so a role copied straight from the export is a complete document rather
+    # than one with a hole and a marker where a rule should be.
+    @{ from = 'base\fragments'; to = 'fragments' },
     @{ from = 'new-project';  to = 'new-project' },
     @{ from = 'studio.ps1';   to = 'studio.ps1' },
     # The site is five real pages now, not one long scroll. Each needs its own title and
@@ -587,6 +905,12 @@ $PUBLIC_MANIFEST = @(
 )
 
 function Publish-Public ([string]$RepoUrl, [switch]$DryRun) {
+    # The outward-facing writers. STUDIO_SAFE was added after an automated run wrote where
+    # it should not have, and these two write to a PUBLIC remote, which is the one write
+    # that cannot be undone by running the tool again.
+    if ($env:STUDIO_SAFE) {
+        throw "publish refused: STUDIO_SAFE is set. Unset it to publish for real."
+    }
     $stage = Join-Path $StudioRoot '.public'
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
@@ -605,6 +929,22 @@ function Publish-Public ([string]$RepoUrl, [switch]$DryRun) {
             Copy-Item $src $dst -Force
             Write-Host ("  {0,-16} -> {1}" -f $m.from, $m.to)
         }
+    }
+
+    # Resolve fragments in the exported roles. Copy-Item is verbatim, so without this the export
+    # ships sixteen role files each containing a literal {{include: ...}} and the rule it names
+    # nowhere in the file. Anyone dropping one into .claude\agents gets an agent that is missing a
+    # rule and looks deliberate about it. The fragments folder is published too, so the mechanism
+    # still travels for anyone editing the roster rather than just consuming it.
+    $stagedAgents = Join-Path $stage 'agents'
+    if (Test-Path $stagedAgents) {
+        $expanded = 0
+        foreach ($a in (Get-ChildItem $stagedAgents -Filter *.md -File)) {
+            $txt = Read-TextUtf8 $a.FullName
+            $new = Expand-Fragments $txt ("export\agents\" + $a.Name)
+            if ($new -ne $txt) { Write-Utf8NoBom $a.FullName $new; $expanded++ }
+        }
+        if ($expanded) { Write-Host ("  fragments resolved in {0} exported role(s)" -f $expanded) }
     }
 
     Write-Host ""
@@ -761,6 +1101,12 @@ function Invoke-SiteDeploy {
 # One action, one note, both repos. Splitting these was how the QA change ended up
 # committed privately and never published, with nothing reporting the gap.
 function Invoke-Release {
+    # The outward-facing writers. STUDIO_SAFE was added after an automated run wrote where
+    # it should not have, and these two write to a PUBLIC remote, which is the one write
+    # that cannot be undone by running the tool again.
+    if ($env:STUDIO_SAFE) {
+        throw "release refused: STUDIO_SAFE is set. Unset it to release for real."
+    }
     $note = Get-ReleaseNote
     if (-not $note) { Write-Host "  No dated section in CHANGELOG.md. Add one before releasing." -ForegroundColor Red; return $false }
 
@@ -779,8 +1125,18 @@ function Invoke-ReleaseInner ($note) {
     # 1. the private repo, using the same note
     $dirty = @(git -C $StudioRoot status --porcelain 2>$null | Where-Object { $_ })
     if ($dirty.Count) {
-        git -C $StudioRoot add -A 2>$null
-        $files = @(git -C $StudioRoot diff --cached --name-only) | Where-Object { $_ }
+        # -WhatIf must not touch the index. This ran `git add -A` first and only tested
+        # $WhatIf afterwards, so a preview staged 46 paths on the real repository, including an
+        # untracked file that was neither ignored nor anything to do with the studio. A preview
+        # that mutates the thing it is previewing is not a preview. Read the same list from the
+        # working tree instead, which is what `add -A` would have staged anyway.
+        if ($WhatIf) {
+            $files = @(git -C $StudioRoot status --porcelain --untracked-files=all |
+                        Where-Object { $_ } | ForEach-Object { $_.Substring(3).Trim('"') })
+        } else {
+            git -C $StudioRoot add -A 2>$null
+            $files = @(git -C $StudioRoot diff --cached --name-only) | Where-Object { $_ }
+        }
         $msg = @"
 $($note.Subject)
 
@@ -831,7 +1187,11 @@ function Invoke-Autoload ([string]$Path) {
         $man = Get-Content $manPath -Raw | ConvertFrom-Json
         foreach ($f in (Get-ChildItem $AGENT_BASE -Filter *.md -File)) {
             $rec = $man.PSObject.Properties[$f.BaseName]
-            if (-not $rec -or $rec.Value.base -ne (Get-Sha $f.FullName)) { $needs = $true; break }
+            # Either hash form counts as current, exactly as -Status does. The manifest now holds
+            # the expanded-text hash; accepting only the file hash here would make this hook
+            # decide every project needed rebuilding on every session start, forever.
+            if (-not $rec) { $needs = $true; break }
+            if ($rec.Value.base -ne (Get-Sha $f.FullName) -and $rec.Value.base -ne (Get-TextSha (Get-AgentText $f.FullName))) { $needs = $true; break }
         }
         if (-not $needs) {
             foreach ($ov in (Get-ChildItem (Join-Path $cur $OVERLAY_DIR) -Filter *.md -File)) {
@@ -840,6 +1200,10 @@ function Invoke-Autoload ([string]$Path) {
         }
     }
     if (-not $needs) { return }
+    # Build-Project returns early for the studio, so without this the hook announces a rebuild
+    # that did not happen. A false "rebuilt" is worse than silence: it is the reassurance that
+    # stops someone checking.
+    if (Test-IsInStudio $cur) { return }
     Build-Project $cur -Quiet -Silent
     # Report through the hook contract rather than printing, so a no-op stays invisible
     # and a real rebuild surfaces as one line the user actually sees.
@@ -852,6 +1216,11 @@ function Invoke-Autoload ([string]$Path) {
 # knows the roster is generated and where the real source is. Idempotent: the markers let
 # it be rewritten in place rather than accumulating copies.
 function Connect-Project ([string]$ProjectPath) {
+    # Reported as a residual on ST-007 and again by the reviewer as a published false claim:
+    # -Connect -Project aimed at the studio resolved and wrote a self-referential pointer block
+    # into the studio's own CLAUDE.md, instructing the reader to run -Compose on it, which
+    # refuses. Guidance that contradicts the tool is worse than none.
+    Assert-Writable $ProjectPath '-Connect'
     $name  = Split-Path $ProjectPath -Leaf
     $rel   = $ProjectPath.Replace("$ProjectsRoot\", '')
     $studioRel = $StudioRoot.Replace("$ProjectsRoot\", '')
@@ -884,7 +1253,7 @@ $end
 
     $file = Join-Path $ProjectPath 'CLAUDE.md'
     if (Test-Path $file) {
-        $c = Get-Content $file -Raw
+        $c = Read-TextUtf8 $file
         if ($c -match [regex]::Escape($begin)) {
             $pattern = [regex]::Escape($begin) + '[\s\S]*?' + [regex]::Escape($end)
             $new = [regex]::Replace($c, $pattern, $block.Replace('$','$$'))
@@ -949,13 +1318,34 @@ function Get-StateDocStatus ([string]$ProjectPath) {
 
 function Show-Status ([switch]$Fix) {
     $agents = Get-BaseAgents
+    # Every section below reports on this as well as on the projects. Resolved once, at the
+    # top, so a section cannot quietly drop off the list by being moved above where it used
+    # to be set.
+    $self   = Get-StudioSelf
     Write-Host ""
     Write-Host "STUDIO" -ForegroundColor Cyan
     Write-Host "  base roster     $($agents.Count) roles   $AGENT_BASE"
     Write-Host "  base governance $($SHARED_GOV.Count) files   $GOV_BASE"
     $skillCount = if (Test-Path $SKILL_BASE) { (Get-ChildItem $SKILL_BASE -Directory).Count } else { 0 }
     $skillsInstalled = if (Test-Path (Join-Path $env:USERPROFILE '.claude\skills')) { (Get-ChildItem (Join-Path $env:USERPROFILE '.claude\skills') -Directory -EA SilentlyContinue).Count } else { 0 }
+    # COUNTS are not contents. This line reported "3 installed" while the installed /assess was
+    # 27 bytes and nine em dashes different from its source, because it was installed before a
+    # content fix and nothing re-synced. The roster has drift detection and skills had none, so
+    # the number agreed while the files did not.
+    $skillStale = @()
+    if (Test-Path $SKILL_BASE) {
+        foreach ($sk in (Get-ChildItem $SKILL_BASE -Directory)) {
+            $src = Join-Path $sk.FullName 'SKILL.md'
+            $dst = Join-Path $env:USERPROFILE (".claude\skills\" + $sk.Name + "\SKILL.md")
+            if (-not (Test-Path $src)) { continue }
+            if (-not (Test-Path $dst)) { $skillStale += ($sk.Name + " (not installed)"); continue }
+            if ((Get-FileTextSha $src) -ne (Get-FileTextSha $dst)) { $skillStale += $sk.Name }
+        }
+    }
     Write-Host ("  base skills     {0} skill(s), {1} installed   {2}" -f $skillCount, $skillsInstalled, $SKILL_BASE)
+    if ($skillStale.Count) {
+        Write-Host ("                  STALE: {0}. the installed copy differs from base. Safe: -Sync" -f ($skillStale -join ', ')) -ForegroundColor Yellow
+    }
 
     # A base/install difference has two opposite causes and only one is dangerous. Classify
     # it against the install manifest rather than reporting "drift" and leaving the reader
@@ -964,12 +1354,18 @@ function Show-Status ([switch]$Fix) {
     # reverts everyone.
     $g = Join-Path $env:USERPROFILE '.claude\agents'
     $man = Read-InstallManifest $g
-    $missing=@(); $behind=@(); $edited=@(); $unknown=@()
+    $missing=@(); $behind=@(); $edited=@(); $unknown=@(); $unexpandable=@()
     foreach ($f in $agents) {
         $d = Join-Path $g $f.Name
         if (-not (Test-Path $d)) { $missing += $f.BaseName; continue }
-        $dh = Get-Sha $d; $bh = Get-Sha $f.FullName
+        # Compare EXPANDED text on both sides. Comparing the installed file (fragments
+        # resolved) against the base source (still holding the marker) can never match, so
+        # every role reported out of date forever and -Sync could not satisfy it.
+        $bt = Get-AgentTextOrNull $f.FullName
+        if ($null -eq $bt) { $unexpandable += $f.BaseName; continue }
+        $dh = Get-FileTextSha $d; $bh = Get-TextSha $bt
         if ($dh -eq $bh) { continue }
+        if ((Get-Sha $d) -eq (Get-Sha $f.FullName)) { continue }   # pre-fragments install
         $rec = $man[$f.BaseName]
         if (-not $rec)        { $unknown += $f.BaseName }
         elseif ($dh -eq $rec) { $behind  += $f.BaseName }
@@ -988,6 +1384,9 @@ function Show-Status ([switch]$Fix) {
     if ($unknown.Count) { Write-Host "  differs, and no record of what it was installed from, so the direction is unknown." -ForegroundColor Yellow
                           Write-Host "  diff it against base\agents before syncing. -Sync records the answer for next time." -ForegroundColor Yellow
                           Write-Host "    $($unknown -join ', ')" -ForegroundColor Yellow }
+    if ($unexpandable.Count) { Write-Host ("  CANNOT EXPAND {0} role(s): a fragment they include is missing, empty or malformed." -f $unexpandable.Count) -ForegroundColor Red
+                               Write-Host "  -Sync will refuse until that is fixed. FRAGMENTS below names it." -ForegroundColor Red
+                               Write-Host "    $($unexpandable -join ', ')" -ForegroundColor Red }
 
     # Will these agents actually LOAD? Everything above only says the files are present and
     # match the base. That is not the same question, and the difference cost weeks.
@@ -1001,27 +1400,134 @@ function Show-Status ([switch]$Fix) {
     Write-Host ""
     Write-Host "LOADABLE" -ForegroundColor Cyan
     $unloadable = @()
-    foreach ($dir in @($g) + @(Find-Projects | ForEach-Object { Join-Path $_ $AGENT_DIR })) {
+    # The studio's own agent folder is included even though it should never have one. If a
+    # hand-placed agent ever appears there it is exactly as unloadable as anywhere else, and
+    # the studio was previously the one place this check could not see.
+    foreach ($dir in @($g) + @((Join-Path $self.Path $AGENT_DIR)) + @(Find-Projects | ForEach-Object { Join-Path $_ $AGENT_DIR })) {
         if (-not (Test-Path $dir)) { continue }
         foreach ($f in (Get-ChildItem $dir -Filter *.md -File -ErrorAction SilentlyContinue)) {
             $b = [System.IO.File]::ReadAllBytes($f.FullName) | Select-Object -First 3
             if ($b.Count -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF) {
-                $unloadable += "$($f.BaseName)  ($dir)"
+                $unloadable += "$($f.BaseName)  ($dir)  byte order mark"
+                continue
             }
+            # Actually PARSE it. This check reported "every composed agent opens with parseable
+            # frontmatter" while only ever looking at three bytes, so an agent whose header never
+            # closed, or that carried an unresolved marker inside the header, was called parseable
+            # by a check that had not parsed anything. A claim from a check that never performed
+            # the thing it claims is the defect this whole section exists to catch.
+            $txt = Read-TextUtf8 $f.FullName
+            $ls  = $txt -split "`r?`n"
+            if ($ls.Count -lt 2 -or $ls[0].Trim() -ne '---') {
+                $unloadable += "$($f.BaseName)  ($dir)  no frontmatter block"
+                continue
+            }
+            $closed = $false
+            for ($n = 1; $n -lt $ls.Count; $n++) {
+                if ($ls[$n].Trim() -eq '---') { $closed = $true; break }
+                if ($ls[$n] -match '(?i)\{\{\s*include') {
+                    $unloadable += "$($f.BaseName)  ($dir)  unresolved fragment marker in the header"
+                    $closed = $true
+                    break
+                }
+            }
+            if (-not $closed) { $unloadable += "$($f.BaseName)  ($dir)  frontmatter never closes" }
         }
     }
     if ($unloadable.Count) {
-        Write-Host ("  {0} agent file(s) begin with a byte order mark and WILL NOT LOAD" -f $unloadable.Count) -ForegroundColor Red
+        # Cause-neutral headline and remedy. This check now finds four faults and the headline
+        # named only the first, so a file with an unresolved marker in its header was reported
+        # as beginning with a byte order mark, and the fix line told you to strip a mark that
+        # was not there. Each row below names its own cause; the header must not contradict it.
+        Write-Host ("  {0} agent file(s) WILL NOT LOAD" -f $unloadable.Count) -ForegroundColor Red
         Write-Host "  their frontmatter cannot parse, so they are composed, current, and absent from the session." -ForegroundColor Red
         $unloadable | Select-Object -First 12 | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
         if ($unloadable.Count -gt 12) { Write-Host ("    ... and {0} more" -f ($unloadable.Count - 12)) -ForegroundColor Red }
-        Write-Host "  fix: strip the mark from base\agents, then -Sync -Force. Writers must use Write-Utf8NoBom." -ForegroundColor Red
+        Write-Host "  fix: correct the cause named on each row in base\agents, then -Sync -Force. Writers must use Write-Utf8NoBom." -ForegroundColor Red
     } else {
         Write-Host "  every composed agent opens with parseable frontmatter" -ForegroundColor Green
     }
 
+    # A fragment nobody includes is a rule that has quietly stopped applying to anyone, and it
+    # looks identical on disk to one that applies everywhere. A fragment a role asks for and
+    # that does not exist stops the build, so it is reported here BEFORE someone hits it mid-sync.
+    # A control byte does not stop a file parsing, does not stop an agent registering, and is
+    # invisible in every diff and review tool. It sits in the middle of a rule. Seven have been
+    # written into this repository in one session, every one from a Windows path passed through
+    # a patch script where backslash-a or backslash-f is an escape. Each was found by accident;
+    # one only because a comment split in half and the script stopped parsing.
+    #
+    # Tab, newline and carriage return are legitimate. Nothing else below 0x20 is.
+    Write-Host ""
+    Write-Host "BYTES" -ForegroundColor Cyan
+    $scanRoots = @('base\agents', 'base\fragments', 'base\skills', 'base\governance', 'new-project')
+    $dirty = @()
+    foreach ($rel in $scanRoots) {
+        $dir = Join-Path $StudioRoot $rel
+        if (-not (Test-Path $dir)) { continue }
+        foreach ($file in (Get-ChildItem $dir -Recurse -File -ErrorAction SilentlyContinue)) {
+            $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+            foreach ($b in $bytes) {
+                if ($b -lt 32 -and $b -ne 9 -and $b -ne 10 -and $b -ne 13) {
+                    $dirty += ("{0}  0x{1:X2}" -f $file.FullName.Replace("$StudioRoot\", ''), $b)
+                    break
+                }
+            }
+        }
+    }
+    if ($dirty.Count) {
+        foreach ($d in $dirty) { Write-Host ("  CONTROL BYTE  {0}" -f $d) -ForegroundColor Red }
+        Write-Host "  these publish. a stray byte here sits inside a rule and shows in no diff." -ForegroundColor Red
+    } else {
+        Write-Host ("  clean, no stray control bytes in {0} published trees" -f $scanRoots.Count) -ForegroundColor Gray
+    }
+    Write-Host ""
+    Write-Host "FRAGMENTS" -ForegroundColor Cyan
+    $fragDir = Join-Path $StudioRoot 'base\fragments'
+    if (-not (Test-Path $fragDir)) {
+        Write-Host "  none. Rules shared by every role are still copied by hand into each file." -ForegroundColor DarkGray
+    } else {
+        $frags = @(Get-ChildItem $fragDir -Filter *.md -File -ErrorAction SilentlyContinue)
+        $used  = @{}
+        $broken = @()
+        foreach ($a in $agents) {
+            foreach ($r in (Get-FragmentRefs $a.FullName)) {
+                if (-not $used.ContainsKey($r)) { $used[$r] = @() }
+                $used[$r] += $a.BaseName
+                if (-not (Test-Path (Get-FragmentPath $r))) { $broken += "$($a.BaseName) -> $r" }
+            }
+        }
+        if (-not $frags.Count) {
+            Write-Host "  the folder exists and is empty." -ForegroundColor DarkGray
+        }
+        foreach ($fr in $frags) {
+            $n = $fr.BaseName
+            # Distinct ROLES, not occurrences. Counting appends printed "included by 17 of 16
+            # roles" the moment one role carried a marker twice, which is a number that cannot
+            # be true and was reported without comment.
+            $c = if ($used.ContainsKey($n)) { @($used[$n] | Sort-Object -Unique).Count } else { 0 }
+            if ($c -eq 0) {
+                Write-Host ("  UNUSED   {0}   no role includes it, so this rule applies to nobody" -f $n) -ForegroundColor Yellow
+            } else {
+                Write-Host ("  ok       {0}   included by {1} of {2} roles" -f $n, $c, $agents.Count) -ForegroundColor Gray
+            }
+        }
+        foreach ($b in ($broken | Sort-Object -Unique)) {
+            Write-Host ("  MISSING  {0}   the role asks for a fragment that is not there; -Sync will refuse" -f $b) -ForegroundColor Red
+        }
+    }
+
     Write-Host ""
     Write-Host "PROJECTS" -ForegroundColor Cyan
+
+    # Listed first and tagged, so it is obvious this row is the guardian and not a ninth
+    # product. It carries no composed/current state because it is never composed.
+    Write-Host ("  {0,-11} {1}" -f 'studio', $self.Name) -ForegroundColor Cyan
+    Write-Host "      the studio itself. owns the base roster, so it is never composed from it." -ForegroundColor DarkGray
+    if (Test-Path (Join-Path $self.Path $AGENT_DIR)) {
+        Write-Host "      UNEXPECTED: it has a $AGENT_DIR folder. Nothing composes the studio, so that was hand-placed." -ForegroundColor Yellow
+    }
+
     foreach ($p in Find-Projects) {
         $short   = $p.Replace("$ProjectsRoot\", '')
         $ovDir   = Join-Path $p $OVERLAY_DIR
@@ -1039,9 +1545,20 @@ function Show-Status ([switch]$Fix) {
             $man = if (Test-Path (Join-Path $agDir '.sync-manifest.json')) { Get-Content (Join-Path $agDir '.sync-manifest.json') -Raw | ConvertFrom-Json } else { $null }
             if (-not $man) { Write-Host "      never composed, run -Compose" -ForegroundColor Yellow }
             else {
-                $stale = @()
-                foreach ($f in $agents) { $rec = $man.PSObject.Properties[$f.BaseName]; if ($rec -and $rec.Value.base -ne (Get-Sha $f.FullName)) { $stale += $f.BaseName } }
-                if ($stale.Count) { Write-Host "      STALE vs base ($($stale.Count) roles), run -Compose" -ForegroundColor Yellow }
+                $stale = @(); $unbuildable = @()
+                foreach ($f in $agents) {
+                    $rec = $man.PSObject.Properties[$f.BaseName]
+                    if (-not $rec) { continue }
+                    # Both hash forms count as current: the file hash for a manifest written
+                    # before fragments existed, the expanded-text hash for every one since.
+                    # The text hash is the only one that moves when a FRAGMENT changes, which
+                    # is why a project could report current while carrying an old rule.
+                    $txt = Get-AgentTextOrNull $f.FullName
+                    if ($null -eq $txt) { $unbuildable += $f.BaseName; continue }
+                    if ($rec.Value.base -ne (Get-Sha $f.FullName) -and $rec.Value.base -ne (Get-TextSha $txt)) { $stale += $f.BaseName }
+                }
+                if ($unbuildable.Count) { Write-Host "      CANNOT COMPOSE ($($unbuildable.Count) roles): a fragment they include is missing, empty or malformed. See FRAGMENTS above." -ForegroundColor Red }
+                elseif ($stale.Count) { Write-Host "      STALE vs base ($($stale.Count) roles), run -Compose" -ForegroundColor Yellow }
                 else { Write-Host "      composed and current" -ForegroundColor Green }
             }
         }
@@ -1056,12 +1573,12 @@ function Show-Status ([switch]$Fix) {
         }
     }
 
-    # Does each project actually read its own state back? The studio is checked first and by
-    # name, because Find-Projects skips folders starting with an underscore and the guardian
-    # should not be the one thing nobody watches.
+    # Does each project actually read its own state back? The studio is checked first, from
+    # Get-StudioSelf rather than from Find-Projects, because the guardian should not be the
+    # one thing nobody watches. This was the only section that already did so.
     Write-Host ""
     Write-Host "STATE DOCUMENTS" -ForegroundColor Cyan
-    $stateTargets = @([pscustomobject]@{ Name='_STUDIO'; Path=$PSScriptRoot })
+    $stateTargets = @($self)
     foreach ($p in Find-Projects) { $stateTargets += [pscustomobject]@{ Name=$p.Replace("$ProjectsRoot\", ''); Path=$p } }
 
     $unread = 0
@@ -1091,7 +1608,10 @@ function Show-Status ([switch]$Fix) {
     Write-Host ""
     Write-Host "REALITY" -ForegroundColor Cyan
     $overdue = 0; $never = 0
-    foreach ($p in Find-Projects) {
+    # Includes the studio. A project with no WAYS_OF_WORKING.md is skipped below rather than
+    # reported, so this adds no row today and starts reporting the day the studio keeps a
+    # reading table, instead of silently never applying to the one project that owns the rule.
+    foreach ($p in @($self.Path) + @(Find-Projects)) {
         $name = $p.Replace("$ProjectsRoot\", '')
         $root = Get-GovRoot $p
         if (-not $root) { $root = $p }
@@ -1184,9 +1704,15 @@ if ($Publish) {
 }
 
 if ($Update) {
+    # Before the pull, not after. A fast-forward rewrites the working tree, so a guarded run
+    # that pulls first has already done the thing the guard exists to prevent, and the refusal
+    # afterwards reads as if nothing happened.
+    if ($env:STUDIO_SAFE) {
+        throw "-Update refused: STUDIO_SAFE is set. It pulls and then rewrites the machine-wide install. Unset it to update for real."
+    }
     Write-Host ""; Write-Host "UPDATE" -ForegroundColor Cyan
     git -C $StudioRoot pull --ff-only 2>&1 | ForEach-Object { "  $_" }
-Install-GlobalAgents
+    Install-GlobalAgents
     Install-GlobalSkills
     foreach ($p in Find-Projects) { Build-Project $p -Quiet }
     Write-Host ""; Write-Host "Ask the session to name its roles. They normally re-register live; restart only if they do not appear." -ForegroundColor Green; Write-Host ""
@@ -1216,7 +1742,15 @@ if ($Tune) {
 if ($Compose) {
     Write-Host ""; Write-Host "COMPOSE" -ForegroundColor Cyan
     if ($All)         { foreach ($p in Find-Projects) { Build-Project $p -Quiet } }
-    elseif ($Project) { Build-Project (Resolve-Project $Project) }
+    elseif ($Project) {
+        $target = Resolve-Project $Project
+        # Loud here, quiet inside Build-Project. Somebody who typed this asked a direct
+        # question and deserves a direct refusal rather than a silent no-op.
+        if (Test-IsInStudio $target) {
+            throw "-Compose is refused for the studio itself. It is the SOURCE of the roster, not a consumer of it, and it has no overlays to compose. Edit base\agents and run -Sync to push the change everywhere."
+        }
+        Build-Project $target
+    }
     else              { throw "-Compose needs -Project <name> or -All" }
     Write-Host ""; Write-Host "Ask the session to name its roles. They normally re-register live; restart only if they do not appear." -ForegroundColor Green; Write-Host ""
     return

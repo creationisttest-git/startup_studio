@@ -22,6 +22,7 @@ improvement made anywhere else.
 | Path | What it is | Edited by |
 |---|---|---|
 | `_STUDIO\base\agents\<role>.md` | The base roster. Stack-neutral, studio-wide. | Anyone, any project |
+| `_STUDIO\base\fragments\<name>.md` | A rule shared by many roles, written once and pulled in with `{{include: name}}`. | Anyone, any project |
 | `_STUDIO\base\governance\` | Governance identical in every project. | Anyone, any project |
 | `_STUDIO\new-project\` | Scaffold for a project's own docs. | Rarely |
 | `<project>\.claude\agent-overlays\_project.md` | That project's stack card, layered onto every role. | That project |
@@ -33,8 +34,9 @@ Claude Code only ever loads agents from `~\.claude\agents\` and
 `<project>\.claude\agents\`. Everything else in this table exists to produce those two.
 
 `WAYS_OF_WORKING.md` and `WARM_START.md` belong to each project and are never distributed.
-`GLOBAL_WAYS_OF_WORKING.md`, `AGENTS.md` and `BRIDGE_PROTOCOL.md` are shared and always
-come from the base.
+The shared governance files under `base\governance\` always come from the base and are
+never edited inside a project. They are one studio's own house rules, so they are not part
+of the public export: write your own and put them there.
 
 That split is deliberate. A shared base can tell every project how to work, but it cannot
 know where any particular project actually is: what is half-built, what is blocked, what
@@ -59,6 +61,29 @@ subfolder the path has to say so.
 This is easy to miss because nothing breaks. The studio itself sat like that for two days
 while maintaining everyone else's copies. `studio.ps1 -Status` now reports it under STATE
 DOCUMENTS, for every project and for the studio.
+
+
+### Fragments
+
+A rule that belongs to several roles is written once and included, rather than pasted into
+each. Nine roles carried one paragraph about tickets, byte-identical, and it stayed identical
+only because nobody had yet needed to change it. The first change would have been nine edits,
+and the ninth is the one that gets missed.
+
+```
+{{include: ticket-is-the-record}}
+```
+
+The composer resolves these on the way out, so a generated agent always carries the rule itself
+and never the marker. **A missing or empty fragment refuses to build.** It does not warn and it
+does not leave the marker behind: a role that has silently lost a rule looks exactly like one
+that never had it, and looking correct while being wrong is the failure this whole model exists
+to prevent. `-Doctor` reports any fragment no role includes, because that is a rule that has
+quietly stopped applying to anybody.
+
+Not everything repeated belongs in a fragment. Roles that say related things in their own words
+are usually right to, and flattening them into one paragraph loses the discipline each was
+written from. Extract what is byte-identical; leave what merely rhymes.
 
 ---
 
@@ -95,14 +120,73 @@ category and the only one that carries ceremony.
 
 Every deviation gets a row in the stack card's register, with the base rule affected, what
 changes, why, who approved it, the date, and a review date. A deviation with no owner and
-no date is a defect, not a rule. Security gates and the three-gate deploy rule can never
-be waived by an overlay; those need sign-off recorded in governance, or the project layer
-becomes the route around review.
+no date is a defect, not a rule. Security gates cannot be waived by an overlay, and neither
+can the rule that nothing deploys until the mobile, content and code reviews have all passed.
+Waiving either needs sign-off recorded in the shared governance, or the project layer becomes
+the route around review.
 
 Deviations are printed at the TOP of every composed agent as well as in the project layer
 at the bottom, because a waiver nobody reads gets enforced anyway or ignored in the wrong
 direction. `studio.ps1 -Doctor` lists every deviation across every project, flagging any
 that is unowned or past its review date.
+
+
+---
+
+## The five phases
+
+The roster refers to phases by number, so they are defined here rather than only in the shared
+governance that ships to projects but not to the world. A published role that names Phase 0 with
+no definition anywhere in the export is an instruction nobody outside this studio can follow.
+
+**Phase 0. Discovery, and the right to refuse.** Before any screen or any code, six leads
+assess the idea in one pass, one paragraph each, strictly inside their own discipline. The
+idea is quoted in the founder's own words rather than paraphrased, and they return BUILD,
+KILL or PARK with the measure it must move and the objections, including the ones that lost.
+The answer is allowed to be no. This is what `/assess` runs, and it is the last cheap moment.
+
+**Phase 1. The design gate, which is the founder's.** The design direction and the screen
+layouts are presented, and nothing is built until the founder approves the look. A gate the
+founder does not personally hold is not a gate.
+
+**Phase 2. Build, in parallel.** Product and go-to-market at once, not one after the other, so
+the launch is ready when the feature is rather than starting when the feature lands.
+
+**Phase 3. Review.** The build is checked against the approved design, then code review,
+security review and a real browser. Any critical finding bounces the work back. The reviewer
+never wrote the thing they are reviewing.
+
+**Phase 4. Ship.** The work, the launch, the operational plan and the open questions are
+assembled and brought to the founder. Their yes deploys to staging, where it is tested again,
+because the environment is part of the change.
+
+The numbers are a shared vocabulary rather than a schedule. A small change passes through all
+five in an afternoon; a large one may sit in Phase 0 for a week and be killed there, which is
+the phase doing its job.
+
+---
+
+## The front door
+
+An idea is assessed before it is built, and the answer is allowed to be no.
+
+The squad builds what it is asked to build. That is the failure. A founder who asks for a
+feature gets one, competently, and nobody ever asked whether anyone wanted it or how you would
+know if it worked. The cost is not the wasted build; it is that the founder never finds out the
+idea was weak, because a finished feature looks like a success until the numbers arrive.
+
+`/assess` runs six leads over a new idea, one paragraph each, strictly inside their own
+discipline. It returns BUILD, KILL or PARK, and three things go on the ticket: the verdict, the
+measure it is expected to move, and the objections including the ones that lost. That third is
+the one people skip and the one that pays, because a killed idea returns in three weeks and
+without it the argument restarts from nothing.
+
+**Nothing is built without a measure agreed beforehand.** If nobody can say what an idea is
+supposed to improve, that is the strongest available signal to kill it: a thing that cannot fail
+cannot succeed either.
+
+**A kill is the gate working.** If nothing is ever killed at the front door then it is not a
+gate, it is a formality, and everyone will work out that it can be walked past.
 
 ---
 

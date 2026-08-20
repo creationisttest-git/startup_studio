@@ -24,7 +24,7 @@
   a{color:var(--amber);}
   button{font-family:inherit; cursor:pointer;}
 
-  /* â”€â”€ top bar â”€â”€ */
+  /* -------- top bar -------- */
   header.top{
     display:flex; align-items:center; gap:12px; flex-wrap:wrap;
     padding:14px 18px; border-bottom:1px solid var(--line); background:var(--panel);
@@ -59,7 +59,7 @@
   .btn.danger{color:var(--verm); border-color:#4a2018;}
   .btn.danger:hover{background:#2a1410;}
 
-  /* â”€â”€ gate / status screens â”€â”€ */
+  /* -------- gate / status screens -------- */
   #gate{flex:1; display:flex; align-items:center; justify-content:center; padding:40px 20px; text-align:center;}
   #gate .card{max-width:420px; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:34px 28px;}
   #gate h1{font-size:20px; margin-bottom:10px;}
@@ -68,7 +68,7 @@
   .spin{width:20px;height:20px;border:2.5px solid var(--line);border-top-color:var(--amber);border-radius:50%;animation:sp .8s linear infinite;display:inline-block;}
   @keyframes sp{to{transform:rotate(360deg);}}
 
-  /* â”€â”€ board (horizontal scroll of columns) â”€â”€ */
+  /* -------- board (horizontal scroll of columns) -------- */
   main.board{
     flex:1; display:flex; gap:14px; padding:16px; overflow-x:auto; align-items:flex-start;
   }
@@ -136,7 +136,7 @@
   }
   .add-form .row{display:flex; gap:8px;}
 
-  /* â”€â”€ detail modal â”€â”€ */
+  /* -------- detail modal -------- */
   .modal{position:fixed; inset:0; z-index:60; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; background:rgba(0,0,0,.62);}
   .sheet{
     width:100%; max-width:640px; background:var(--panel); border:1px solid var(--line);
@@ -382,7 +382,7 @@
   function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function initials(name, email){ var s=(name||email||'?').trim(); var p=s.split(/\s+/); return (p.length>=2?(p[0][0]+p[1][0]):s.slice(0,2)).toUpperCase(); }
 
-  /* â”€â”€ gate screens â”€â”€ */
+  /* -------- gate screens -------- */
   function showGate(html){ var g=$('#gate'); g.hidden=false; g.innerHTML='<div class="card">'+html+'</div>'; $('#board').hidden=true; }
   function showSignIn(){
     showGate('<h1>PROJECT Board</h1><p>This is the internal ticket board. Sign in with your team Google account to continue.</p><button class="btn primary g-btn" id="do-signin">Sign in with Google</button>');
@@ -401,7 +401,7 @@
    * outlived the sign-out that was supposed to end it. If you rename one, rename both. */
   function doSignOut(){ sb.auth.signOut().finally(function(){ try{ localStorage.removeItem('PROJECT-board-auth'); }catch(e){} location.reload(); }); }
 
-  /* â”€â”€ data â”€â”€ */
+  /* -------- data -------- */
   function loadTickets(){
     /* Deliberately a named column list rather than every column (CEO 2026-08-02): images are
      * base64 data URIs stored in the row,
@@ -489,7 +489,7 @@
     moveTicket(id, STATUSES[i], null);
   }
 
-  /* â”€â”€ render â”€â”€ */
+  /* -------- render -------- */
   function buildColumns(){
     var board = $('#board');
     board.innerHTML = COLUMNS.map(function(st){
@@ -594,7 +594,7 @@
     ta.onkeydown = function(e){ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); submit(); } if(e.key==='Escape'){ renderAddRow(st); } };
   }
 
-  /* â”€â”€ detail modal â”€â”€ */
+  /* -------- detail modal -------- */
   function buildDetailControls(){
     $('#d-status').innerHTML = STATUSES.map(function(s){ var lock = USER_LOCKED[s] ? ' disabled' : ''; return '<option value="'+s+'"'+lock+'>'+LABELS[s]+(USER_LOCKED[s]?' (Claude Code only)':'')+'</option>'; }).join('');
     $('#d-status').onchange = function(){ setDetailStatus(this.value); };
@@ -738,7 +738,7 @@
     patchTicket(state.open.id, patch).then(function(res){ if(res){ $('#d-save-state').textContent='Saved'; setTimeout(closeDetail, 350); } else $('#d-save-state').textContent=''; });
   }
 
-  /* â”€â”€ image intake â”€â”€ */
+  /* -------- image intake -------- */
   function fileToResized(file){
     return new Promise(function(resolve, reject){
       var reader=new FileReader();
@@ -770,7 +770,7 @@
     }).catch(function(){ toast('Could not read image'); });
   }
 
-  /* â”€â”€ refresh (CEO 2026-08-02: user-triggered only, never polled) â”€â”€
+  /* -------- refresh (CEO 2026-08-02: user-triggered only, never polled) --------
    *
    * This used to poll every 20 seconds AND hold a realtime subscription that refetched on any
    * change. Both pulled the WHOLE table, images included, because loadTickets selects everything
@@ -799,7 +799,7 @@
     });
   }
 
-  /* â”€â”€ global wiring â”€â”€ */
+  /* -------- global wiring -------- */
   function wireGlobal(){
     $('#signout').onclick = doSignOut;
     var rb = $('#refresh'); if(rb){ rb.hidden = false; rb.onclick = doRefresh; }
@@ -838,7 +838,7 @@
     document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ if(!$('#lightbox').hidden){ $('#lightbox').hidden=true; return; } if(!$('#detail').hidden) closeDetail(); } });
   }
 
-  /* â”€â”€ boot â”€â”€ */
+  /* -------- boot -------- */
   /* Idempotent on purpose (TKT-151). This could run TWICE: start() calls it when getSession()
    * resolves with no guard at all, while onAuthStateChange('SIGNED_IN') calls it too, and which
    * wins is a race. wireGlobal() then ran twice, and it attaches the paste, drop and keydown

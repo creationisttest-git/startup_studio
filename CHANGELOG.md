@@ -6,6 +6,237 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-21
+
+### The export told readers to follow rules it did not give them
+
+Thirteen references across nine published files pointed at documents or roles that only exist in
+the private half of this repository. Four roles told an agent to route a decision through "the
+CEO's assistant", a job title defined nowhere a reader could see, and which our own house rules
+had in fact retired: two of those four files contradicted themselves a line or two earlier by
+saying to go to the founder directly. Others cited house-rule documents by filename, and the
+starter template a new user is told to copy imported three files they would never have.
+
+All thirteen now either say the rule in full or say plainly which documents do not ship and that
+you should write your own. The published description of the assessment step also disagreed with
+the assessment step as built, so both were checked against the running thing and made to match it
+rather than each other.
+
+The reason this is worth a note rather than a quiet tidy: the same defect was found and fixed one
+instance at a time in an earlier round. Fixing the instance and not the class is why the other
+twelve were still there.
+
+### The only copy that matters was the one nothing checked
+
+A skill is written here and installed onto the machine that runs it. The health check counted the
+installed copies and said three of three, which was true and useless: one of them was an older
+build, twenty-seven bytes and nine em dashes away from the text that had passed review, in a
+house that bans em dashes outright,
+and it stayed that way while every signal read healthy. A count is not a comparison. The health
+check now compares the installed text against the source, and a test proves it by installing a
+skill, editing the installed copy, and requiring the tool to notice.
+
+The release note had the mirror of the same problem. It is read from this file and used for both
+the private commit and the public publish, and the read was fixed three days earlier, inside this
+same piece of work, to stop it mangling accented characters. Nothing tested the fix. The test fed
+a note with an accent in it and then never looked at the result, so the fix could be reverted and
+everything stayed green. It now looks, and the test harness itself was reading its own output the
+wrong way for the same reason.
+
+### A rule cannot be checked by searching it for words
+
+The paragraph every role carries about writing work down was guarded by a list of banned phrases
+like "this no longer applies". It was defeated three different ways in a single day, the cheapest
+being to append one sentence saying the text above is an example of what not to do. The
+list also blocked a perfectly ordinary sentence about withdrawing a ticket, so it failed correct
+text and passed reversed text.
+
+It is gone. In its place the paragraph is pinned to its exact contents, which answers the question
+a machine can answer: has this changed since a person last read it. All three of those attacks
+change the text, so all three now fail. Whether a rule still means what it meant is a reading job,
+and pretending otherwise was the actual defect.
+
+## 2026-08-20
+
+### The rule about writing things down did not cover the way the founder actually works
+
+The studio has always said work arrives as a ticket. Read closely, that rule described work
+arriving from the board by way of the tech lead, which is not how a founder operates: they say
+something in conversation, an agent starts building, and the request exists nowhere but a
+transcript.
+
+The gap was measured rather than assumed, after a project was observed acting on things the
+founder had said without a ticket. Nine of sixteen roles carried the ticket rule at all. The
+line about the founder's words not being allowed to evaporate existed in one role. Nothing
+anywhere said to raise the ticket before replying. So the project was not breaking a rule, it
+was following one that did not reach the case.
+
+Now: when the CEO speaks, the PM picks it up and raises the ticket, before the work and before
+the reply. Whoever the founder happened to be addressing does not quietly absorb it. The work
+already in flight then gets finished; the new ticket waits its turn, because dropping the
+current piece is how a project ends up with several things at sixty per cent and nothing
+shippable, and "stop everything" is rarely what was meant.
+
+Two exceptions and no others: the founder says do it now, recorded as their call, or the PM
+judges it genuinely part of the work in flight and says so out loud rather than deciding it
+silently. Either way it still gets its own ticket. An exception changes what happens next; it
+never changes whether the thing was written down. Work folded into another ticket because it
+looked related is work nobody can find later.
+
+The founder should never have to ask whether something was captured, so the PM confirms in one
+line carrying four facts: the reference, where it landed, what it is waiting behind, and when it
+will be picked up. A confirmation without a ticket number is not a confirmation, and neither is
+"noted", which is indistinguishable from having been forgotten.
+
+The rule is now in all sixteen role definitions, and eleven separate checks hold its clauses in
+place, with a twelfth pinning the shared paragraph they all include, so a quiet reword of it
+cannot pass unread. Pinning the sixteen role bodies as well is a separate open question, because
+it would put a mandatory check on every ordinary wording change. A single check on one
+phrase would have gone green after a rewrite that dropped the rest.
+
+Both of those numbers are now counted by the test suite and compared against this paragraph. That
+is not caution for its own sake. This one section published ten wrong numbers before the check
+existed, and the cause never varied: the sentence was written from the last measurement rather
+than from a run, then something was added and nobody re-counted. It happened inside the paragraph
+warning against it. A number a person has to remember to update is a number that will be wrong,
+so this one goes red instead.
+
+### The preview of the only irreversible action had no test
+
+`-Release -WhatIf` previews the one thing the studio does that cannot be taken back. A reviewer
+deleted its guard so the preview fell through and pushed to the public remote for real, and the
+whole suite stayed green. Then reintroduced an older defect where a preview staged forty-six
+paths in the real repository, including an untracked file that had nothing to do with the
+studio. Also green.
+
+No fixture had ever run `git init`, so the branch could not execute in a test at all. It now
+can, and both of those mutations fail loudly.
+
+The health check also had a headline that named one cause for four faults: a file with an
+unresolved marker in its header was reported as beginning with a byte order mark, and the remedy
+told the reader to strip a mark that was not there. Worse, the check written to catch that
+could never fire, because the headline and the detail sit on different lines and the pattern
+could not cross one. It passed on every run while the tool printed the wrong diagnosis.
+
+## 2026-08-18
+
+### One rule, written once, and the four ways that nearly went wrong
+
+The advocacy for this was that a rule belonging to every role was copied into every role by
+hand. Change one rule, edit eleven files, and the eleventh is the one that gets missed. So a
+shared rule now lives once in `base/fragments/<name>.md` and a role pulls it in with
+`{{include: name}}`. Four exist: the ticket rule that nine roles carried verbatim, the advocacy
+tail described below, a brevity
+rule, and the front door described below.
+
+A missing fragment refuses to build. It does not warn and it does not leave the marker in
+place, because a role that silently loses a rule is indistinguishable from one that never had
+it, and that is the byte order mark failure wearing a new costume.
+
+**The measurement that said this was already done was wrong, and it was ours.** Partway through,
+the roster was measured for leftover duplication and reported clean: no role contained the word
+"advocacy", and no byte-identical paragraph of sixty characters or more remained anywhere. The
+state document had said eleven of sixteen roles carried an advocacy block, so that number was
+corrected to zero, in this changelog and in the state document, citing the rule that a claim is
+not evidence.
+
+The original number was right. Eleven of sixteen roles do carry it, and nine share two hundred
+and forty-six byte-identical characters. The measurement compared whole PARAGRAPHS, and each role
+opens the block in its own words -- "Advocacy: Fight for correctness and maintainability",
+"Fight for reach and a launch that lands" -- so no two paragraphs ever matched while the tail
+of every one of them was the same sentence. A tool was written, it ran, it produced a number,
+and the number was an artefact of where the comparison happened to cut.
+
+That tail is now a fragment and the nine roles include it. Two roles carrying a differently
+worded advocacy section are deliberately left alone, because they are not copies.
+
+The rule this breaks is the studio's own, and it is worth stating rather than quietly fixing:
+**a measurement is only as good as the boundary it measures across, and a measurement that
+overturns a written record deserves more scepticism than the record, not less.** A correct
+number was replaced with an incorrect one, in a file that publishes, by a process that
+announced it was being rigorous.
+
+**More than twenty defects were found in this, and almost none by the person who wrote it.**
+The worst was not about fragments at all. `Get-Content -Raw` decodes a file with no byte order
+mark using the ANSI code page rather than UTF-8, so reading a role and writing it back mangles
+every non-ASCII character, and mangles the mangling on the next pass. An em dash went from
+eight bytes to eighteen in one round trip. The old code escaped this only because it copied
+files rather than reading them. It reached every composed agent, not just the new ones, and the
+symptom was that syncing never finished converging: three roles changed on every run, changed
+by the sync itself.
+
+The other three worth naming. The export would have published sixteen role files each
+containing a literal marker and no fragments folder, while the leak scan reported clean
+throughout, because that scanner looks for credentials and not for whether a file makes sense.
+The report that lists which projects are out of date compared an expanded install against an
+unexpanded source, so every role would have shown as stale forever and no amount of syncing
+could satisfy it. And the health check died on the exact condition its own new section exists
+to report: a missing fragment threw several sections before the line that would have named it,
+taking the rest of the report with it. It had only ever been watched working against an empty
+install, which is the one state no real machine is ever in.
+
+### A front door, and the right to say no
+
+The squad built whatever it was asked to build. That is the failure this closes. A new idea now
+goes through `/assess` before anything is built: six leads, one paragraph each, strictly inside
+their own discipline, and the answer is allowed to be no.
+
+Three things are recorded on the ticket at the kill point: the verdict, the measure it is
+supposed to move, and the objections including the ones that lost. The third is the one people
+skip and the one that pays, because without it a killed idea returns in three weeks and the
+argument starts from nothing.
+
+A kill counts as the gate working. If nothing is ever killed at the front door then the door is
+a formality, and everyone works out that it can be walked past.
+
+### An instruction is not a control
+
+A subagent explicitly told not to touch live projects composed one anyway. Nothing was lost,
+because generated agents are rebuilt from scratch and the project's own overlays were untouched,
+and the health check caught it by reporting that one project was stale for a different number of
+roles than the others. But writing it down had already failed.
+
+`STUDIO_SAFE=1` in the environment now makes every writer refuse: composing, tuning, connecting,
+both installers, governance, update, publish and release. Automated runs set it.
+
+Two other guards were failing open rather than closed. A project name was resolved with wildcard
+matching, so `_STUDI[O]` matched the studio, walked past a guard comparing exact paths, reported
+success and created a phantom folder. And composition, tuning and connect tested the studio's
+exact path while discovery had always excluded its whole subtree, so a folder inside the studio
+could still be composed and connected.
+
+Killing any of the eight guards turns the test suite red, measured two ways: neutering the
+condition so the guard never fires, and leaving the condition intact while replacing the
+refusal with a message. Eight of eight under each.
+
+What that does and does not establish, because the difference is the whole point. Six are
+caught behaviourally: the command is run and observed to refuse. Two are caught only by a
+check that reads the script and confirms the guard is still written there, because every route
+into them refuses at an earlier guard first and no test reaches them alone. Presence is not
+behaviour. Those two are guarded and watched, not proved.
+
+Five of the eight also have the other half, a positive control that watches the same command
+still work when the switch is off. Three do not: the skills installer, the governance sync and
+update. A guard proved only by its refusal could refuse everything and still pass.
+
+That sentence was published with the two numbers the wrong way round, in the paragraph directly
+above the one saying a number here is expected to come from a run rather than a recollection.
+It was written from the previous round's measurement and was stale before the ink dried, because
+the release preview gained its positive control in the same afternoon's work.
+
+This paragraph has now been wrong six times, in both directions, and each correction was
+written from the last measurement rather than a fresh one. The sixth was found by a reviewer
+noticing that the test file says, in its own comments, that the structural check cannot prove
+a guard works, while this section said proved.
+
+The number is stated because it was wrong four times, in both directions. Early versions of
+these checks passed while four guards could be deleted silently, then while any could be
+replaced by a comment that merely mentioned the variable, then while a guard could be inverted.
+Each time the claim written here was "every guard is proved" and a different reviewer disproved
+it by trying. The correction after that one under-claimed instead, saying six of eight, which
+was equally unmeasured. A number in this file is now expected to come from a run, not from a
+recollection of the last run.
+
 ## 2026-08-17
 
 ### The gates were run against the studio's own work, and stopped it
@@ -202,6 +433,39 @@ updating one.
 
 **Deleting copy can delete the element other code writes into.** A line removed as redundant
 turned out to be the container several error handlers rendered into.
+
+### The tool that inspects every project has started inspecting the one it lives in
+
+`studio.ps1 -Doctor` reported on eight projects and said nothing at all about the studio. Its
+discovery function skips any folder whose name starts with an underscore, and the studio is
+called `_STUDIO`, so the guardian of the method was the single thing the method never looked
+at. That exclusion was deliberate and is still right for everything that WRITES: whatever
+discovery returns gets composed, synced and written into, and the studio must never be in that
+list, because generating a private copy of the roster inside the project that owns the roster
+is the exact fork the whole model exists to prevent.
+
+The two ideas had been collapsed into one. They are now separate: the reports add the studio
+back by name and tag it `studio`, and every path that COMPOSES still uses the old discovery,
+which still excludes it. One writer is not yet covered and is named here rather than left to
+be discovered: `-Connect -Project` aimed explicitly at the studio still resolves, and would
+write a pointer block into the studio's own `CLAUDE.md` telling the reader to run a command
+that now refuses. It is unreachable by default, because `-Connect` with no project uses the
+same discovery as everything else. Composing or tuning the studio is refused outright, with the reason,
+rather than quietly doing nothing.
+
+The refusal tests the resolved path rather than the folder name. A name test is defeated by
+renaming the folder, and the failure would be silent and bad: the studio would become a
+project, and its `new-project\` folder, which carries a `CLAUDE.md` as the scaffold it is,
+would be discovered as a further project that the next `-Sync` would write into.
+
+Proved by diffing the full `-Doctor` report before and after against the real studio: the only
+difference is the two new lines naming the studio. The change also ships the first automated
+tests in this repository. They build a throwaway studio and two throwaway projects in a temp
+folder, so they assert the same thing on any machine, and they were run against the old script
+to watch fourteen of them fail before being trusted. One had to be rewritten after that run:
+it looked for the words "never composed" anywhere in the section, which an unrelated line about
+an uncomposed project satisfied, so it passed against a version of the tool that had none of
+this in it.
 
 ---
 
@@ -735,7 +999,7 @@ GitHub Pages never issued a TLS certificate. Every check passed throughout: DNS 
 the right place, the record was unproxied, the `CNAME` file was present, the ACME challenge
 path was reachable over HTTP and returned a clean 404 rather than a redirect, CAA permitted
 the issuing authority, and GitHub's own health endpoint reported `is_valid: true` with no
-error. The certificate state simply sat at `new` — the request had never started.
+error. The certificate state simply sat at `new`. The request had never started.
 
 Two days went into diagnosing a configuration that was never wrong, including one full
 teardown and rebuild that changed nothing because there was nothing to fix.
@@ -793,7 +1057,7 @@ rather than guessed.
 
 The guard also stopped crying wolf. Previously any difference required `-Force` to
 overwrite, including the ordinary case of the base having moved on, which trains a person
-to reach for `-Force` reflexively — and a guard that is always overridden is not a guard.
+to reach for `-Force` reflexively, and a guard that is always overridden is not a guard.
 Now a file that still matches what it was installed from is simply updated, and `-Force` is
 demanded only where something would genuinely be lost.
 
@@ -810,8 +1074,8 @@ access actually enforced here" has a different answer in every project, and that
 single highest-risk thing a reviewer checks. A role that has to relearn the enforcement
 model per project will eventually check the wrong one and find nothing wrong.
 
-**What changed.** `base/infra/INFRA_STANDARD.md` names a default — Next.js, Supabase,
-Cloudflare Pages — chosen because nothing in it bills for existing, and because one auth
+**What changed.** `base/infra/INFRA_STANDARD.md` names a default, Next.js, Supabase,
+Cloudflare Pages, chosen because nothing in it bills for existing, and because one auth
 model studio-wide means one thing to review. It is not aspirational; it is the stack already
 proven on the most complete product here.
 
