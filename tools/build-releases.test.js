@@ -312,11 +312,16 @@ test('the status paragraph site.js writes into is always emitted', function () {
     'the status target is not announced');
 });
 
-test('the sixth nav entry is Releases and it is the current page', function () {
+test('the nav matches the other pages and Releases is the current one', function () {
   const html = B.build(TWO_GOOD).html;
   const links = html.match(/<a href="\/[a-z-]*"[^>]*><span class="n">\d\d<\/span>[^<]*<\/a>/g);
-  assert.strictEqual(links.length, 6, links.join('\n'));
+  /* A hardcoded count, updated by hand when a page is added. That is the point rather than an
+     inconvenience: this page's nav is GENERATED and the other six are hand-written, so the only
+     thing stopping them drifting apart is a number somebody changes on purpose. It earned its
+     keep the first time it was tested, going red the moment Reference reached the other pages. */
+  assert.strictEqual(links.length, 7, links.join('\n'));
   assert.ok(links[5].indexOf('06') !== -1 && links[5].indexOf('Releases') !== -1, links[5]);
+  assert.ok(links[6].indexOf('07') !== -1 && links[6].indexOf('Reference') !== -1, links[6]);
   assert.strictEqual((html.match(/aria-current="page"/g) || []).length, 1);
   assert.ok(/href="\/releases" aria-current="page"/.test(html), 'the wrong link is current');
 });
@@ -433,6 +438,88 @@ test('the shipped releases.html matches the changelog it was built from', functi
   const built = B.build(fs.readFileSync(path.join(root, 'CHANGELOG.md'), 'utf8')).html;
   assert.strictEqual(fs.readFileSync(page, 'utf8'), built,
     'releases.html has drifted from CHANGELOG.md. Run: node tools/build-releases.js');
+});
+
+/* ---------- structured data ---------- */
+
+/* Parsed as JSON, then asserted on the parsed object. A substring check against the HTML would
+   pass on a block that is malformed, truncated, or describes the wrong page, and this whole
+   studio has a standing rule that a check must fail for the reason it claims to test. */
+function graphOf(html) {
+  const m = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html);
+  if (!m) throw new Error('the page carries no structured data at all');
+  return JSON.parse(m[1])['@graph'];
+}
+
+test('the page declares structured data that is valid JSON', function () {
+  const g = graphOf(B.build(TWO_GOOD).html);
+  assert.ok(Array.isArray(g), 'the graph is not an array');
+});
+
+test('the structured data describes this page and links the site graph', function () {
+  const page = graphOf(B.build(TWO_GOOD).html).filter(function (n) {
+    return n['@type'] === 'WebPage';
+  })[0];
+  assert.ok(page, 'no WebPage node');
+  assert.ok(/\/releases$/.test(page.url), 'the WebPage url is not the releases page');
+  /* isPartOf and about point at ids the HOMEPAGE declares. Without them search engines read two
+     unrelated pages instead of one site, which is the entire reason for using @id. */
+  assert.ok(page.isPartOf && /#website$/.test(page.isPartOf['@id']), 'not part of the site graph');
+  assert.ok(page.about && /#app$/.test(page.about['@id']), 'not linked to the application node');
+});
+
+test('every release on the page is listed in the structured data', function () {
+  const built = B.build(TWO_GOOD);
+  const list = graphOf(built.html).filter(function (n) { return n['@type'] === 'ItemList'; })[0];
+  assert.ok(list, 'no ItemList node');
+  /* Against the RELEASES, not against a hard-coded number. A count that agrees with itself would
+     survive the generator dropping a release, which is the failure worth catching. */
+  assert.strictEqual(list.numberOfItems, built.releases.length, 'numberOfItems disagrees');
+  assert.strictEqual(list.itemListElement.length, built.releases.length, 'wrong number of items');
+});
+
+test('each listed release links to the anchor that opens it', function () {
+  const built = B.build(TWO_GOOD);
+  const list = graphOf(built.html).filter(function (n) { return n['@type'] === 'ItemList'; })[0];
+  built.releases.forEach(function (r, i) {
+    const item = list.itemListElement[i];
+    assert.strictEqual(item.position, i + 1, 'positions are out of order');
+    assert.ok(item.url.endsWith('/releases#r-' + r.date),
+      'item ' + i + ' does not link to #r-' + r.date + ', so the address is not the one the page uses');
+    /* The anchor has to EXIST in the markup. A url that points at nothing is worse than no url:
+       it is a claim the page does not support, which is the studio's S25 in one line. */
+    assert.ok(built.html.indexOf('id="r-' + r.date + '"') !== -1,
+      'the page has no element with id r-' + r.date);
+  });
+});
+
+test('the structured data dates itself from the newest release', function () {
+  const built = B.build(TWO_GOOD);
+  const page = graphOf(built.html).filter(function (n) { return n['@type'] === 'WebPage'; })[0];
+  assert.strictEqual(page.dateModified, built.releases[0].date,
+    'dateModified is not the newest release, so the freshness signal is wrong');
+});
+
+test('no release prose reaches the structured data', function () {
+  /* This replaced an injection test that stayed GREEN under mutation, which is the only honest
+     verdict available: the block carries dates, titles and urls and NO body text, so a hostile
+     value in the prose cannot reach it and the escaping guard is unreachable today. A test that
+     cannot fail is worth less than no test, because it is read as coverage.
+
+     So this asserts the property that IS true and IS worth defending: the structured data
+     describes the page, it does not republish it. The day somebody adds a description field
+     built from a release body, this goes red and the guard stops being decorative. */
+  const marker = 'UNIQUEPROSEMARKER';
+  const withProse = TWO_GOOD.replace('**What this gives you.**',
+    '**What this gives you.** ' + marker);
+  assert.ok(withProse.indexOf(marker) !== -1, 'the fixture does not contain what it is testing');
+  const html = B.build(withProse).html;
+  assert.ok(html.indexOf(marker) !== -1, 'the marker never reached the page, so this proves nothing');
+  const block = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html);
+  assert.ok(block, 'the page carries no structured data');
+  assert.strictEqual(block[1].indexOf(marker), -1,
+    'release prose reached the structured data. Either escape it properly or do not put it there.');
+  JSON.parse(block[1]);
 });
 
 /* ---------- summary ---------- */

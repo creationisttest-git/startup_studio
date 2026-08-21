@@ -13,6 +13,30 @@ Newest first. Dates are when the change went public.
 - **Every question an agent asks you now arrives as numbered options** with a recommendation and an explicit way out, so you answer with one character instead of doing the analysis yourself.
 - **A check that every project's imports resolve.** One project had been loading a pointer to a document deleted seventeen days earlier, silently, while reporting healthy.
 - **A clean-checkout test run**, so what another person receives is what we actually tested.
+- **Thirteen dangling references fixed in the published docs**, including the starter template we ask people to copy.
+- **A reference page on the site.** The board and its columns, the infrastructure the method runs on and why each part was chosen, and a glossary of every term that is not ordinary English. All of it was already written down, in a repository, where you could only read it by cloning.
+- **Six silent failures in the tool, fixed.** In each one the tool reported success while the disk held something else: a role composed to an agent with no instructions, a half-applied install left behind by a command that said it had failed, a session-start rebuild that failed without a word.
+- **A copy of the studio can no longer reach your real projects.** Copying the tree to work somewhere safe now does what it looks like it does, and says so when it cannot.
+- **Forty-eight new checks, and twenty-nine deliberate breakages run against them** to confirm they go red rather than assuming it. Three of the breakages found the check itself was faulty.
+
+### The reference page
+
+The method assumes you know what a roster is, which board column is yours, and what the stack
+runs on. All three were written down and none of them were on the site, so unless you cloned the
+repository you could not check any of it. Release notes kept stopping to define their own
+vocabulary, and still left anyone landing on note eight without the definitions from note one.
+
+There is now a seventh page. The board is drawn as a board, seven columns with the eight
+underlying statuses, showing which moves belong to the agents and which single move is yours. The
+stack names Next.js, Supabase and Cloudflare Pages with the reason for each, because the reason is
+the part another founder needs and the logo list is not. The glossary defines sixteen terms in a
+sentence each, and every term has its own address so anything on the site can link straight to a
+definition rather than to the page and a hunt.
+
+A check now compares all seven pages against each other: the same navigation in the same order,
+each page marking only itself as current, every internal link resolving to a page or an anchor
+that exists, and every page present in both the sitemap and the publish list. A page can otherwise
+be added, linked, and quietly never indexed or published, which looks perfectly fine locally.
 
 ### Every question to you arrives as a shortlist
 
@@ -67,12 +91,6 @@ protects, never the mechanism. Naming the shape of what was wrong is an instruct
 still running the older copy, and every reader of an open method may be running exactly that.
 The full detail stays in the technical sections below, which publish; what changes is that the
 summary does not hand it to a casual visitor.
-
-
-**What this gives you.**
-- **Release notes generated from a single source of truth**, so the page and the record cannot drift, and a stale page is detected rather than shipped.
-- **Thirteen dangling references fixed in the published docs**, including the starter template we ask people to copy.
-- **A clean-checkout test run**, so what another person receives is what we actually tested.
 
 ### The release notes are a page now, generated from this file
 
@@ -151,6 +169,99 @@ It is gone. In its place the paragraph is pinned to its exact contents, which an
 a machine can answer: has this changed since a person last read it. All three of those attacks
 change the text, so all three now fail. Whether a rule still means what it meant is a reading job,
 and pretending otherwise was the actual defect.
+
+### Six ways the tool said one thing while the disk held another
+
+These were found and written down over the preceding week and left as tickets rather than fixed
+mid-review, because every unrelated edit made during a review is a fresh diff for a reviewer to
+read. They are one defect wearing six costumes: a green signal over an incomplete artefact.
+
+A role file that ended on its closing header line composed to an agent whose entire instruction
+was three hyphens. Exit code zero, no warning, and it was counted in the roles-composed total. It
+would have registered normally, answered when called, and enforced nothing.
+
+Pushing the shared team out to every project installed the machine-wide copy first and only then
+discovered a role it could not build. The command exited saying it had failed, having already
+moved the roster that every untuned project loads. Everything is validated now before the first
+thing is written, so a refusal leaves nothing behind.
+
+The session-start rebuild swallowed its own errors. On a tree where a direct rebuild exits with an
+error naming exactly what is missing, the automatic one exited cleanly and printed nothing. It is
+the one path that runs unattended, so the first symptom was an agent behaving as though a rule did
+not exist. It now says what it could not do, and still lets the session start, because failing the
+session over a stale roster trades a missing rule for no session at all.
+
+A public copy of the tool places the team and, deliberately, not the private handbook. Nothing
+said so. Anyone running it got sixteen agents referring to a release protocol and a review process
+as things that exist, with no way to know the handbook was never delivered. It now says which
+documents are missing and what to do about it.
+
+Two smaller ones: an installed team file that still contained an unexpanded placeholder instead of
+the rule it names was reported as up to date, and a rebuild that failed partway left some files
+new, some old, and the record of the build describing neither.
+
+### A copy is not a sandbox
+
+Copying the whole tree somewhere temporary, to try something without risk, did the opposite of
+what it looks like. The configuration file travels with the copy and names the real projects
+folder, so a rebuild run from the copy rebuilt the real projects. It was found the hard way, and
+the only reason nothing broke is that the output happened to be identical, which is the worst
+version of it: there was no signal either way.
+
+A configured projects folder must now contain the script that is running. When it does not, the
+copy uses its own parent instead and says loudly that it is a copy and why. Being told is the
+point. Somebody in that position believes they are sandboxed, and the whole problem is that they
+are not.
+
+### Checks that have been watched failing, and one that had not
+
+Forty-eight new checks and twenty-nine deliberate breakages, each run to confirm a check goes red
+rather than assuming it. That is measured from the suite totals and the mutation logs, not
+remembered: an earlier draft of this section said twenty-six and named no source.
+
+The count matters less than what the breakages found. Three of them found the check itself was
+faulty, against the person who had just written it. And an independent reviewer, doing the same
+thing from the other side, deleted one of the new guards and the whole suite stayed green: that
+guard sits on a path that pulls before it installs, and no test covered it. It is covered now. The
+honest version of this release note is that most of these were proven and one of them was not, and
+the only reason anybody can say which is that somebody tried to break each one.
+
+A new check read as green over a clean tree and stayed green when the scan it guards was
+deliberately narrowed, because the comparison it used ignored capital letters and was satisfied by
+the word "clean" in the all-clear message. It could not have failed. Only a deliberate break
+revealed it.
+
+A test written to prove a value could not break out of a page's data block also could not fail:
+no such value ever reaches that block. It was replaced with the property that is true and worth
+defending, which goes red the moment anyone changes that.
+
+And two invisible control characters were written into the test file itself by a patch script, in
+an evening whose whole subject was control characters. A regex silently became two backspaces, the
+assertion matched nothing, and it read as a defect in the code under test. The test file is now
+checked for them too, which it never was: the tool had that guard, the published files had it, and
+the tests had only themselves.
+
+### Smaller things in the same release
+
+A rule for how a public note describes a security fix: say what it now protects, not what was
+wrong with it. Anyone reading about a fix may still be running the version being described, so the
+reproduction detail is a working instruction handed to them. The note stays true and checkable;
+only the recipe is withheld. Both the writer and the reviewer carry it, and the reviewer's copy
+says explicitly that this is not permission to be vague, because withholding the mechanism and
+withholding the truth are one sentence apart.
+
+The releases page now declares structured data, so a search engine can read it as the ordered list
+of releases it actually is. Each release already had its own address and its own machine-readable
+date; that was checked before anything was changed, and two of the three gaps originally recorded
+turned out to have been closed already.
+
+The organisation chart said a band of fourteen roles was leadership when five of them are. It now
+labels each group as what it is.
+
+Two tickets were closed by measuring rather than by working: a corrupted shared document had
+already been repaired, and a fresh copy of the repository already passed its own tests. Both were
+verified against the thing itself instead of the write-up, which is the standing rule here, and
+both turned out to describe a state that no longer existed.
 
 ## 2026-08-20
 
@@ -349,7 +460,7 @@ recollection of the last run.
 - **A concurrency limit**, two large items and three small. Ideas arrive faster than anything finishes; without a ceiling the squad context-switches across five threads and completes none. At the limit you get the count and a question, not silent queueing.
 - **Guaranteed capture of anything you say.** Everything gets written down. Not everything gets started.
 - **A self-assessment each session**, read by the next before it plans, so standards slipping is visible from the centre.
-- **Security improvements to how projects reach shared services.**
+- **Each project can now reach only its own data**, so one project's credentials are worth nothing anywhere else.
 
 ### The gates were run against the studio's own work, and stopped it
 
@@ -813,9 +924,9 @@ would have been.
 
 **What this gives you.**
 - **Self-testing credential scans.** Every pattern is asserted against a known-bad sample, and the publish refuses if any fails its own test.
-- **Five first-install defects fixed**, found by provisioning our own board from clean, so the next project does not rediscover them.
+- **The defects a first clean install finds, fixed at the source**, found by provisioning our own board from scratch, so the next project does not rediscover them. They are named below.
 - **A quota check before provisioning.** Free-tier limits are account-wide, so one project cannot consume what the next one needed.
-- **Soft delete enforced by a revoked permission, not an application flag**, so nothing can be destroyed by bypassing the interface.
+- **Deleting a ticket now hides it and keeps it**, and that protection holds however the data is reached, not only through the board's own screens.
 
 ### The thing that decides what may be published had never been watched fail
 
@@ -1282,7 +1393,7 @@ leaving it as something you find out by not doing it.
 ## 2026-08-03
 
 **What this gives you.**
-- **Four pre-commit checks**, so a project cannot commit a credentials file. Untracked is not ignored, and a nested repo inherits none of the parent's protections.
+- **Four checks before anything is committed**, so a project cannot put a secret into its history. Removing one afterwards is a rewrite, not a delete.
 - **An atomic release.** One command, both repositories, one changelog entry, so they cannot disagree about what shipped.
 - **Build and verification separated.** Nobody marks their own work ready, and test notes say what to expect.
 - **Persisted session state**, so a project's history survives the session and you can resume it without interrogating it.

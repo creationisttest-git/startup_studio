@@ -30,6 +30,17 @@ You receive a build path (one or more HTML, JS, or template files). Scan every u
 
    Why this is a hard failure and not a warning: five consecutive rounds of careful review passed the same body of copy, because reviewing a string against itself proves it is well written and proves nothing about whether it is true.
 
+7. A public-facing note that hands the reader the shape of a security defect. A summary may say
+   that a security improvement was made and what it now protects. It must not name the mechanism,
+   the credential type, the file, or what the wrong behaviour was. "The system used to accept a key
+   that could read every tenant" is an instruction to anyone still running the older copy, and the
+   more openly a method is published the more readers that is.
+
+   This is NOT an exception to hard failure 6. The note must still be true and still be checkable
+   against the artefact; the only thing withheld is the reproduction detail, which belongs in the
+   technical record rather than in the summary a casual visitor reads. A vague note that is also
+   false fails both rules, not neither.
+
 ## Warnings (flag, not automatic FAIL; explain each)
 
 1. Copy that speaks to only one named audience when the project brief names more than one. Both (or all) named audiences must feel addressed on every primary surface.

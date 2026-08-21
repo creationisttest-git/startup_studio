@@ -32,6 +32,119 @@
 <!-- The filter is a control only while the script that drives it is running, so it stays
      styled off until this class is set. The reason is in the comment beside the form. -->
 <script>document.documentElement.classList.add("js");</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://startupstudio.projectfreedom.xyz/releases#webpage",
+      "url": "https://startupstudio.projectfreedom.xyz/releases",
+      "name": "Release notes: what each Startup Studio release gives you",
+      "description": "Every Startup Studio release in plain language, newest first, written as what it gives you rather than how it was built. Filter to a single release by date.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@id": "https://startupstudio.projectfreedom.xyz/#website"
+      },
+      "about": {
+        "@id": "https://startupstudio.projectfreedom.xyz/#app"
+      },
+      "author": {
+        "@id": "https://startupstudio.projectfreedom.xyz/#author"
+      },
+      "dateModified": "2026-08-21"
+    },
+    {
+      "@type": "ItemList",
+      "@id": "https://startupstudio.projectfreedom.xyz/releases#list",
+      "name": "Startup Studio releases, newest first",
+      "itemListOrder": "https://schema.org/ItemListOrderDescending",
+      "numberOfItems": 13,
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Startup Studio release, 21 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-21"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Startup Studio release, 20 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-20"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Startup Studio release, 18 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-18"
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "name": "Startup Studio release, 17 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-17"
+        },
+        {
+          "@type": "ListItem",
+          "position": 5,
+          "name": "Startup Studio release, 16 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-16"
+        },
+        {
+          "@type": "ListItem",
+          "position": 6,
+          "name": "Startup Studio release, 15 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-15"
+        },
+        {
+          "@type": "ListItem",
+          "position": 7,
+          "name": "Startup Studio release, 11 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-11"
+        },
+        {
+          "@type": "ListItem",
+          "position": 8,
+          "name": "Startup Studio release, 10 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-10"
+        },
+        {
+          "@type": "ListItem",
+          "position": 9,
+          "name": "Startup Studio release, 6 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-06"
+        },
+        {
+          "@type": "ListItem",
+          "position": 10,
+          "name": "Startup Studio release, 5 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-05"
+        },
+        {
+          "@type": "ListItem",
+          "position": 11,
+          "name": "Startup Studio release, 4 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-04"
+        },
+        {
+          "@type": "ListItem",
+          "position": 12,
+          "name": "Startup Studio release, 3 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-03"
+        },
+        {
+          "@type": "ListItem",
+          "position": 13,
+          "name": "Startup Studio release, 2 August 2026",
+          "url": "https://startupstudio.projectfreedom.xyz/releases#r-2026-08-02"
+        }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <nav class="sitemap" aria-label="Pages">
@@ -46,6 +159,7 @@
     <a href="/prototypes"><span class="n">04</span> Product prototypes</a>
     <a href="/how-to"><span class="n">05</span> How to run it</a>
     <a href="/releases" aria-current="page"><span class="n">06</span> Releases</a>
+    <a href="/reference"><span class="n">07</span> Reference</a>
   </div>
   <div class="sitemap-cta">
     <a class="bar-cta" href="https://github.com/creationisttest-git/startup_studio">Get the agents <span aria-hidden="true">&#8594;</span></a>
@@ -57,7 +171,7 @@
 <section id="releases">
     <p class="eyebrow">Release notes</p>
     <h2>What each release gives you</h2>
-    <p class="rel-intro">Every release, newest first, written as what you get rather than what was touched. The most recent one is open below.</p>
+    <p class="rel-intro">Every release, newest first, written as what you get rather than what was touched. The most recent one is open below. Any term here that is not ordinary English is defined on the <a href="/reference#glossary">reference page</a>.</p>
 
     <!-- A dropdown cannot filter a static page on its own: submitting it reloads the same
          document and nothing changes, which is worse than having no control at all. So it
@@ -103,6 +217,11 @@
           <li><strong>Every question an agent asks you now arrives as numbered options</strong> with a recommendation and an explicit way out, so you answer with one character instead of doing the analysis yourself.</li>
           <li><strong>A check that every project's imports resolve.</strong> One project had been loading a pointer to a document deleted seventeen days earlier, silently, while reporting healthy.</li>
           <li><strong>A clean-checkout test run</strong>, so what another person receives is what we actually tested.</li>
+          <li><strong>Thirteen dangling references fixed in the published docs</strong>, including the starter template we ask people to copy.</li>
+          <li><strong>A reference page on the site.</strong> The board and its columns, the infrastructure the method runs on and why each part was chosen, and a glossary of every term that is not ordinary English. All of it was already written down, in a repository, where you could only read it by cloning.</li>
+          <li><strong>Six silent failures in the tool, fixed.</strong> In each one the tool reported success while the disk held something else: a role composed to an agent with no instructions, a half-applied install left behind by a command that said it had failed, a session-start rebuild that failed without a word.</li>
+          <li><strong>A copy of the studio can no longer reach your real projects.</strong> Copying the tree to work somewhere safe now does what it looks like it does, and says so when it cannot.</li>
+          <li><strong>Forty-eight new checks, and twenty-nine deliberate breakages run against them</strong> to confirm they go red rather than assuming it. Three of the breakages found the check itself was faulty.</li>
         </ul>
       </div>
     </details>
@@ -139,7 +258,7 @@
           <li><strong>A concurrency limit</strong>, two large items and three small. Ideas arrive faster than anything finishes; without a ceiling the squad context-switches across five threads and completes none. At the limit you get the count and a question, not silent queueing.</li>
           <li><strong>Guaranteed capture of anything you say.</strong> Everything gets written down. Not everything gets started.</li>
           <li><strong>A self-assessment each session</strong>, read by the next before it plans, so standards slipping is visible from the centre.</li>
-          <li><strong>Security improvements to how projects reach shared services.</strong></li>
+          <li><strong>Each project can now reach only its own data</strong>, so one project's credentials are worth nothing anywhere else.</li>
         </ul>
       </div>
     </details>
@@ -183,9 +302,9 @@
       <div class="rel-copy">
         <ul class="rel-points">
           <li><strong>Self-testing credential scans.</strong> Every pattern is asserted against a known-bad sample, and the publish refuses if any fails its own test.</li>
-          <li><strong>Five first-install defects fixed</strong>, found by provisioning our own board from clean, so the next project does not rediscover them.</li>
+          <li><strong>The defects a first clean install finds, fixed at the source</strong>, found by provisioning our own board from scratch, so the next project does not rediscover them. They are named below.</li>
           <li><strong>A quota check before provisioning.</strong> Free-tier limits are account-wide, so one project cannot consume what the next one needed.</li>
-          <li><strong>Soft delete enforced by a revoked permission, not an application flag</strong>, so nothing can be destroyed by bypassing the interface.</li>
+          <li><strong>Deleting a ticket now hides it and keeps it</strong>, and that protection holds however the data is reached, not only through the board's own screens.</li>
         </ul>
       </div>
     </details>
@@ -231,7 +350,7 @@
       </summary>
       <div class="rel-copy">
         <ul class="rel-points">
-          <li><strong>Four pre-commit checks</strong>, so a project cannot commit a credentials file. Untracked is not ignored, and a nested repo inherits none of the parent's protections.</li>
+          <li><strong>Four checks before anything is committed</strong>, so a project cannot put a secret into its history. Removing one afterwards is a rewrite, not a delete.</li>
           <li><strong>An atomic release.</strong> One command, both repositories, one changelog entry, so they cannot disagree about what shipped.</li>
           <li><strong>Build and verification separated.</strong> Nobody marks their own work ready, and test notes say what to expect.</li>
           <li><strong>Persisted session state</strong>, so a project's history survives the session and you can resume it without interrogating it.</li>

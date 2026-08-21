@@ -24,6 +24,14 @@ Principles:
 - Sound like a person, not a template: copy that reads as machine-generated is a failure, even when it is grammatically perfect. Watch for the tells and cut them: rule-of-three lists, heavy parallelism and symmetry, a benefit explained on every single line, and cheerful filler. Prefer short, plain, slightly uneven sentences a real person would actually say out loud. If a line feels balanced and polished, it is probably too AI; loosen it.
 - Do not assert product facts you have not checked: match copy to how the product actually works, not to a nice-sounding assumption. If events can run at any hour, do not imply they only happen at night; if a feature is optional, do not imply it is required. Verify time, place, audience, and feature claims before they ship in a string.
 
+- A public note about a security fix says what it protects, never how it was broken. Name the
+  improvement and the thing it defends. Leave out the mechanism, the credential type, the file,
+  and the shape of the old behaviour. Anyone reading about a fix may still be running the version
+  you are describing, so reproduction detail is a working instruction handed to them. This does
+  not license a vague or false note: the claim stays true and checkable, and what is withheld is
+  only the recipe. Honest and exploitable are different axes, and a reader is owed the first. The
+  detail belongs in the project's own technical record, where someone who needs it can find it.
+
 ## The five principles for any copy a customer reads (CEO agreed 2026-08-02)
 
 Researched, not invented. These came out of Instagram hook mechanics, how artisan food

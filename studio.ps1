@@ -69,7 +69,46 @@ $CONFIG = @{}
 $cfgPath = Join-Path $StudioRoot 'studio.config.ps1'
 if (Test-Path $cfgPath) { $CONFIG = & $cfgPath }
 
-if (-not $ProjectsRoot) { $ProjectsRoot = if ($CONFIG.ProjectsRoot) { $CONFIG.ProjectsRoot } else { Split-Path $StudioRoot -Parent } }
+# A byte copy of the studio is not a sandbox, and that is the opposite of what everyone assumes.
+# studio.config.ps1 is copied with the rest of the tree and hardcodes ProjectsRoot at the REAL
+# projects folder, so -Compose -All from a copy in TEMP composed the real projects. Nothing broke
+# only because the output happened to be identical, which is the worst version: silent either way.
+#
+# The first fix required the configured root to CONTAIN the running script, and a reviewer showed
+# that removes the only layout the setting exists for. A studio installed OUTSIDE its projects
+# root is legitimate, and that test cannot tell it from a copy: it would warn, retarget the tool at
+# its own parent, and report a successful sync having composed nothing. Three more inputs tripped
+# it, all legitimate: a root equal to the studio root, a path spelled differently but resolving to
+# the same place, and a relative value normalised for the test and then assigned raw.
+#
+# So the config IDENTIFIES ITSELF instead. OwnerRoot names the studio the config was written for,
+# and a copy fails that comparison exactly, because the copy is at a different path while its
+# config still names the original. A legitimate off-tree install passes, whatever its layout.
+# A config with no OwnerRoot is trusted, so nothing existing breaks; the check is opt-in and the
+# warning below says how to opt in.
+if (-not $ProjectsRoot) {
+    $selfParent   = Split-Path $StudioRoot -Parent
+    $ProjectsRoot = $selfParent
+    if ($CONFIG.ProjectsRoot) {
+        $owner = $CONFIG.OwnerRoot
+        if (-not $owner) {
+            # No declaration to check against. Trust it, and say once how to make it checkable.
+            $ProjectsRoot = $CONFIG.ProjectsRoot
+        } else {
+            $nOwn = ''; $nSelf = ''
+            try {
+                $nOwn  = ([System.IO.Path]::GetFullPath($owner)).TrimEnd('\', '/')
+                $nSelf = ([System.IO.Path]::GetFullPath($StudioRoot)).TrimEnd('\', '/')
+            } catch { }
+            if ($nOwn -and $nSelf -and $nOwn.Equals($nSelf, [StringComparison]::OrdinalIgnoreCase)) {
+                $ProjectsRoot = $CONFIG.ProjectsRoot
+            } else {
+                Write-Warning "studio.config.ps1 declares OwnerRoot '$owner' but this script is running from '$StudioRoot'. This tree is a COPY and its config travelled with it, so its ProjectsRoot names somebody else's projects. Using '$selfParent' instead. Pass -ProjectsRoot to override deliberately."
+            }
+        }
+    }
+}
+
 if (-not $PublicRepo)   { $PublicRepo   = $CONFIG.PublicRepo }
 
 $AGENT_BASE  = Join-Path $StudioRoot 'base\agents'
@@ -175,7 +214,11 @@ function Expand-Fragments ([string]$Text, [string]$Where) {
     # never document Vue, Handlebars, Django or the fragment syntax itself in prose: it threw
     # naming a fragment that was never a fragment. The property being kept is narrow, an
     # include the expander declined to understand, and the pattern should be that narrow too.
-    $left = [regex]::Match($out, '(?i)\{\{\s*include[^{}]{0,120}')
+    # \b after 'include'. Without it the check fired on {{ includeHeader }}, an ordinary
+    # Handlebars partial a role might legitimately quote, and threw naming a fragment that was
+    # never a fragment. There is no word boundary between 'e' and 'H', so the boundary excludes
+    # exactly that case and keeps every real malformed marker.
+    $left = [regex]::Match($out, '(?i)\{\{\s*include\b[^{}]{0,120}')
     if ($left.Success) {
         throw ("unresolved marker '" + $left.Value + "' in " + $Where + ". A fragment name is letters, digits, hyphen and underscore with no extension: {{include: brevity}}, not {{include: brevity.md}}.")
     }
@@ -296,7 +339,7 @@ function Save-Archive ([string]$Path, [string]$Tag) {
 
 # --------------------------------------------------------------- markdown
 
-function Split-Doc ([string]$Path) {
+function Split-Doc ([string]$Path, [switch]$RequireBody) {
     $raw   = Read-TextUtf8 $Path
     $lines = $raw -split "`r?`n"
     if ($lines.Count -eq 0 -or $lines[0].Trim() -ne '---') { return @{ Front = [ordered]@{}; Body = $raw } }
@@ -315,7 +358,16 @@ function Split-Doc ([string]$Path) {
     if ($i -ge $lines.Count) {
         throw ((Split-Path $Path -Leaf) + " opens a frontmatter block with --- and never closes it. Nothing downstream can parse that, and the previous behaviour was to treat the entire file as a header and return the body reversed.")
     }
-    @{ Front = $front; Body = ($lines[($i+1)..($lines.Count-1)] -join "`r`n").Trim() }
+    # A document that ends ON its closing fence has no body, and the old slice produced one
+    # anyway. $lines[($i+1)..($count-1)] is a DESCENDING range the moment $i+1 passes the end, so
+    # the body came back as the single string '---'. The composer then wrote an agent whose entire
+    # instruction was three hyphens, exited 0, and counted it in "16 roles composed". That is S24
+    # wearing a different hat: present, current, registered, and carrying no rules at all.
+    $body = if ($i -ge $lines.Count - 1) { '' } else { ($lines[($i+1)..($lines.Count-1)] -join "`r`n").Trim() }
+    if ($RequireBody -and -not $body) {
+        throw ("base role " + (Split-Path $Path -Leaf) + " has frontmatter and no body. A role with no body composes to an agent with no instructions: it registers normally, answers when called, and enforces nothing. Refusing is the only reading that is visible. A stack card or an overlay MAY be frontmatter only; a role may not.")
+    }
+    @{ Front = $front; Body = $body }
 }
 
 function Format-Front ($Front) {
@@ -329,7 +381,7 @@ function Format-Front ($Front) {
 # --------------------------------------------------------------- compose
 
 function New-ComposedAgent ($BaseFile, $ProjectPath, $ProjectName) {
-    $base = Split-Doc $BaseFile.FullName
+    $base = Split-Doc $BaseFile.FullName -RequireBody
     $role = $BaseFile.BaseName
     # NB: never name a local $card here. PowerShell names are case-insensitive and
     # dynamic scoping would let it shadow $CARD_NAME, silently dropping the stack card.
@@ -417,6 +469,69 @@ function New-ComposedAgent ($BaseFile, $ProjectPath, $ProjectName) {
         $parts += ($sections -join "`r`n`r`n")
     }
     ($parts -join "`r`n").TrimEnd() + "`r`n"
+}
+
+# Every tree the studio owns as TEXT. base\governance is not published but IS distributed to
+# every project, so it belongs in any check about what readers receive.
+$PUBLISHED_TREES = @('base\agents', 'base\fragments', 'base\skills', 'base\governance',
+                     'base\board', 'base\infra', 'new-project')
+
+# A control byte does not stop a file parsing, does not stop an agent registering, and is
+# invisible in every diff and every review tool. It sits in the middle of a rule. Seven were
+# written into this repository in a single session, every one of them from a Windows path passed
+# through a patch script where backslash-a or backslash-f is an escape. Each was found by
+# accident, one only because a comment split in half and the script stopped parsing.
+#
+# Extracted from the reporting so it can be run against a fixture. A scan that only ever runs
+# over a clean tree is a scan nobody has watched find anything.
+#
+# Tab, newline and carriage return are legitimate. Nothing else below 0x20 is.
+function Get-ControlByteHits ([string[]]$Dirs, [string]$Trim) {
+    $hits = @()
+    foreach ($dir in $Dirs) {
+        if (-not (Test-Path $dir)) { continue }
+        foreach ($file in (Get-ChildItem $dir -Recurse -File -ErrorAction SilentlyContinue)) {
+            $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+            foreach ($b in $bytes) {
+                if ($b -lt 32 -and $b -ne 9 -and $b -ne 10 -and $b -ne 13) {
+                    $name = $file.FullName
+                    if ($Trim) { $name = $name.Replace($Trim.TrimEnd('\') + '\', '') }
+                    $hits += ("{0}  0x{1:X2}" -f $name, $b)
+                    break
+                }
+            }
+        }
+    }
+    # NOT ",$hits". The comma wraps an empty result into an array CONTAINING an empty array, so
+    # a clean tree came back with Count 1 and the caller printed a finding whose value was @(),
+    # which is a format error, not a message. -Doctor crashed on twenty-one assertions the first
+    # time this ran. A helper whose empty case is wrong is worse than no helper: the clean path
+    # is the one that runs every day.
+    $hits
+}
+
+# Nothing may be written until everything that could refuse has refused. -Sync ran
+# Install-GlobalAgents FIRST, printed "agents updated 1" machine-wide, and only then hit the
+# compose refusal and exited 1. The operator was left with a half-applied sync: the roster every
+# untuned project loads had moved, no project had been composed, and the exit code said the whole
+# command failed. The exit code and the disk disagreed, which is the same shape as every defect
+# that cost a gate round: a signal reporting one state while the artefact holds another.
+#
+# Validating first costs one pass over sixteen small files and converts a half-applied write into
+# a refusal with nothing written.
+function Assert-BaseComposable {
+    $bad = @()
+    foreach ($f in (Get-BaseAgents)) {
+        try {
+            [void](Split-Doc $f.FullName -RequireBody)
+            [void](Get-AgentText $f.FullName)
+        } catch {
+            $bad += ("  " + $f.BaseName + ": " + $_.Exception.Message)
+        }
+    }
+    if ($bad.Count) {
+        throw ("refused before writing anything. " + $bad.Count + " of the base roles cannot be composed:`r`n" + ($bad -join "`r`n") + "`r`nNothing was installed machine-wide and no project was touched. Fix the base and run again.")
+    }
 }
 
 # --------------------------------------------------------------- discovery
@@ -658,6 +773,23 @@ function Sync-Governance ([string]$GovRoot, [string]$Label) {
     }
     Assert-Writable $GovRoot '-Sync governance'
 
+    # base\governance is deliberately outside $PUBLIC_MANIFEST (S8): the method is public, what any
+    # project actually knows is not. The consequence nobody had stated is that a public user runs
+    # -Sync, receives sixteen roles, receives NO governance, and is told nothing. The roster is
+    # WRITTEN AGAINST that governance: roles refer to the release protocol, the board protocol and
+    # the deploy gates as things that exist. Sixteen agents assuming a rulebook they were never
+    # given is a green signal over half an artefact.
+    $govMissing = @($SHARED_GOV | Where-Object { -not (Test-Path (Join-Path $GOV_BASE $_)) })
+    if ($govMissing.Count -eq $SHARED_GOV.Count) {
+        Write-Host "  no shared governance to place. This install carries none, so none was placed." -ForegroundColor Yellow
+        Write-Host "  The roles reference a release protocol, a board protocol and deploy gates as things" -ForegroundColor Yellow
+        Write-Host "  that exist. Write your own at base\governance\, or delete the import lines from this" -ForegroundColor Yellow
+        Write-Host "  project's CLAUDE.md so nothing points at a document nobody has." -ForegroundColor Yellow
+    } elseif ($govMissing.Count) {
+        Write-Host ("  missing from base\governance: " + ($govMissing -join ', ')) -ForegroundColor Yellow
+        Write-Host "  Synced without these. Roles may reference rules no reader has." -ForegroundColor Yellow
+    }
+
     $upd=@(); $same=@(); $drift=@()
     foreach ($f in $SHARED_GOV) {
         $src = Join-Path $GOV_BASE $f
@@ -752,9 +884,15 @@ function Build-Project ([string]$ProjectPath, [switch]$Quiet, [switch]$Silent) {
     if (-not $files) { Write-Host "  $proj overlay folder is empty" -ForegroundColor DarkGray; return }
     if (-not (Test-Path $agentDir) -and -not $WhatIf) { New-Item -ItemType Directory -Path $agentDir -Force | Out-Null }
 
+    # Compose EVERYTHING before writing ANYTHING. The old loop wrote each agent as it went, so a
+    # throw on role nine left eight freshly composed agents on disk beside a .sync-manifest.json
+    # describing the PREVIOUS build, with the stale-role cleanup skipped. The project is then in a
+    # state no later run reports honestly: the manifest and the files disagree, which is the exact
+    # ambiguity the manifest was added to remove.
+    $composed = [ordered]@{}
     $manifest = @{}
     foreach ($f in $files) {
-        if (-not $WhatIf) { Write-Utf8NoBom (Join-Path $agentDir $f.Name) (New-ComposedAgent $f $ProjectPath $proj) }
+        $composed[$f.Name] = New-ComposedAgent $f $ProjectPath $proj
         # Record the hash of the EXPANDED text, not of the base file. A fragment edit does not
         # change one byte of base\agents\<role>.md, so a file hash cannot see it: every tuned
         # project reported "composed and current" while carrying the old wording of a rule that
@@ -764,6 +902,7 @@ function Build-Project ([string]$ProjectPath, [switch]$Quiet, [switch]$Silent) {
         $manifest[$f.BaseName] = @{ base = Get-TextSha (Get-AgentText $f.FullName) }
     }
     if (-not $WhatIf) {
+        foreach ($n in @($composed.Keys)) { Write-Utf8NoBom (Join-Path $agentDir $n) $composed[$n] }
         Write-Utf8NoBom (Join-Path $agentDir '.sync-manifest.json') ($manifest | ConvertTo-Json -Depth 5)
         Get-ChildItem $agentDir -Filter *.md -File | Where-Object { $files.Name -notcontains $_.Name } | ForEach-Object { Remove-Item $_.FullName -Force }
     }
@@ -892,6 +1031,7 @@ $PUBLIC_MANIFEST = @(
     # Generated from CHANGELOG.md, never hand-edited. The generator ships beside it so a
     # fork can rebuild the page rather than inheriting one it cannot regenerate.
     @{ from = 'releases.html';   to = 'releases.html' },
+    @{ from = 'reference.html';  to = 'reference.html' },
     @{ from = 'tools';           to = 'tools' },
     @{ from = 'site.css';        to = 'site.css' },
     @{ from = 'site.js';         to = 'site.js' },
@@ -1369,7 +1509,12 @@ function Show-Status ([switch]$Fix) {
         if ($null -eq $bt) { $unexpandable += $f.BaseName; continue }
         $dh = Get-FileTextSha $d; $bh = Get-TextSha $bt
         if ($dh -eq $bh) { continue }
-        if ((Get-Sha $d) -eq (Get-Sha $f.FullName)) { continue }   # pre-fragments install
+        # Conditional on the base role carrying no marker. Before fragments existed the install
+        # WAS a byte copy of the source, and treating that as current is right. The moment a
+        # source carries {{include:}}, a byte-identical install is not a legacy install: it is an
+        # install holding a literal marker where a rule should be. This line reported that as
+        # "out of date 0". An exemption has to be conditional on the fact that justified it.
+        if ((Get-FragmentRefs $f.FullName).Count -eq 0 -and (Get-Sha $d) -eq (Get-Sha $f.FullName)) { continue }
         $rec = $man[$f.BaseName]
         if (-not $rec)        { $unknown += $f.BaseName }
         elseif ($dh -eq $rec) { $behind  += $f.BaseName }
@@ -1464,21 +1609,8 @@ function Show-Status ([switch]$Fix) {
     # Tab, newline and carriage return are legitimate. Nothing else below 0x20 is.
     Write-Host ""
     Write-Host "BYTES" -ForegroundColor Cyan
-    $scanRoots = @('base\agents', 'base\fragments', 'base\skills', 'base\governance', 'new-project')
-    $dirty = @()
-    foreach ($rel in $scanRoots) {
-        $dir = Join-Path $StudioRoot $rel
-        if (-not (Test-Path $dir)) { continue }
-        foreach ($file in (Get-ChildItem $dir -Recurse -File -ErrorAction SilentlyContinue)) {
-            $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
-            foreach ($b in $bytes) {
-                if ($b -lt 32 -and $b -ne 9 -and $b -ne 10 -and $b -ne 13) {
-                    $dirty += ("{0}  0x{1:X2}" -f $file.FullName.Replace("$StudioRoot\", ''), $b)
-                    break
-                }
-            }
-        }
-    }
+    $scanRoots = $PUBLISHED_TREES
+    $dirty = @(Get-ControlByteHits ($scanRoots | ForEach-Object { Join-Path $StudioRoot $_ }) $StudioRoot)
     if ($dirty.Count) {
         foreach ($d in $dirty) { Write-Host ("  CONTROL BYTE  {0}" -f $d) -ForegroundColor Red }
         Write-Host "  these publish. a stray byte here sits inside a rule and shows in no diff." -ForegroundColor Red
@@ -1494,11 +1626,18 @@ function Show-Status ([switch]$Fix) {
         $frags = @(Get-ChildItem $fragDir -Filter *.md -File -ErrorAction SilentlyContinue)
         $used  = @{}
         $broken = @()
+        $malformed = @()
         foreach ($a in $agents) {
             foreach ($r in (Get-FragmentRefs $a.FullName)) {
                 if (-not $used.ContainsKey($r)) { $used[$r] = @() }
                 $used[$r] += $a.BaseName
-                if (-not (Test-Path (Get-FragmentPath $r))) { $broken += "$($a.BaseName) -> $r" }
+                # A name the EXPANDER would reject is a typo, not a reference to a fragment that
+                # is missing. Reported separately because the two read completely differently to
+                # someone fixing it, and because the fragment the author MEANT then appears in the
+                # list above as UNUSED, which says "this rule applies to nobody" when the truth is
+                # a stray '.md'.
+                if ($r -notmatch '^[A-Za-z0-9_-]+$') { $malformed += "$($a.BaseName) -> $r" }
+                elseif (-not (Test-Path (Get-FragmentPath $r))) { $broken += "$($a.BaseName) -> $r" }
             }
         }
         if (-not $frags.Count) {
@@ -1518,6 +1657,10 @@ function Show-Status ([switch]$Fix) {
         }
         foreach ($b in ($broken | Sort-Object -Unique)) {
             Write-Host ("  MISSING  {0}   the role asks for a fragment that is not there; -Sync will refuse" -f $b) -ForegroundColor Red
+        }
+        foreach ($m in ($malformed | Sort-Object -Unique)) {
+            Write-Host ("  MALFORMED {0}   not a fragment name. Letters, digits, hyphen, underscore, no extension." -f $m) -ForegroundColor Red
+            Write-Host "            -Compose refuses this, and the fragment it MEANT reads as UNUSED above." -ForegroundColor Red
         }
     }
 
@@ -1719,7 +1862,28 @@ function Show-Status ([switch]$Fix) {
 
 if ($Autoload) {
     # Runs on every session start. Must be fast and silent when there is nothing to do.
-    try { Invoke-Autoload $Path } catch { }
+    #
+    # It must NOT be silent about something it could not do. This is the one path that runs
+    # unattended, so a swallowed throw means the roster is not rebuilt, nothing is printed, and
+    # the first symptom is a role behaving as though a rule does not exist. Measured on one tree
+    # with a fragment missing: -Compose exited 1 and named the fragment, -Autoload exited 0 and
+    # printed nothing at all. WARM_START already records that this hook has never been observed
+    # firing, which is the same blindness from the other side. Silent success and silent failure
+    # were indistinguishable, and now only one of them is silent.
+    #
+    # It still returns 0. A SessionStart hook that fails the session over a stale roster trades a
+    # missing rule for no session, which is the worse of the two.
+    try { Invoke-Autoload $Path }
+    catch {
+        # The SAME shape the success path returns, because the consumer parses this as JSON and a
+        # Write-Host line is a different channel it does not read. suppressOutput is deliberately
+        # false: a rebuild that quietly did not happen is exactly what must not be suppressed.
+        @{
+            systemMessage  = ("Studio could not rebuild the roster: " + $_.Exception.Message +
+                              " Agents in this session may be missing a rule. Run studio.ps1 -Doctor.")
+            suppressOutput = $false
+        } | ConvertTo-Json -Compress
+    }
     return
 }
 
@@ -1746,6 +1910,9 @@ if ($Update) {
     }
     Write-Host ""; Write-Host "UPDATE" -ForegroundColor Cyan
     git -C $StudioRoot pull --ff-only 2>&1 | ForEach-Object { "  $_" }
+    # The pull just moved the base under us, so this is the run most likely to find a role that
+    # cannot compose, and the one where a half-applied install is hardest to notice.
+    Assert-BaseComposable
     Install-GlobalAgents
     Install-GlobalSkills
     foreach ($p in Find-Projects) { Build-Project $p -Quiet }
@@ -1802,6 +1969,8 @@ if ($Governance) {
 
 if ($Sync -or $Global) {
     Write-Host ""; Write-Host "SYNC" -ForegroundColor Cyan
+    # Before the first writer, not after the last one.
+    Assert-BaseComposable
     Install-GlobalAgents
     Install-GlobalSkills
     if ($Sync) {
@@ -1809,6 +1978,25 @@ if ($Sync -or $Global) {
         foreach ($p in Find-Projects) {
             $gr = Get-GovRoot $p
             if ($gr -and $seen -notcontains $gr) { $seen += $gr; Write-Host "  $($gr.Replace("$ProjectsRoot\",''))"; Sync-Governance $gr (Split-Path $gr -Leaf) }
+        }
+        # Sync-Governance carries the missing-governance report, so every path that places any
+        # governance at all says it. This covers the path that places NONE: Get-GovRoot only
+        # returns a root for a project that ALREADY holds one of the shared files, so on a fresh
+        # public install the loop above never runs, the function is never called, and the report
+        # would never be reached. That is precisely the install the warning exists for.
+        if (-not $seen.Count) {
+            $govMissing = @($SHARED_GOV | Where-Object { -not (Test-Path (Join-Path $GOV_BASE $_)) })
+            Write-Host ""
+            Write-Host "GOVERNANCE  not distributed" -ForegroundColor Yellow
+            if ($govMissing.Count -eq $SHARED_GOV.Count) {
+                Write-Host "  This install carries no shared governance, so none was placed anywhere." -ForegroundColor Yellow
+                Write-Host "  The roles reference a release protocol, a board protocol and deploy gates" -ForegroundColor Yellow
+                Write-Host "  as things that exist. Write your own at base\governance\, or delete the" -ForegroundColor Yellow
+                Write-Host "  import lines from each CLAUDE.md so nothing points at a document nobody has." -ForegroundColor Yellow
+            } else {
+                Write-Host "  no project holds any shared governance yet, so there was nothing to update." -ForegroundColor Yellow
+                Write-Host "  Place the files once by hand; after that -Sync keeps them current." -ForegroundColor Yellow
+            }
         }
         Write-Host ""; Write-Host "COMPOSE" -ForegroundColor Cyan
         foreach ($p in Find-Projects) { Build-Project $p -Quiet }

@@ -210,7 +210,8 @@ function navBlock(currentHref) {
     ['/solution', '03', 'The Solution'],
     ['/prototypes', '04', 'Product prototypes'],
     ['/how-to', '05', 'How to run it'],
-    ['/releases', '06', 'Releases']
+    ['/releases', '06', 'Releases'],
+    ['/reference', '07', 'Reference']
   ];
   return pages.map(function (p) {
     const current = p[0] === currentHref ? ' aria-current="page"' : '';
@@ -245,6 +246,61 @@ function cardsBlock(releases) {
       '    </details>'
     ].join('\n');
   }).join('\n');
+}
+
+/* The one SEO gap that survived re-measurement. The page already carries a per-release id, a
+   machine-readable <time> for each, and a deep link that opens the release it names, so two of
+   the three gaps this ticket reported were closed before anyone acted on it. This one was real:
+   index.html declares a graph and this page declared nothing.
+
+   ItemList rather than thirteen Articles. What this page IS, structurally, is an ordered list of
+   releases each with its own address, and that is a shape search engines already read. Thirteen
+   TechArticle blocks would describe something the page is not, and a claim in structured data is
+   a claim like any other. The ids are the SAME ids the homepage graph uses, so the two pages
+   describe one site rather than two. */
+function structuredData(releases) {
+  const items = releases.map(function (r, i) {
+    return {
+      '@type': 'ListItem',
+      position: i + 1,
+      name: 'Startup Studio release, ' + formatDate(r.date),
+      url: SITE + '/releases#r-' + r.date
+    };
+  });
+  const graph = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': SITE + '/releases#webpage',
+        url: SITE + '/releases',
+        name: TITLE,
+        description: DESCRIPTION,
+        inLanguage: 'en',
+        isPartOf: { '@id': SITE + '/#website' },
+        about: { '@id': SITE + '/#app' },
+        author: { '@id': SITE + '/#author' },
+        dateModified: releases.length ? releases[0].date : undefined
+      },
+      {
+        '@type': 'ItemList',
+        '@id': SITE + '/releases#list',
+        name: 'Startup Studio releases, newest first',
+        itemListOrder: 'https://schema.org/ItemListOrderDescending',
+        numberOfItems: releases.length,
+        itemListElement: items
+      }
+    ]
+  };
+  /* JSON.stringify drops undefined, which is what should happen to dateModified when there is
+     nothing to date: an empty string would be a false claim rather than a missing one.
+     The split/join stops a value ever closing this script tag early. It is written with
+     fromCharCode rather than an escape on purpose. Eight literal control bytes have been written
+     into this repository in one day, every one of them a backslash that passed through something
+     that treated it as an escape, so the backslash that MUST survive is spelled out. */
+  const json = JSON.stringify(graph, null, 2)
+    .split('</').join('<' + String.fromCharCode(92) + '/');
+  return '<script type="application/ld+json">\n' + json + '\n</script>';
 }
 
 function renderPage(releases) {
@@ -282,6 +338,8 @@ function renderPage(releases) {
 '<!-- The filter is a control only while the script that drives it is running, so it stays\n' +
 '     styled off until this class is set. The reason is in the comment beside the form. -->\n' +
 '<script>document.documentElement.classList.add("js");</script>\n' +
+'\n' +
+structuredData(releases) + '\n' +
 '</head>\n' +
 '<body>\n' +
 '<nav class="sitemap" aria-label="Pages">\n' +
@@ -302,7 +360,7 @@ navBlock('/releases') + '\n' +
 '<section id="releases">\n' +
 '    <p class="eyebrow">Release notes</p>\n' +
 '    <h2>What each release gives you</h2>\n' +
-'    <p class="rel-intro">Every release, newest first, written as what you get rather than what was touched. The most recent one is open below.</p>\n' +
+'    <p class="rel-intro">Every release, newest first, written as what you get rather than what was touched. The most recent one is open below. Any term here that is not ordinary English is defined on the <a href="/reference#glossary">reference page</a>.</p>\n' +
 '\n' +
 '    <!-- A dropdown cannot filter a static page on its own: submitting it reloads the same\n' +
 '         document and nothing changes, which is worse than having no control at all. So it\n' +
