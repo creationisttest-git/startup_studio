@@ -1044,6 +1044,13 @@ $PUBLIC_MANIFEST = @(
     @{ from = 'base\skills';  to = 'skills' },
     @{ from = 'robots.txt';   to = 'robots.txt' },
     @{ from = 'sitemap.xml';  to = 'sitemap.xml' },
+    # Publishes so a clone of the EXPORT gets the line endings this was tested with. It was
+    # added to the private repo and not here, and the two are different repositories: the one
+    # strangers clone had no attributes file at all, so every text file arrived rewritten.
+    # Measured before acting: the script still parses and all sixteen roles still register, so
+    # the cost today is nil. What was not true is that a public clone matches what was tested,
+    # and that is the property the rule exists for rather than a symptom anyone had hit.
+    @{ from = '.gitattributes'; to = '.gitattributes' },
     @{ from = '_headers';     to = '_headers' },
     @{ from = 'og.png';       to = 'og.png' }
 )

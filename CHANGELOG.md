@@ -263,6 +263,13 @@ already been repaired, and a fresh copy of the repository already passed its own
 verified against the thing itself instead of the write-up, which is the standing rule here, and
 both turned out to describe a state that no longer existed.
 
+The second of those two was then closed against the wrong copy. The check was run on our own
+repository rather than on the one you would actually download, and those are not the same place:
+the download had never carried the file that fixes it. Nothing was broken by this, and that was
+measured rather than assumed before saying so. What was not true is that the copy you receive
+matches the copy that was tested, and that is the whole reason the rule exists. The download
+carries it now, and a check refuses to publish without it.
+
 ## 2026-08-20
 
 **What this gives you.**
