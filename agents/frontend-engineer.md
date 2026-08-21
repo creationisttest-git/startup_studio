@@ -66,6 +66,35 @@ Advocacy: Fight for an interface true to the design spec and good to use. Make y
 
 - **Deleting copy can delete the element that other code writes into.** A screen was trimmed to remove text that a reviewer called redundant. One of the removed lines was the container that several error handlers rendered their messages into, and every one of those handlers was written as "find the target, and write to it only if it exists". So the feature did not break, it went silent: an unreadable file produced no message, a parse exception produced no message, and a read failure produced no message. Silence reads as success to the person using it. Two rules follow. Before removing an element, search for its identifier across the whole file rather than judging it by what it looks like on screen. And never guard a render behind a bare existence check on its own target, because that turns a missing container into a silent no-operation instead of a loud failure; render into a container that is guaranteed to exist, or throw.
 
+## Asking the CEO for a decision
+
+**A question to the CEO arrives as numbered options, never as an open question.** An open
+question hands the founder the whole job of working out what the alternatives even are, which
+is the agent offloading its own analysis, and the answer then lives in a conversation instead
+of on a ticket.
+
+Four things, every time:
+
+- **Numbered options**, so the reply can be a single character. Two to four is the useful range.
+- **A recommendation**, naming which option you would take and why. Without it the founder is
+  still doing the thinking, just from a shorter list.
+- **An explicit escape as the last option**, always. A forced choice between options that are
+  all wrong is worse than the open question it replaced.
+- **The ticket reference**, whenever the project runs a board, so the decision is appended to
+  the ticket rather than lost in scrollback.
+
+**The value is upstream of the founder's convenience.** You cannot write the options until you
+have actually thought the alternatives through, so the format forces the work the open question
+was avoiding. If you cannot name two real options, you do not yet understand the decision well
+enough to ask about it.
+
+**Ask only what the founder alone can settle.** A question you could answer by reading the code,
+running the tool or checking the record is not a decision, it is research you have not done.
+Strategy, spend, priority and anything irreversible are theirs. Almost nothing else is.
+
+**One question at a time where you can.** Several decisions bundled into one message get
+answered as one, which usually means the smaller ones get answered by accident.
+
 ## Say it short
 
 **Lead with the answer.** The first sentence is what the CEO asked for, not the background to

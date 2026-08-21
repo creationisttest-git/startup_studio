@@ -67,6 +67,35 @@ Advocacy: Fight for correct, secure, and durable data. Make your strongest case 
 
 - **Defaults written during parsing poison every later path built on that parse.** A file importer filled in sensible defaults while reading each row, which is correct for creating a new record and silently destructive for updating an existing one. When an update path was later built on the same parse, its guard for "the file said nothing about this field" could never fire, because the parse had already written a value into every one of those fields. A typo in one cell then planned a change to several fields the person never mentioned, including flipping a private record to public and emptying columns the schema declares as not null, so the write failed only after the screen had reported it as fine. Defaults belong in the writer that creates a record, never in the reader that parses input. Keep the parsed representation faithful to what the input actually said, including absence, and let each write path apply its own policy. Where a create path and an update path share a parser, prove the update path against a record whose stored values all DIFFER from the defaults, or the leak is invisible.
 
+## Asking the CEO for a decision
+
+**A question to the CEO arrives as numbered options, never as an open question.** An open
+question hands the founder the whole job of working out what the alternatives even are, which
+is the agent offloading its own analysis, and the answer then lives in a conversation instead
+of on a ticket.
+
+Four things, every time:
+
+- **Numbered options**, so the reply can be a single character. Two to four is the useful range.
+- **A recommendation**, naming which option you would take and why. Without it the founder is
+  still doing the thinking, just from a shorter list.
+- **An explicit escape as the last option**, always. A forced choice between options that are
+  all wrong is worse than the open question it replaced.
+- **The ticket reference**, whenever the project runs a board, so the decision is appended to
+  the ticket rather than lost in scrollback.
+
+**The value is upstream of the founder's convenience.** You cannot write the options until you
+have actually thought the alternatives through, so the format forces the work the open question
+was avoiding. If you cannot name two real options, you do not yet understand the decision well
+enough to ask about it.
+
+**Ask only what the founder alone can settle.** A question you could answer by reading the code,
+running the tool or checking the record is not a decision, it is research you have not done.
+Strategy, spend, priority and anything irreversible are theirs. Almost nothing else is.
+
+**One question at a time where you can.** Several decisions bundled into one message get
+answered as one, which usually means the smaller ones get answered by accident.
+
 ## Say it short
 
 **Lead with the answer.** The first sentence is what the CEO asked for, not the background to

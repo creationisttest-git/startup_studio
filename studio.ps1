@@ -1594,6 +1594,36 @@ function Show-Status ([switch]$Fix) {
             default   { $unread++; Write-Host ("  UNREAD   {0}   {1}" -f $t.Name, $s.Detail) -ForegroundColor Yellow }
         }
     }
+    # Every @import must RESOLVE. The check above verifies a project imports WARM_START.md; it
+    # never verified that the files a CLAUDE.md points at actually exist. One project imported a
+    # document retired seventeen days earlier that was no longer on disk, and reported "ok" here
+    # and "composed and current" in PROJECTS the whole time, because an unresolved import does
+    # not error, it silently loads nothing. A second project was importing the same retired
+    # document where it did still exist, which is worse: it was loading a retired file as
+    # though it were current.
+    #
+    # The instances were one edit each. This is the half that matters, because the class recurs:
+    # a document is retired at source, the scaffold is updated, and nothing sweeps the projects
+    # that already had it.
+    $deadImports = 0
+    foreach ($t in $stateTargets) {
+        $cm = Join-Path $t.Path 'CLAUDE.md'
+        if (-not (Test-Path $cm)) { continue }
+        $missing = @()
+        foreach ($line in ((Read-TextUtf8 $cm) -split "`r?`n")) {
+            $m = [regex]::Match($line.Trim(), '^@([^\s]+\.md)$')
+            if (-not $m.Success) { continue }
+            $rel = $m.Groups[1].Value
+            if (-not (Test-Path (Join-Path $t.Path $rel))) { $missing += $rel }
+        }
+        if ($missing.Count) {
+            $deadImports += $missing.Count
+            Write-Host ("  DEAD     {0}   imports that do not exist: {1}" -f $t.Name, ($missing -join ', ')) -ForegroundColor Red
+        }
+    }
+    if ($deadImports) {
+        Write-Host "  an import that resolves to nothing loads nothing, silently, and reports ok above." -ForegroundColor Red
+    }
     if ($unread) {
         Write-Host "  a warm start nothing imports is written every session and read in none." -ForegroundColor Yellow
         Write-Host "  fix: add a line reading '@WARM_START.md' to that project's CLAUDE.md." -ForegroundColor Yellow

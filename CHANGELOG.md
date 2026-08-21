@@ -10,8 +10,40 @@ Newest first. Dates are when the change went public.
 
 **What this gives you.**
 - **Release notes generated from a single source of truth**, so the page and the record cannot drift, and a stale page is detected rather than shipped.
-- **Thirteen dangling references fixed in the published docs**, including the starter template we ask people to copy.
+- **Every question an agent asks you now arrives as numbered options** with a recommendation and an explicit way out, so you answer with one character instead of doing the analysis yourself.
+- **A check that every project's imports resolve.** One project had been loading a pointer to a document deleted seventeen days earlier, silently, while reporting healthy.
 - **A clean-checkout test run**, so what another person receives is what we actually tested.
+
+### Every question to you arrives as a shortlist
+
+An agent that needs a decision used to be able to ask an open question. That hands the founder
+the whole job of working out what the alternatives even are, which is the agent offloading its
+own analysis, and the answer then lives in a conversation rather than on a ticket.
+
+Every role now carries the format: numbered options answerable with one character, a
+recommendation naming which the agent would take and why, an explicit escape as the last option
+because a forced choice between wrong answers is worse than the open question it replaced, and
+the ticket reference so the decision lands on the record.
+
+The value is upstream of convenience. An agent cannot write the options until it has thought the
+alternatives through, so the format forces the work the open question was avoiding. The rule was
+raised on 2026-08-17 and sat unbuilt for four days because it would have meant sixteen
+near-identical edits. With inherited rules it was one file.
+
+### An import that resolves to nothing loads nothing, and says nothing
+
+A project was importing a document retired on 2026-08-04. The file did not exist. Every session
+opened there for seventeen days loaded a pointer to nothing, and neither the roster check nor
+the state-document check noticed, because both were asking different questions: one compares
+hashes, the other confirms the state file is imported. Nothing confirmed the imports RESOLVE.
+
+A second project was importing the same retired document where it did still exist, which is
+worse: it was loading a retired file as though it were current.
+
+Both are fixed, and the health check now reports any import that points at a file which is not
+there, naming the project and the file. The instances were one edit each. The check is the half
+that matters, because the class recurs: a document is retired at source, the scaffold is
+updated, and nothing sweeps the projects that already had it.
 
 ### Every release now says what it gives you
 
