@@ -1051,6 +1051,13 @@ $PUBLIC_MANIFEST = @(
     # Measured before acting: the script still parses and all sixteen roles still register, so
     # the cost today is nil. What was not true is that a public clone matches what was tested,
     # and that is the property the rule exists for rather than a symptom anyone had hit.
+    # Cloudflare Pages serves this with a real 404 for any path it cannot match. Without it the
+    # host answered every unknown URL with the home page and HTTP 200, so a search engine could
+    # index unlimited duplicates of one page under junk addresses, a stale link never told
+    # anyone it was wrong, and a page that had never been published was indistinguishable from
+    # one that had. That last one is how this was found: a health check reported /reference
+    # healthy before it existed.
+    @{ from = '404.html';     to = '404.html' },
     @{ from = '.gitattributes'; to = '.gitattributes' },
     @{ from = '_headers';     to = '_headers' },
     @{ from = 'og.png';       to = 'og.png' }

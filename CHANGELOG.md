@@ -13,6 +13,7 @@ Newest first. Dates are when the change went public.
 - **The rules are put back at the moment they are most likely to be lost.** When a long session drops context, the standing rules are restated and the team is asked to prove its roster is actually loaded rather than assert it.
 - **The board now refuses what it used to merely describe.** Seven rules every project was trusted to remember are enforced by the tool, and the proofs ship with it.
 - **Both new hooks record that they ran**, which closes a gap that had been open for weeks: nothing could tell a hook that did nothing from a hook that was never running.
+- **A web address that does not exist now says so.** Every unknown address on the site used to return the home page and report success, so a mistyped or out-of-date link never told anyone it was wrong, and search engines could file the same page under any number of junk addresses.
 
 ### A project can finally see itself
 
@@ -51,6 +52,24 @@ Two words were separated first, because they were being used for one thing and h
 fixes. Files go stale, and a command fixes that without anyone noticing. A session slips, and no
 command can fix it; only reading something again can. One word covering both would have produced a
 message telling somebody to run a tool that cannot help them.
+
+### A missing page used to answer as if it were there
+
+Every address the site could not match returned the home page, and returned it as a success. A
+link that had gone out of date never told anyone. A search engine could file the same page under
+any number of wrong addresses. And a page that had not been published yet was indistinguishable
+from one that had.
+
+That last consequence is how it was found, and it is the part worth keeping. A health check ran
+over all seven pages and reported every one healthy, including one that did not exist yet. It was
+not wrong about what it measured; it was answering a different question from the one it was asked.
+Anything checking only whether an address responds, against a site that answers everything, cannot
+tell a published page from an absent one.
+
+There is a proper not-found page now. It carries the same navigation as everything else, so
+somebody who arrives by a broken link can still get where they were going, and it asks search
+engines not to file it, because an error page that gets indexed collects the same junk addresses
+the old behaviour was collecting.
 
 ### The board refuses, where it used to explain
 
