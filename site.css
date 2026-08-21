@@ -115,18 +115,24 @@
   }
   .sitemap a[aria-current="page"] .n { color: var(--phosphor); }
   .sitemap a:focus-visible { outline: 2px solid var(--phosphor); outline-offset: -2px; }
-  /* ---- hamburger, below the width where eight tabs stop fitting ---- */
+  /* ---- hamburger, below the width where the tabs stop fitting ----
+     Raised from 60rem when Releases made a sixth tab. The bar needs roughly 1145px for six
+     tabs plus the wordmark and the pinned call to action; below that the links strip scrolls
+     sideways with its scrollbar hidden, so the last tab is present and invisible. A nav item
+     nobody can see is worse than a menu button. site.js closes the panel at the same width,
+     and the two must be changed together. */
   .navtoggle {
     display: none; align-items: center; gap: 0.5rem; align-self: center;
     background: transparent; border: 1px solid var(--rule); color: var(--phosphor);
     font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.06em;
-    padding: 0.5rem 0.8rem; min-height: 38px; cursor: pointer;
+    padding: 0.5rem 0.8rem; min-height: 44px; min-width: 44px; cursor: pointer;
+    justify-content: center;
   }
   .navtoggle:hover { border-color: var(--phosphor); background: rgba(53,208,106,0.06); }
   .navtoggle:focus-visible { outline: 2px solid var(--bright); outline-offset: 2px; }
   .navicon { font-size: 1rem; line-height: 1; }
 
-  @media (max-width: 60rem) {
+  @media (max-width: 74rem) {
     .navtoggle { display: inline-flex; }
     .sitemap-title { display: none; }
     .sitemap { padding: 0.5rem clamp(0.6rem, 3vw, 1.2rem); gap: 0.6rem; }
@@ -568,3 +574,109 @@
 .pullbox .pk{font-family:var(--mono); font-size:.68rem; letter-spacing:.16em; text-transform:uppercase; color:var(--amber); margin:0 0 .6rem}
 .pullbox p{margin:0; font-size:1.02rem; line-height:1.68}
 .pullbox strong{color:var(--bright)}
+
+/* ---- release notes ---- */
+
+.rel-intro{max-width:62ch}
+
+/* The filter is a control only while site.js is running, so it is styled off until the page
+   sets the `js` class in its head. A select that submits, reloads a static document and
+   changes nothing is worse than having no control at all. With scripting off every release
+   is still on the page, newest first, with the latest one open. */
+.rel-filter{display:none}
+.js .rel-filter{
+  display:flex; flex-wrap:wrap; align-items:center; gap:.7rem .9rem;
+  margin:1.9rem 0 0; padding:1rem 1.2rem;
+  border:1px solid var(--rule); border-left:2px solid var(--phosphor);
+  background:var(--deep);
+}
+.rel-filter label{
+  font-family:var(--mono); font-size:.7rem; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--phosphor); flex:none;
+}
+.rel-filter select{
+  font-family:var(--mono); font-size:.86rem; color:var(--bright);
+  background:var(--void); border:1px solid var(--rule); border-radius:2px;
+  padding:.65rem .7rem; min-height:44px;
+  flex:1 1 13rem; min-width:0; max-width:22rem;
+}
+.rel-filter select:hover{border-color:var(--dim)}
+.rel-filter select:focus-visible{outline:2px solid var(--phosphor); outline-offset:2px}
+.rel-go{
+  font-family:var(--mono); font-size:.76rem; letter-spacing:.06em;
+  color:var(--phosphor); background:transparent; border:1px solid var(--dim);
+  padding:.65rem 1.1rem; min-height:44px; cursor:pointer; flex:none;
+}
+.rel-go:hover{background:var(--fill); border-color:var(--phosphor); color:var(--bright)}
+.rel-go:focus-visible{outline:2px solid var(--bright); outline-offset:2px}
+
+/* Stacked and full width on a phone, so the select and the button are each a comfortable
+   thumb target rather than two narrow ones sharing a line. */
+@media (max-width:32rem){
+  .js .rel-filter{flex-direction:column; align-items:stretch}
+  .rel-filter label{margin-bottom:-.2rem}
+  /* flex-basis follows the main axis, so the 13rem that sets a sensible WIDTH in a row makes
+     the select 13rem TALL once the bar stacks. Measured at 375px: 208px high. */
+  .rel-filter select{flex:none; width:100%; max-width:none}
+  .rel-go{width:100%}
+}
+
+.rel-noscript{
+  font-family:var(--mono); font-size:.78rem; color:var(--muted);
+  margin:1.5rem 0 0; border-left:2px solid var(--rule); padding-left:.9rem;
+}
+
+/* site.js writes here on load and on every filter. Empty means scripting is off, and an
+   empty line with padding would read as a rendering fault rather than as nothing to say. */
+.rel-status{
+  font-family:var(--mono); font-size:.76rem; color:var(--muted);
+  margin:1rem 0 0; letter-spacing:.02em;
+}
+.rel-status:empty{display:none}
+
+.rel-list{
+  margin-top:1.6rem; display:grid; gap:1px;
+  background:var(--rule); border:1px solid var(--rule);
+}
+.rel{background:var(--deep)}
+.rel[hidden]{display:none}
+
+.rel-sum{
+  display:block; cursor:pointer; list-style:none; position:relative;
+  padding:1rem 3.2rem 1rem 1.3rem; min-height:56px;
+}
+.rel-sum::-webkit-details-marker{display:none}
+.rel-sum:hover{background:rgba(53,208,106,.06)}
+.rel-sum:focus-visible{outline:2px solid var(--phosphor); outline-offset:-2px}
+.rel-sum::after{
+  content:"+"; position:absolute; right:1.3rem; top:50%; transform:translateY(-50%);
+  font-family:var(--mono); font-size:1.05rem; line-height:1; color:var(--dim);
+}
+.rel[open] .rel-sum{background:rgba(53,208,106,.05)}
+.rel[open] .rel-sum::after{content:"\2212"; color:var(--phosphor)}
+
+.rel-h{
+  margin:0; font-family:var(--mono); font-weight:500; font-size:.95rem;
+  color:var(--bright); display:flex; align-items:center; gap:.7rem; flex-wrap:wrap;
+}
+.rel-tag{
+  font-size:.6rem; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--amber); border:1px solid var(--amber); background:rgba(255,180,84,.06);
+  padding:.16rem .45rem; white-space:nowrap;
+}
+
+/* Inset from the card edge so the rule under the date reads as a divider rather than as the
+   card's own border. This is a block element, so the margin applies. */
+.rel-copy{
+  margin:0 1.3rem; padding:1.2rem 0 1.4rem;
+  border-top:1px solid var(--rule);
+}
+.rel-copy p{margin:0 0 1rem}
+/* Whatever ends the card, a paragraph or a list, does not add a trailing gap. */
+.rel-copy > :last-child{margin-bottom:0}
+.rel-points{margin:0 0 1rem; padding-left:1.2rem; max-width:var(--measure)}
+.rel-points::marker,.rel-points li::marker{color:var(--dim)}
+.rel-points li{margin:0 0 .5rem}
+.rel-points li:last-child{margin-bottom:0}
+
+.rel-foot{margin-top:1.8rem; font-family:var(--mono); font-size:.78rem; color:var(--muted)}

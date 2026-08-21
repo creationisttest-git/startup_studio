@@ -889,6 +889,10 @@ $PUBLIC_MANIFEST = @(
     @{ from = 'solution.html';   to = 'solution.html' },
     @{ from = 'prototypes.html'; to = 'prototypes.html' },
     @{ from = 'how-to.html';     to = 'how-to.html' },
+    # Generated from CHANGELOG.md, never hand-edited. The generator ships beside it so a
+    # fork can rebuild the page rather than inheriting one it cannot regenerate.
+    @{ from = 'releases.html';   to = 'releases.html' },
+    @{ from = 'tools';           to = 'tools' },
     @{ from = 'site.css';        to = 'site.css' },
     @{ from = 'site.js';         to = 'site.js' },
     @{ from = 'METHOD.md';    to = 'METHOD.md' },
