@@ -6,6 +6,73 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-22
+
+**What this gives you.**
+- **A project tells you what is wrong with it, in the project.** The health check has always run here and reported on everything else, so the session that could fix a problem was the one session that never heard about it. It now speaks up where the work happens, names the rule and the fix, and says nothing at all when nothing is wrong.
+- **The rules are put back at the moment they are most likely to be lost.** When a long session drops context, the standing rules are restated and the team is asked to prove its roster is actually loaded rather than assert it.
+- **The board now refuses what it used to merely describe.** Seven rules every project was trusted to remember are enforced by the tool, and the proofs ship with it.
+- **Both new hooks record that they ran**, which closes a gap that had been open for weeks: nothing could tell a hook that did nothing from a hook that was never running.
+
+### A project can finally see itself
+
+The health check reported on nine projects and only ever ran in one of them. So a project could be
+running a stale team, or loading a document that had been deleted, and every session opened there
+would be told nothing, because the only thing that knew was somewhere else. One project ran a
+retired process for weeks. Another loaded a pointer to a document deleted seventeen days earlier
+while reporting itself healthy.
+
+A session opened in a project now gets a short brief at the start. It names the rule that is
+broken, what is actually wrong, and the one thing to do about it. When nothing is wrong it says
+nothing, which is what makes the rest of it worth reading.
+
+**A third check was written and then cut, before any of this shipped.** It reported projects that
+have never recorded how they are actually doing. Run against the real portfolio it fired on five
+of nine, with the same sentence every time, and it failed a second test nobody had written down:
+the session cannot act on it. That needs numbers only the founder has. A brief that greets five of
+every nine sessions with work they cannot do is training people to skip the brief, so it was
+removed rather than reworded. What survives is the change rather than the standing condition: a
+project that was recording how it was doing and then stopped.
+
+### The rules are restated exactly when they are being dropped
+
+Long sessions have been blamed for the team quietly stopping following its own rules. The most
+likely cause is the moment a conversation gets too long and older context is discarded, and that
+moment is now the trigger: the standing rules are put back in front of the team as it happens,
+rather than on a timer that mostly fires when nothing is going on.
+
+The block is deliberately short, because one nobody finishes reading does not work, and it ends
+with an instruction rather than a reminder: name your team members and count them. Not "the team
+is configured", which is a claim about files. Name them. Thirteen of sixteen were missing from
+every project for weeks while every check reported them present and correct, and the only thing
+that would have caught it was somebody being asked to list who they could actually call.
+
+Two words were separated first, because they were being used for one thing and have opposite
+fixes. Files go stale, and a command fixes that without anyone noticing. A session slips, and no
+command can fix it; only reading something again can. One word covering both would have produced a
+message telling somebody to run a tool that cannot help them.
+
+### The board refuses, where it used to explain
+
+The board this method ships has always documented its rules and enforced none of them, so every
+project built from it was trusted to remember the most important one: whoever built the thing does
+not get to be the one who says it works. Seven rules are now refused by the tool rather than
+written down for you. Only QA can send work for your approval, and only with notes a person can
+follow. Nothing gets started past the limit on work in flight. A decision you were asked for
+cannot be quietly closed unanswered. A question cannot reach you without numbered options and a
+recommendation. And a ticket number can never be reused, because a reused number points two
+pieces of history at the same address.
+
+The proofs ship with it. Each rule is tested twice, once that it refuses the thing it names and
+once that it does not refuse anything legitimate, because a rule that refuses everything is as
+useless as one that refuses nothing and only the second kind announces itself.
+
+**It refused the person who wrote it, on the day it was written.** Work was started while two
+larger pieces were already open, and the tool declined. That is the argument for it, in one
+instance.
+
+---
+
 ## 2026-08-21
 
 **What this gives you.**
@@ -467,6 +534,7 @@ recollection of the last run.
 - **A concurrency limit**, two large items and three small. Ideas arrive faster than anything finishes; without a ceiling the squad context-switches across five threads and completes none. At the limit you get the count and a question, not silent queueing.
 - **Guaranteed capture of anything you say.** Everything gets written down. Not everything gets started.
 - **A self-assessment each session**, read by the next before it plans, so standards slipping is visible from the centre.
+- **The health check now covers the studio itself**, which had been the one thing it never looked at, so a problem in the place that owns the rules is now as visible as a problem anywhere else.
 - **Each project can now reach only its own data**, so one project's credentials are worth nothing anywhere else.
 
 ### The gates were run against the studio's own work, and stopped it

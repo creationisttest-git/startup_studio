@@ -87,6 +87,11 @@ function assertPublishableKey(value, name) {
 }
 
 const https = require('https');
+// The refusals, in their own file so they can be tested without a database, a network or a
+// credential. board-refusals.test.js proves each one both ways: it refuses what it names, and
+// it does not refuse anything legitimate. A guard that refuses everything is as useless as one
+// that refuses nothing, and only the second failure mode is obvious.
+const REFUSE = require('./board-refusals.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const ANON_KEY     = process.env.SUPABASE_ANON_KEY;
@@ -231,7 +236,18 @@ async function main() {
   }
   if (cmd==='move') {
     const t = await findOne(a1); const status = reqStatus(a2);
-    await patch(t.id, { status, position: await nextPos(status) });
+    // ENFORCED, not documented. This reference described these rules and checked none of them, so
+    // every board built from it trusted its operator to remember the single most important one:
+    // the agent that built the thing does not get to certify it.
+    const notes = process.env.BOARD_NOTES || a3 || null;
+    REFUSE.assertUatMove(status, process.env.BOARD_BY || null, notes);
+    REFUSE.assertCeiling(await getAll(), t, status);
+    const body = { status, position: await nextPos(status) };
+    if (status === 'uat' && notes) {
+      body.description = (t.description ? t.description + '\n\n' : '') +
+        'TEST NOTES (' + new Date().toISOString().slice(0,10) + ', qa-tester): ' + notes;
+    }
+    await patch(t.id, body);
     console.log('moved "'+t.title+'" -> '+LABELS[status]);
     return;
   }

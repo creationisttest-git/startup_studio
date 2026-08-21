@@ -49,6 +49,7 @@ param(
     [switch]$Release,
     [switch]$Connect,
     [switch]$Autoload,
+    [switch]$Recall,
     [switch]$Update,
     [switch]$DryRun,
     [string]$PublicRepo,
@@ -1315,10 +1316,183 @@ $($files.Count) file(s) changed: $(($files | Select-Object -First 10) -join ', '
     Publish-Public $PublicRepo
 }
 
+# --------------------------------------------------------------- session brief
+
+# WHY THIS EXISTS. -Doctor reports on every project and only ever runs in the studio, so the
+# session that could act on a finding is the one session that never sees it. One project ran a
+# roster sixteen roles stale and nobody working there could have known; another imported a
+# document retired seventeen days earlier while reporting itself healthy.
+#
+# TWO RULES SHAPE THIS, both from the assessment and both binding.
+#
+# It NAMES the broken rule and the fix. "Possible drift" is a smoke alarm with no address, and
+# this studio already publishes a REALITY line that nine projects have learned to ignore.
+#
+# It is SILENT when nothing is wrong, so silence carries information. That is also the measure:
+# of the first ten project sessions, it must say nothing on the healthy ones and name a real
+# fixable problem on at least one. Never firing means it is decoration and gets deleted; firing
+# on healthy projects means it is noise and gets tightened.
+function Get-ProjectBrief ([string]$ProjectPath) {
+    $findings = @()
+    if (-not $ProjectPath -or -not (Test-Path $ProjectPath)) { return $findings }
+    $name = Split-Path $ProjectPath -Leaf
+
+    # An import that resolves to nothing loads nothing, silently, and every check upstream of this
+    # one reported the project healthy while it happened. Cheapest and highest-value check here.
+    $cm = Join-Path $ProjectPath 'CLAUDE.md'
+    if (Test-Path $cm) {
+        $dead = @()
+        foreach ($line in ((Read-TextUtf8 $cm) -split "`r?`n")) {
+            $m = [regex]::Match($line.Trim(), '^@([^\s]+\.md)$')
+            if (-not $m.Success) { continue }
+            if (-not (Test-Path (Join-Path $ProjectPath $m.Groups[1].Value))) { $dead += $m.Groups[1].Value }
+        }
+        if ($dead.Count) {
+            $findings += @{
+                Rule = 'a document this session loads does not exist'
+                What = ("CLAUDE.md imports " + ($dead -join ', ') + ", and nothing is there.")
+                Fix  = 'Delete the import line, or restore the document. An unresolved import fails silently.'
+            }
+        }
+    }
+
+    # A warm start written every session and imported by none is a file nobody opens, which is
+    # indistinguishable from not having written it. The studio was in that state for two days.
+    $warm = Join-Path $ProjectPath 'WARM_START.md'
+    if (Test-Path $warm) {
+        $imports = (Test-Path $cm) -and ((Read-TextUtf8 $cm) -match '@[^\r\n]*WARM_START\.md')
+        if (-not $imports) {
+            $findings += @{
+                Rule = 'state is written and never read'
+                What = 'WARM_START.md exists and no CLAUDE.md imports it, so no session loads it.'
+                Fix  = "Add a line reading '@WARM_START.md' to $name's CLAUDE.md."
+            }
+        }
+    }
+
+    # A reading that has never been taken, on a project old enough to have sold something. The
+    # threshold is deliberately generous: this fires once a project is a month past its last
+    # reading, not on a project that started last week, because a check that greets every new
+    # project with a complaint is one people learn to scroll past.
+    $wow = Join-Path $ProjectPath 'WAYS_OF_WORKING.md'
+    if (Test-Path $wow) {
+        $inTable = $false; $last = $null; $rows = 0
+        foreach ($l in (Get-Content $wow -ErrorAction SilentlyContinue)) {
+            if ($l -match '^\s*\|.*\bRead\b.*\bPeriod\b') { $inTable = $true; continue }
+            if ($inTable) {
+                if ($l -match '^\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|') {
+                    $rows++
+                    $d = [datetime]$matches[1]
+                    if ($null -eq $last -or $d -gt $last) { $last = $d }
+                } elseif ($l -notmatch '^\s*\|') { $inTable = $false }
+            }
+        }
+        # An EMPTY table is a standing accusation and is reported. A MISSING table is invisible,
+        # and this deliberately does not invent one: a project that keeps no reading table has
+        # not opted into the rule, and inventing the obligation here would fire on every project
+        # at once, which is the noise failure mode the measure names.
+        # CUT BY ITS OWN MEASURE, before it shipped, and the reasoning is kept because the
+        # temptation to add it back will recur. "This project has never had a reading" was in here
+        # and was TRUE of five of the nine projects, so five of every nine sessions would have
+        # opened with the identical sentence, forever, until somebody acted. That is the noise mode
+        # the measure names, and it is precisely how the REALITY line already earned its place on
+        # the list of things nine projects scroll past.
+        #
+        # It also fails the other test that matters here: the session cannot fix it. A reading needs
+        # the founder's numbers. A brief that greets a session with work it cannot do is training
+        # people to ignore the brief. That finding belongs in -Doctor, where it already is, and in
+        # wind-down, where somebody is deciding what to do next.
+        #
+        # What survives is the CHANGE: a project that took readings and then stopped. Rare, real,
+        # and a genuine signal rather than a standing condition.
+        if ($last -and ((Get-Date) - $last).Days -gt 35) {
+            $findings += @{
+                Rule = 'the last reading is over a month old'
+                What = ('Last read ' + $last.ToString('yyyy-MM-dd') + ', ' + ((Get-Date) - $last).Days + ' days ago.')
+                Fix  = 'Run /reality-check here before deciding what to build next.'
+            }
+        }
+    }
+
+    $findings
+}
+
+# --------------------------------------------------------------- hook observability
+
+# WARM_START has carried this line for weeks: "The autoload hook has never been observed firing.
+# It is registered and exits silently when nothing has changed, which is indistinguishable from
+# not running at all." That is a check nobody has watched fail, one level up: the MECHANISM every
+# other guard here depends on has never been proved to run.
+#
+# So every hook entry point records that it fired. One line, appended, never read by the tool
+# itself. It is the only way to answer "did it run" without changing what the hook does, and it is
+# what makes the measure on the slip check countable rather than a matter of impression.
+#
+# Deliberately in the studio root and gitignored. It is machine-local evidence, not project state,
+# and it must never become a file anyone feels obliged to tidy.
+function Write-HookLog ([string]$Event, [string]$Detail) {
+    try {
+        $line = ((Get-Date).ToString('s') + "  " + $Event + "  " + $Detail)
+        Add-Content -Path (Join-Path $StudioRoot '.studio-hooks.log') -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+    } catch { }
+}
+
+# --------------------------------------------------------------- recall
+
+# Compaction is the one event that fires exactly when context is being dropped, which makes it the
+# right moment to re-state the rules rather than a timer that mostly fires when nothing is
+# happening. The CONTENT lives in base\governance\SESSION_RECALL.md and is not published; this only
+# reads it, so nothing unproven ships to the export while the mechanism is still being tried.
+function Invoke-Recall {
+    $doc = Join-Path $GOV_BASE 'SESSION_RECALL.md'
+    Write-HookLog 'recall' $(if (Test-Path $doc) { 'ok' } else { 'no governance' })
+    if (-not (Test-Path $doc)) {
+        # The public-export case, and it says so rather than printing nothing. A user whose install
+        # carries no governance would otherwise see a hook that runs and does nothing, which is the
+        # same silence this whole file exists to remove.
+        @{
+            systemMessage  = ("Studio recall: this install carries no base" + [char]92 + "governance" + [char]92 +
+                              "SESSION_RECALL.md, so there are no standing rules to restate. Write your own there, " +
+                              "or unregister the PreCompact hook.")
+            suppressOutput = $true
+        } | ConvertTo-Json -Compress
+        return
+    }
+    $text = Read-TextUtf8 $doc
+    # Only the two sections a session needs re-stated. The rest of the document explains WHY, which
+    # is for a person reading the file and is exactly the sort of length that stops a block being
+    # read at all.
+    $keep = @()
+    $on = $false
+    foreach ($line in ($text -split "`r?`n")) {
+        if ($line -match '^##\s+What is re-stated')            { $on = $true;  continue }
+        if ($line -match '^##\s+The slip check')                { $on = $false; continue }
+        if ($line -match '^---\s*$')                            { continue }
+        if ($on) { $keep += $line }
+    }
+    $block = (($keep -join "`n") -replace "`n{3,}", "`n`n").Trim()
+    @{ systemMessage = ("STUDIO RECALL, context was just compacted." + "`n`n" + $block); suppressOutput = $true } |
+        ConvertTo-Json -Compress
+}
+
 # --------------------------------------------------------------- autoload
 
 # Fast path for the SessionStart hook. Finds the project containing $Path, rebuilds its
 # composed roster only if the base has moved, and stays silent when nothing is needed.
+# The project a path belongs to: the nearest folder at or above it that a person would call a
+# project. Deliberately NOT the overlay walk below, which stops at the folder holding overlays and
+# therefore cannot see a project that has none.
+function Resolve-OwningProject ([string]$Path) {
+    $cur = $Path
+    while ($cur) {
+        if ((Test-Path (Join-Path $cur 'CLAUDE.md')) -or (Test-Path (Join-Path $cur '.git'))) { return $cur }
+        $parent = Split-Path $cur -Parent
+        if (-not $parent -or $parent -eq $cur -or $parent -eq $ProjectsRoot) { return $null }
+        $cur = $parent
+    }
+    $null
+}
+
 function Invoke-Autoload ([string]$Path) {
     $dir = if ($Path) { $Path } else { (Get-Location).Path }
     $cur = $dir
@@ -1328,7 +1502,7 @@ function Invoke-Autoload ([string]$Path) {
         if ($parent -eq $ProjectsRoot -or $parent -eq $cur) { $cur = $null; break }
         $cur = $parent
     }
-    if (-not $cur -or -not (Test-Path (Join-Path $cur $OVERLAY_DIR))) { return }
+    if (-not $cur -or -not (Test-Path (Join-Path $cur $OVERLAY_DIR))) { return $null }
 
     $agDir = Join-Path $cur $AGENT_DIR
     $manPath = Join-Path $agDir '.sync-manifest.json'
@@ -1350,15 +1524,15 @@ function Invoke-Autoload ([string]$Path) {
             }
         }
     }
-    if (-not $needs) { return }
+    if (-not $needs) { return $null }
     # Build-Project returns early for the studio, so without this the hook announces a rebuild
     # that did not happen. A false "rebuilt" is worse than silence: it is the reassurance that
     # stops someone checking.
-    if (Test-IsInStudio $cur) { return }
+    if (Test-IsInStudio $cur) { return $null }
     Build-Project $cur -Quiet -Silent
-    # Report through the hook contract rather than printing, so a no-op stays invisible
-    # and a real rebuild surfaces as one line the user actually sees.
-    @{ systemMessage = "Studio agents rebuilt for $(Split-Path $cur -Leaf) from base $(Get-StudioVersion)." ; suppressOutput = $true } | ConvertTo-Json -Compress
+    # Returns the sentence rather than printing it. The dispatch owns the one write to stdout, so
+    # the rebuild line and the session brief cannot arrive as two competing JSON documents.
+    "Studio agents rebuilt for $(Split-Path $cur -Leaf) from base $(Get-StudioVersion)."
 }
 
 # --------------------------------------------------------------- connect
@@ -1867,6 +2041,13 @@ function Show-Status ([switch]$Fix) {
 
 # --------------------------------------------------------------- dispatch
 
+if ($Recall) {
+    # Runs on PreCompact. Must never fail the session: a hook that throws while context is being
+    # dropped costs the session the very thing it was trying to preserve.
+    try { Invoke-Recall } catch { }
+    return
+}
+
 if ($Autoload) {
     # Runs on every session start. Must be fast and silent when there is nothing to do.
     #
@@ -1880,16 +2061,56 @@ if ($Autoload) {
     #
     # It still returns 0. A SessionStart hook that fails the session over a stale roster trades a
     # missing rule for no session, which is the worse of the two.
-    try { Invoke-Autoload $Path }
+    $lines = @()
+    Write-HookLog 'autoload' $Path
+    try {
+        $rebuilt = Invoke-Autoload $Path
+        if ($rebuilt) { $lines += $rebuilt }
+
+        # THE SESSION BRIEF. -Doctor reports on every project and only ever runs in the studio, so
+        # the session that could act on a finding is the one that never sees it. This runs where
+        # the work happens. It names the rule and the fix, never "possible drift", and it says
+        # nothing at all when nothing is wrong, which is what makes silence worth anything.
+        #
+        # Wrapped separately from the rebuild on purpose: a brief that throws must not take the
+        # rebuild down with it, and neither may fail the session.
+        # Computed into a variable first. `if` is a STATEMENT in PowerShell 5.1 and is not valid
+        # in an argument position: the file parsed cleanly and threw "the term 'if' is not
+        # recognized" at runtime, on every session start, and the bare catch below hid it. Parsing
+        # and running are separate questions and only the first was being asked.
+        $from = $Path
+        if (-not $from) { $from = (Get-Location).Path }
+        try {
+            $proj = Resolve-OwningProject $from
+            if ($proj) {
+                foreach ($f in (Get-ProjectBrief $proj)) {
+                    $lines += ("STUDIO: " + $f.Rule + ". " + $f.What + " " + $f.Fix)
+                }
+            }
+        } catch {
+            # NOT a bare catch. This swallowed a live defect for the whole of its first test run,
+            # which is the failure a reviewer flagged in the test harness the same day. The brief
+            # must never fail the session, and it must never fail SILENTLY either.
+            $lines += ("Studio could not read the session brief: " + $_.Exception.Message)
+        }
+    }
     catch {
         # The SAME shape the success path returns, because the consumer parses this as JSON and a
         # Write-Host line is a different channel it does not read. suppressOutput is deliberately
         # false: a rebuild that quietly did not happen is exactly what must not be suppressed.
-        @{
-            systemMessage  = ("Studio could not rebuild the roster: " + $_.Exception.Message +
-                              " Agents in this session may be missing a rule. Run studio.ps1 -Doctor.")
-            suppressOutput = $false
-        } | ConvertTo-Json -Compress
+        $lines += ("Studio could not rebuild the roster: " + $_.Exception.Message +
+                   " Agents in this session may be missing a rule. Run studio.ps1 -Doctor.")
+    }
+    # ONE write, or nothing. Two ConvertTo-Json documents on the same stream is not valid JSON and
+    # the consumer reads whichever it can, which is a worse failure than saying nothing.
+    if ($lines.Count) {
+        # suppressOutput stays TRUE, which is the long-standing behaviour and is deliberate: it
+        # hides the raw JSON echo, and systemMessage reaches the reader either way. An earlier
+        # version of this set it to false on the failure path, reasoning that a rebuild which did
+        # not happen must not be suppressed. That conflated suppressing the raw stdout with
+        # suppressing the MESSAGE, which are different things, and it broke an existing assertion
+        # that had been guarding the correct behaviour since before any of this was written.
+        @{ systemMessage = ($lines -join " "); suppressOutput = $true } | ConvertTo-Json -Compress
     }
     return
 }
