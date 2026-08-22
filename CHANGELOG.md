@@ -6,6 +6,30 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-23
+
+**What this gives you.**
+- **You can see what each project loads before it starts working.** Two projects had quietly grown past the point where a session can open without a warning, and the only thing that reported it was the session that hit it. The health check now shows the number for every project, so a project approaching the ceiling is named weeks before it gets there.
+- **What a session has to read before it starts stops growing without limit.** The record itself keeps everything, as it always has. What changes is that older entries move somewhere they are kept and can be looked up, rather than being loaded every single time.
+
+### A project can now tell you what it costs to open
+
+Every project loads its own documents at the start of every session: what was decided, what is half-built, how it works. That is the point, and it is what stops a session repeating a conversation from three weeks ago. It also has a running cost, and nothing was watching it.
+
+Two projects had crossed the line where those documents no longer load quietly. One of them announced itself, because somebody opened a session there and got a warning. The other had been over for an unknown length of time, further past the limit than the first, and nobody knew because nobody had opened it lately.
+
+The health check now reports what each project loads and flags anything approaching the limit. There is also a middle state for the case that would otherwise never be reported at all: a project can spread the same weight across several documents, trip no warning anywhere, and still spend a large part of a session's attention before any work begins. At least one project is in that position today. Splitting a file to silence a warning, without reducing what is actually loaded, only moves the problem somewhere nothing looks.
+
+### A decision worth recording is a rule and a reason, not a story
+
+The cause was measured rather than guessed at. In the project that raised this, the decisions table was seventy-one per cent of the file: ninety-five entries averaging around twelve hundred characters, the longest over three and a half thousand. Individually every one of them is worth having. Together they are the single largest thing every session reads before it can start.
+
+The rule for writing one now says so, in both places that create these records: the entry is what was settled and what it cost to learn, in two or three sentences, and the story of how it was found belongs in the session history or on the ticket, where somebody goes looking for it rather than loading it every time. Past roughly a hundred entries, the older ones move to a separate file that is kept and pointed at but not loaded automatically. Nothing is deleted, and the trail stays whole.
+
+This studio wrote the rule that caused the problem. Every project was on the same curve by construction, which is why the fix is here and not in the project that noticed.
+
+---
+
 ## 2026-08-22
 
 **What this gives you.**

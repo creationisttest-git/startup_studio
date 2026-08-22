@@ -85,6 +85,31 @@ This is the durable record: architecture, decisions, schema, status, risks.
 
 - **Decisions table is append-only.** A reversal is a new row explaining the reversal, not
   an edit to the original. Never delete a row. It is an audit trail.
+- **A decision row is the rule and the reason it exists. Not the case study.** Two or three
+  sentences: what was settled, and what it cost to learn. The story of how it was found belongs
+  in the session log, and the detail belongs on the ticket. Both of those are read when somebody
+  goes looking; this table is read in full at the start of every session, by every session,
+  forever.
+
+  This is not a style preference. These documents are `@`-imported by `CLAUDE.md`, so the whole
+  table loads before any work begins, and Claude Code refuses to load a large one quietly. The
+  figure it warns at is not documented here; what was observed is a session opening where one
+  imported document had reached about 161,000 characters, and being warned before any work began. Two projects crossed that line without anyone noticing, because the only
+  thing that reports it is the session that opens there and finds a warning. In one, decisions
+  were 71 per cent of the file: ninety-five rows averaging 1,194 characters, the longest 3,607.
+
+  If a row is running long, that is a signal the reasoning wants to live somewhere else, not a
+  signal to write smaller. Put it on the ticket and leave the row saying what was decided.
+- **When the table passes about 60,000 characters, archive rather than trim.** Size is the
+  trigger rather than a row count, because rows vary: at the length they reached in the project
+  that raised this, a hundred rows was already 119,000 characters and past the point of warning.
+  As a rough guide that is somewhere around fifty entries, but measure rather than count.
+  **Archive all but the most recent twenty**, move them to `DECISIONS-ARCHIVE.md` in the same
+  folder, leave a line in the live table saying which numbers went where, and do not `@`-import
+  the archive. Nothing is ever
+  deleted and the trail stays whole; it is simply read on demand instead of every time.
+  `studio.ps1 -Doctor` reports what each project loads under CONTEXT, so this is visible well
+  before it becomes a warning.
 - **Schema or data-model changes** get recorded even if not yet built.
 - **New screens, tables, endpoints or agents** get recorded when identified, not when
   finished.

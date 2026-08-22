@@ -1618,6 +1618,46 @@ function Get-SessionFolders {
     $out | Sort-Object -Unique
 }
 
+
+# What a session in this project actually loads before it can do anything. Claude Code refuses to
+# quietly load any single @-imported document over 150,000 characters and warns at session start,
+# and the total across all of them is context spent before a word of work happens.
+#
+# NOTHING MEASURED THIS. Two projects were already over the limit when it was first checked, and
+# the second one had been over for an unknown length of time with nobody aware, because the only
+# thing that reports it is Claude Code itself and only to a session that happens to open there.
+# That is the ST-016 shape once more: the thing that knows is not the thing that could act.
+#
+# It is the studio's problem rather than each project's. The scaffold creates these documents, the
+# wind-down skill appends to them every session, and the append-only rule is ours, so every
+# project is on this curve by construction.
+# Taken from the warning text Claude Code shows, not measured here and not documented in this
+# repository. What was OBSERVED: a session opened where one imported document was 160,893
+# characters, and the tool warned. Everything past this line is therefore a threshold we chose to
+# report at, close to where the tool is known to complain, rather than a boundary we can prove.
+# If the tool changes it, this is the one line to correct.
+$CONTEXT_FILE_LIMIT = 150000
+function Get-LoadedContext ([string]$ProjectPath) {
+    $cm = Join-Path $ProjectPath 'CLAUDE.md'
+    if (-not (Test-Path $cm)) { return $null }
+    $text = Read-TextUtf8 $cm
+    $files = @([pscustomobject]@{ Name = 'CLAUDE.md'; Chars = $text.Length })
+    foreach ($line in ($text -split "`r?`n")) {
+        $m = [regex]::Match($line.Trim(), '^@([^\s]+\.md)$')
+        if (-not $m.Success) { continue }
+        $rel = $m.Groups[1].Value
+        $p = Join-Path $ProjectPath $rel
+        # A missing import is already reported by the DEAD check; here it simply loads nothing.
+        $n = if (Test-Path $p) { (Read-TextUtf8 $p).Length } else { 0 }
+        $files += [pscustomobject]@{ Name = $rel; Chars = $n }
+    }
+    [pscustomobject]@{
+        Total = ($files | Measure-Object -Property Chars -Sum).Sum
+        Files = $files
+        Over  = @($files | Where-Object { $_.Chars -gt $CONTEXT_FILE_LIMIT })
+    }
+}
+
 # --------------------------------------------------------------- reporting
 
 # A project can write its state faithfully at the end of every session and still never read
@@ -1970,6 +2010,50 @@ function Show-Status ([switch]$Fix) {
     #
     # This makes the silence visible. A DEFERRED row counts as looking, deliberately: the
     # founder was asked and said not now, which is an answer and is recorded as one.
+    Write-Host ""
+    Write-Host "CONTEXT (what a session loads before it starts)" -ForegroundColor Cyan
+    $ctxOver = 0; $ctxNear = 0
+    foreach ($t in $stateTargets) {
+        $ctx = Get-LoadedContext $t.Path
+        if (-not $ctx) { continue }
+        $k = [math]::Round($ctx.Total / 1000)
+        if ($ctx.Over.Count) {
+            $ctxOver++
+            $worst = ($ctx.Over | Sort-Object Chars -Descending | Select-Object -First 1)
+            Write-Host ("  OVER     {0,-38} {1,5}k loaded   {2} is {3}k, past the {4}k limit" -f `
+                $t.Name, $k, $worst.Name, [math]::Round($worst.Chars/1000), [math]::Round($CONTEXT_FILE_LIMIT/1000)) -ForegroundColor Red
+        } else {
+            # The per-file limit is the hard one, but a project whose largest document is most of
+            # the way there is worth naming while there is still time to act deliberately.
+            $big = @($ctx.Files | Where-Object { $_.Chars -gt ($CONTEXT_FILE_LIMIT * 0.6) })
+            if ($big.Count) {
+                $ctxNear++
+                $b = ($big | Sort-Object Chars -Descending | Select-Object -First 1)
+                Write-Host ("  near     {0,-38} {1,5}k loaded   {2} is {3}k" -f `
+                    $t.Name, $k, $b.Name, [math]::Round($b.Chars/1000)) -ForegroundColor Yellow
+            } elseif ($ctx.Total -gt $CONTEXT_FILE_LIMIT) {
+                # No single file trips the tool's warning and the total is still past what the
+                # tool considers too much for ONE document. Reported because the first version of
+                # this check called a project loading 195k "ok" purely because it had spread the
+                # weight over several files, which is the same cost and no warning at all.
+                $ctxNear++
+                Write-Host ("  watch    {0,-38} {1,5}k loaded   spread across {2} files, none over the limit" -f `
+                    $t.Name, $k, $ctx.Files.Count) -ForegroundColor Yellow
+            } else {
+                Write-Host ("  ok       {0,-38} {1,5}k loaded" -f $t.Name, $k) -ForegroundColor Gray
+            }
+        }
+    }
+    if ($ctxOver) {
+        Write-Host "  a document past the limit is not loaded quietly: the session opens with a warning," -ForegroundColor Red
+        Write-Host "  and everything in it is context spent before any work begins." -ForegroundColor Red
+        Write-Host "  fix: move older decisions into DECISIONS-ARCHIVE.md, which is NOT @-imported but is" -ForegroundColor Red
+        Write-Host "  pointed at from the document that is. Nothing is deleted and the trail stays whole." -ForegroundColor Red
+    } elseif ($ctxNear) {
+        Write-Host "  nothing is past the per-file threshold. The rows above are worth acting on before" -ForegroundColor Yellow
+        Write-Host "  they are, by moving older decisions out of what loads automatically." -ForegroundColor Yellow
+        Write-Host "  Splitting one document into two changes nothing on its own: the total is what costs." -ForegroundColor Yellow
+    }
     Write-Host ""
     Write-Host "REALITY" -ForegroundColor Cyan
     $overdue = 0; $never = 0
