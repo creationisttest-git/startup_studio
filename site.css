@@ -717,6 +717,17 @@
 .stacktable th,.stacktable td{border:1px solid var(--rule); padding:.7rem .85rem; text-align:left; vertical-align:top; line-height:1.6}
 .stacktable th{font-family:var(--mono); font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:var(--phosphor); background:var(--deep); font-weight:400}
 .stacktable td:first-child{color:var(--bright); white-space:nowrap; font-family:var(--mono); font-size:.8rem}
+/* The board table carries four columns and the last one is a short label that wrapped to two
+   lines at every width. Giving the two label columns a floor stops the meaning column taking
+   everything and leaving them to break mid-phrase. */
+.stacktable th:last-child,.stacktable td:last-child{white-space:nowrap}
+/* The one move on the board that belongs to the founder. It is amber for the same reason the
+   UAT card is: the board's whole point is that single boundary, and a table where every row
+   says Agents makes the exception disappear into the pattern. */
+.stacktable td.yours{color:var(--amber)}
+.stacktable td .sub{color:var(--muted); font-size:.9em}
+.bown .sub{color:var(--rule); text-transform:none; letter-spacing:0}
+.stacktable th:nth-child(2),.stacktable td:nth-child(2){white-space:nowrap}
 .stacktable td{color:var(--muted)}
 .stacktable td b{color:var(--prose); font-weight:600}
 .tablewrap{overflow-x:auto}

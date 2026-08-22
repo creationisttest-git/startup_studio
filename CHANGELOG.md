@@ -14,6 +14,9 @@ Newest first. Dates are when the change went public.
 - **The board now refuses what it used to merely describe.** Seven rules every project was trusted to remember are enforced by the tool, and the proofs ship with it.
 - **Both new hooks record that they ran**, which closes a gap that had been open for weeks: nothing could tell a hook that did nothing from a hook that was never running.
 - **A web address that does not exist now says so.** Every unknown address on the site used to return the home page and report success, so a mistyped or out-of-date link never told anyone it was wrong, and search engines could file the same page under any number of junk addresses.
+- **The reference page says what it is for, and what each board status means.** It opens with its purpose instead of listing what you are assumed to know, and a table now gives every status, what it means, and who is allowed to move it.
+- **The infrastructure standard names its source control.** It was relied on throughout the document and missing from the list of defaults.
+- **A deploy that silently stops happening is now written down as a known failure.** A git connection can stop triggering builds while every dashboard still reports it healthy, so the release reports success over a site serving the previous version.
 
 ### A project can finally see itself
 
@@ -89,6 +92,20 @@ useless as one that refuses nothing and only the second kind announces itself.
 **It refused the person who wrote it, on the day it was written.** Work was started while two
 larger pieces were already open, and the tool declined. That is the argument for it, in one
 instance.
+
+### The reference page tells you what it is for
+
+The page opened by naming three things the reader was assumed to already know, which is an unfriendly way to greet somebody who came looking for a definition. It now opens with what the page is and who it is for, in two sentences, and gets out of the way.
+
+The board section gained a table: every column, the status underneath it, what that status means, and who may move a ticket into it. The last of those was the point. There is exactly one move on the board that belongs to you, accepting the work, and the old wording used four different labels across eight rows which buried it. Every row now reads the same except the ones that genuinely differ.
+
+Roughly four hundred words came out. What is left is shorter and says more, because a reference page is looked things up in rather than read.
+
+### The stack list was missing the thing everything else sits on
+
+The standard named five layers and left out source control, while the rest of the same document leaned on it constantly: the account wide limit that binds first, the rule that a project must be reproducible from its repository, and the hosting combination to avoid. A default that everything depends on and nothing states is not a default, it is an assumption.
+
+It is written down now, in the standard first and then on the page. That order matters. A page that gets ahead of its own source of truth is how the two quietly stop agreeing.
 
 ---
 

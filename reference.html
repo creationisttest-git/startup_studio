@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Reference: the board, the stack, and what the words mean</title>
-<meta name="description" content="The seven board columns and eight ticket statuses every project runs, the infrastructure the studio defaults to and why, and a plain-English glossary of the terms the method uses.">
+<title>Startup Studio Reference</title>
+<meta name="description" content="Defines the Startup Studio board, its default technology stack and the terms used across the site and the repository. For anyone running it, contributing to it, or checking what a term means.">
 <link rel="canonical" href="https://startupstudio.projectfreedom.xyz/reference">
 <link rel="stylesheet" href="/site.css">
 
@@ -17,16 +17,16 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Startup Studio">
 <meta property="og:url" content="https://startupstudio.projectfreedom.xyz/reference">
-<meta property="og:title" content="Reference: the board, the stack, and what the words mean">
-<meta property="og:description" content="The seven board columns and eight ticket statuses every project runs, the infrastructure the studio defaults to and why, and a plain-English glossary of the terms the method uses.">
+<meta property="og:title" content="Startup Studio Reference">
+<meta property="og:description" content="Defines the Startup Studio board, its default technology stack and the terms used across the site and the repository. For anyone running it, contributing to it, or checking what a term means.">
 <meta property="og:image" content="https://startupstudio.projectfreedom.xyz/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Startup Studio, a dark terminal page describing a shared team of AI agents.">
 
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Reference: the board, the stack, and what the words mean">
-<meta name="twitter:description" content="The seven board columns and eight ticket statuses every project runs, the infrastructure the studio defaults to and why, and a plain-English glossary of the terms the method uses.">
+<meta name="twitter:title" content="Startup Studio Reference">
+<meta name="twitter:description" content="Defines the Startup Studio board, its default technology stack and the terms used across the site and the repository. For anyone running it, contributing to it, or checking what a term means.">
 <meta name="twitter:image" content="https://startupstudio.projectfreedom.xyz/og.png">
 </head>
 <body>
@@ -52,160 +52,176 @@
 <div class="wrap">
 
 <section id="reference">
-    <p class="eyebrow">Reference</p>
-    <h2>The board, the stack, and what the words mean.</h2>
+    <h2>Startup Studio Reference</h2>
 
-    <p class="rel-intro">Three things the method assumes you already know. They were written down in the repository and never on this site, so unless you cloned it, you could not check them. This page fixes that.</p>
+    <p class="rel-intro">This page defines the Startup Studio board, its default technology stack and the terms used across the site and the repository. It is for anyone running Startup Studio, contributing to it, or checking the precise meaning of a term.</p>
 
-    <h3 id="board">1 &gt; The board</h3>
-    <p>Every project runs the same board, and it is the only work queue. Seven columns, and eight ticket statuses underneath them. The reason it is fixed rather than per project is that the agents are written against these exact names: change the shape and the team stops matching the tool.</p>
+    <h3 id="board">1 &gt; The Board</h3>
+    <p>Every Project uses the same board as its only work queue. It has seven columns and eight status keys. I keep the structure fixed because the agents use these exact column names and keys. If they change, the team no longer matches the board.</p>
+    <p>The cards below are made up, to show the shape.</p>
+    <p><b>Agents move a ticket through all seven columns.</b> One transition is yours and no agent can make it: accepting the work. That changes the ticket from <b>uat</b> to <b>uat_complete</b> inside the UAT column rather than moving it along, and until you make it nothing goes any further.</p>
 
-    <p class="boardhint">Seven columns &#8594; swipe to see them all</p>
+    <p class="boardhint">Seven columns: swipe to see them all</p>
     <div class="boardwrap">
       <div class="board">
 
         <div class="bcol">
           <p class="bhead">Backlog<span class="bkey">backlog</span></p>
-          <div class="bcard"><b>Glossary on the site</b>Terms the release notes keep redefining.</div>
-          <p class="bown">Agents move</p>
+          <div class="bcard"><b>Dark mode</b>Raised, not scheduled yet.</div>
+          <p class="bown">Agents</p>
         </div>
 
         <div class="bcol">
-          <p class="bhead">To do<span class="bkey">todo</span></p>
-          <div class="bcard"><b>Publish the tech stack</b>Named in a repo file, on no page.</div>
-          <p class="bown">Agents move</p>
+          <p class="bhead">To Do<span class="bkey">todo</span></p>
+          <div class="bcard"><b>Password reset emails</b>Next one to be picked up.</div>
+          <p class="bown">Agents</p>
         </div>
 
         <div class="bcol">
-          <p class="bhead">In progress<span class="bkey">in_progress</span></p>
-          <div class="bcard"><b>Reference page</b>Board, stack and glossary in one place.<span class="chip who">2 large max</span></div>
-          <p class="bown">Agents move</p>
+          <p class="bhead">In Progress<span class="bkey">in_progress</span></p>
+          <div class="bcard"><b>Checkout flow</b>Plan played back, being built.</div>
+          <p class="bown">Agents<span class="sub"> (2 large max)</span></p>
         </div>
 
         <div class="bcol">
           <p class="bhead">UAT<span class="bkey">uat + uat_complete</span></p>
-          <div class="bcard"><b>Release notes page</b>Deployed and verified.<span class="chip">Tested</span></div>
+          <div class="bcard"><b>Add a search box</b>Tested by QA, waiting for you.<span class="chip">UAT Complete</span></div>
           <p class="bown you">You accept</p>
         </div>
 
         <div class="bcol">
-          <p class="bhead">Prod ready<span class="bkey">prod_ready</span></p>
-          <div class="bcard"><b>Numbered decisions</b>Accepted, waiting to go out.</div>
-          <p class="bown">Agents move</p>
+          <p class="bhead">PROD Ready<span class="bkey">prod_ready</span></p>
+          <div class="bcard"><b>Invite a teammate</b>Accepted, waiting to go out.</div>
+          <p class="bown">Agents</p>
         </div>
 
         <div class="bcol">
-          <p class="bhead">Prod deployed<span class="bkey">prod_deployed</span></p>
-          <div class="bcard"><b>Broken imports check</b>Deployed on instruction.</div>
-          <p class="bown">Agents move</p>
+          <p class="bhead">PROD Deployed<span class="bkey">prod_deployed</span></p>
+          <div class="bcard"><b>Export to CSV</b>Deployed on your instruction.</div>
+          <p class="bown">Agents</p>
         </div>
 
         <div class="bcol">
           <p class="bhead">Done<span class="bkey">done</span></p>
-          <div class="bcard"><b>Shared fragments</b>Live, in every project.</div>
-          <p class="bown">Agents move</p>
+          <div class="bcard"><b>Sign in with email</b>Live in production.</div>
+          <p class="bown">Agents</p>
         </div>
 
       </div>
     </div>
-    <p class="boardnote">Two statuses share the UAT column. A ticket arrives as <b>uat</b> and becomes <b>uat_complete</b> when you have accepted it, which is why the chip is there: a tested ticket has to be distinguishable from an untested one at a glance.</p>
-
-    <h4 class="sub-h">The two rules that make it worth having</h4>
-    <p><b>Only QA moves a ticket into UAT, and only with test notes a person can follow.</b> The agent that built the thing never certifies its own work. A ticket sitting in UAT with no test notes is a process failure, not a fast one.</p>
-    <p><b>Nothing leaves UAT without you.</b> The team can take a ticket all the way to UAT on its own. Accepting it is yours, every time, and it is never automated away. That single boundary is the whole point of the board.</p>
-    <p><b>Two things the tool refuses rather than trusting anyone to remember.</b> A person cannot set a ticket to Prod deployed, and a person cannot edit the build tag a ticket carries. Both belong to the agents, and both are the kind of rule that quietly stops being followed if it lives only in a document.</p>
-    <p>Two more are conventions rather than locks. Work is only ever created into Backlog or To&nbsp;Do, because a ticket appearing mid&#8209;board has skipped the queue. And <b>done</b> means live in production: not merged, not on a test environment. Live.</p>
-
-    <div class="pullbox">
-      <p class="pk">Why a ticket, for everything</p>
-      <p>Anything you say becomes a ticket <strong>before</strong> the work starts and before you get a reply, and the PM confirms it in one line with the number. Chat is not searchable in February. The ticket is the record, so a decision you made once does not get re-argued in six weeks by people who cannot remember whether it was rejected on principle or on timing.</p>
-    </div>
-
-    <h3 id="stack">2 &gt; The stack</h3>
-    <p>Projects reach for this unless there is a stated reason not to. It is not a preference and it is not the newest thing available: it is the stack already proven on the most complete product in the studio.</p>
-    <p>The reason it is written down at all is not the bill. Across five projects the studio once ran three hosting providers, three datastores and three unrelated authorization models, which meant <b>how is access actually enforced</b> had a different answer in every project. That is the single highest-risk thing a reviewer has to check, and it should have one answer.</p>
 
     <div class="tablewrap">
     <table class="stacktable">
       <tbody>
-      <tr><th scope="col">Layer</th><th scope="col">Default</th><th scope="col">Why this one</th></tr>
-      <tr><td>Framework</td><td><b>Next.js</b>, TypeScript, Tailwind</td><td>Already the team's strongest surface. React everywhere means one component idiom rather than one per project.</td></tr>
-      <tr><td>Data and auth</td><td><b>Supabase</b> Postgres</td><td>Real relational data with row-level security, and auth and file storage included. No second vendor holding half the answer.</td></tr>
-      <tr><td>Hosting</td><td><b>Cloudflare Pages</b></td><td>The free tier covers a validation build, and it issues its own certificate in minutes.</td></tr>
-      <tr><td>DNS</td><td><b>Cloudflare</b></td><td>Same vendor as the hosting, which removes an entire class of certificate problem. Learned the expensive way: 47 hours waiting on a certificate that never issued, across a vendor boundary that did not need to exist.</td></tr>
-      <tr><td>Analytics</td><td><b>GA4</b></td><td>Free, and the funnel work is already understood.</td></tr>
+      <tr><th scope="col">Column</th><th scope="col">Status key</th><th scope="col">Meaning</th><th scope="col">Who moves it</th></tr>
+      <tr><td>Backlog</td><td><b>backlog</b></td><td>An idea that has not been scheduled. Work may be created here.</td><td>Agents</td></tr>
+      <tr><td>To Do</td><td><b>todo</b></td><td>Work that is ready to start, and the only status the team picks new work from. Work may also be created here.</td><td>Agents</td></tr>
+      <tr><td>In Progress</td><td><b>in_progress</b></td><td>The team has played back its plan and the work is under way.</td><td>Agents</td></tr>
+      <tr><td>UAT</td><td><b>uat</b></td><td>QA has reviewed the work, written test notes a person can follow, and passed it to you for acceptance testing.</td><td>Agents <span class="sub">(QA alone)</span></td></tr>
+      <tr><td>UAT</td><td><b>uat_complete</b></td><td>You have tested the work and accepted it. It stays in the UAT column until an agent advances it.</td><td class="yours">You</td></tr>
+      <tr><td>PROD Ready</td><td><b>prod_ready</b></td><td>Accepted and waiting to go out.</td><td>Agents</td></tr>
+      <tr><td>PROD Deployed</td><td><b>prod_deployed</b></td><td>Deployed on your explicit instruction, carrying the release version.</td><td>Agents <span class="sub">(you are blocked)</span></td></tr>
+      <tr><td>Done</td><td><b>done</b></td><td>Live in production. A merge, or a deployment to a test environment, does not qualify.</td><td>Agents</td></tr>
       </tbody>
     </table>
     </div>
 
-    <h4 class="sub-h">Nothing bills for existing</h4>
-    <p>Every layer above has a free tier that covers a validation build, and none of them charges for idle capacity. That is the property that matters when most projects are meant to be killed rather than scaled: an idea that did not work should cost nothing to have tried.</p>
+    <h4 class="sub-h">Who may move what</h4>
+    <p>The UAT column holds two statuses. <b>uat</b> means the work is waiting for you to test it. <b>uat_complete</b> means you have accepted it.</p>
+    <p>Agents control every move except one. Moving a ticket from <b>uat</b> to <b>uat_complete</b> belongs to you. Only QA may move a ticket into UAT, and only with test notes a person can follow. The agent that built the work cannot certify it.</p>
+    <p>An agent may set <b>prod_deployed</b> only after you have instructed the deployment. The tool prevents a person from setting that status, and from editing the build tag a ticket carries.</p>
+    <p>Tickets are created only in Backlog or To&nbsp;Do. That one is a convention rather than a lock, and it stops work appearing part way along the board without passing through the queue.</p>
 
     <div class="pullbox">
-      <p class="pk">Free is not unlimited</p>
-      <p>The limits are usually <strong>account-wide</strong>, so another project's usage is what takes yours down. A database was planned, agreed and half-scripted before the dashboard refused to create it, because the plan allows two and both were already used by other products. Nothing was misconfigured. The capacity simply was not there, and nothing said so until the moment of creation.</p>
+      <p class="pk">Everything starts as a ticket</p>
+      <p>Every request becomes a ticket before work starts and before the team replies, and the product manager confirms the number in one line. Requirements, decisions, assumptions, test notes and delivery history all stay on it, so <strong>the ticket is the record</strong>.</p>
     </div>
 
-    <p>Access is enforced in the database rather than in the application, so a permission cannot be bypassed by talking to the data API directly. Deviating from any of this is allowed and normal: the standard names the conditions under which a project should, and a deviation is recorded with an owner and a review date rather than quietly taken.</p>
+    <h3 id="stack">2 &gt; The Stack</h3>
+    <p>I use this stack for a Project unless there is a stated reason to deviate. It is the stack already proven on the most complete Project run this way, and it gives a reviewer one consistent answer to how access is enforced.</p>
+
+    <div class="tablewrap">
+    <table class="stacktable">
+      <tbody>
+      <tr><th scope="col">Layer</th><th scope="col">Default</th><th scope="col">Reason</th></tr>
+      <tr><td>Framework</td><td><b>Next.js</b>, TypeScript, Tailwind</td><td>The team's strongest surface. Using React across Projects keeps one component idiom.</td></tr>
+      <tr><td>Data and auth</td><td><b>Supabase</b> Postgres</td><td>Relational data with row level security, plus authentication and file storage. Access is enforced in the database, and one vendor holds the whole answer.</td></tr>
+      <tr><td>Source control</td><td><b>GitHub</b></td><td>Free for private repositories, and the host can build directly from it. Do not rely on that alone: the git connection here stopped firing while the dashboard still reported it connected, so a push produced no build and nothing said so. Releases now trigger the build explicitly. Actions minutes are the free tier limit that binds first, and they are pooled across the account.</td></tr>
+      <tr><td>Hosting</td><td><b>Cloudflare Pages</b></td><td>The free tier covers a validation build, and it issues its own certificate in minutes.</td></tr>
+      <tr><td>DNS</td><td><b>Cloudflare</b></td><td>Keeping DNS and hosting with one provider removes a class of certificate failure. I waited more than 47 hours for a certificate that never issued across a provider boundary that did not need to exist.</td></tr>
+      <tr><td>Analytics</td><td><b>GA4</b></td><td>Free, and the team already understands the funnel work.</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h4 class="sub-h">What it costs while a Project sits idle</h4>
+    <p>Every layer has a free tier that covers a validation build, and none charges for idle capacity. That matters because a Project that fails validation should not keep producing a bill simply because it still exists.</p>
+
+    <div class="pullbox">
+      <p class="pk">Free tiers are not unlimited</p>
+      <p>Their limits are usually <strong>shared across an account</strong>, so one Project can exhaust capacity another one needs. A database was planned, agreed and half scripted before the dashboard refused to create it: the plan allowed two, and both were already in use by other products. Nothing was misconfigured. Capacity has to be checked across every Project, not only the one being built.</p>
+    </div>
+
+    <p>Access is enforced in the database, so a permission cannot be bypassed by calling the data API directly. A Project may deviate from the default stack where the stated conditions justify it, and the deviation is recorded with an owner and a review date.</p>
 
     <h3 id="glossary">3 &gt; Glossary</h3>
-    <p class="rel-intro">Every term the method uses that is not ordinary English. Each has its own address, so anything on this site can link straight to a definition rather than to this page and a hunt.</p>
+    <p class="rel-intro">The eighteen defined terms used by Startup Studio. Each has its own address, so another page can link straight to the one you need.</p>
 
     <dl class="gloss">
 
-      <dt id="g-studio">the studio</dt>
-      <dd>The one place that owns the team and the shared rules for every project. It is not a project itself and it never builds a product. Think of it as head office: it employs the staff and writes the handbook, and the projects are the offices they work in.</dd>
+      <dt id="g-studio">The Studio</dt>
+      <dd>The one place that owns the team and the shared rules for every Project. The Studio is not a Project and does not build a product. When one Project learns something that would help the others, that change returns to The Studio.</dd>
 
-      <dt id="g-project">a project</dt>
-      <dd>One product, with its own repository, its own board and its own state. A project uses the team; it does not own it. Anything a project learns that would help the others is pushed back to <a href="#g-studio">the studio</a>, which is the whole reason the studio exists.</dd>
+      <dt id="g-project">A Project</dt>
+      <dd>One product, with its own repository, board and state. A Project uses the team owned by <a href="#g-studio">The Studio</a>; it does not own that team. Lessons that apply beyond one Project are returned to The Studio.</dd>
 
-      <dt id="g-roster">roster</dt>
-      <dd>The full set of agents available to a project, used the way a sports team uses the word: the squad, not the players on the field today. Sixteen roles, each a written brief saying what that role owns, what it must refuse, and what it gets penalised for. A project's roster is generated, never hand-written.</dd>
+      <dt id="g-roster">Roster</dt>
+      <dd>The complete set of agents available to a Project. It contains sixteen Roles, each with a written brief defining what it owns and where its boundaries are. Some briefs also state what the Role is judged badly for. A Roster is generated, never written by hand.</dd>
 
-      <dt id="g-role">role</dt>
-      <dd>One agent's brief. Product manager, tech lead, designer, QA, security reviewer and so on. A role is a document, not a program: it is what the agent is told about its job before it starts.</dd>
+      <dt id="g-role">Role</dt>
+      <dd>One agent's brief: product manager, tech lead, designer, QA and security reviewer are examples. A Role is a document, not a program. It tells the agent what its job is before work begins.</dd>
 
-      <dt id="g-load">load</dt>
-      <dd>Whether the tool can actually read a role and register it as an agent you can call. A role can be present on disk, current, and identical to the source, and still not load, at which point that agent silently does not exist. Thirteen of sixteen were in exactly that state for weeks because of three invisible bytes at the front of each file, and every check in place at the time reported all clear. Presence is not loadability, and only loadability matters.</dd>
+      <dt id="g-load">Load</dt>
+      <dd>Whether Claude Code can read a Role and register it as an agent you can call. A Role may be present on disk, current and identical to its source, and still fail to Load. When that happens the agent silently does not exist. Thirteen of the sixteen were in that state for weeks, because each file carried three invisible bytes at the front, while every check at the time reported everything clear. File presence does not prove Load.</dd>
 
-      <dt id="g-compose">compose</dt>
-      <dd>Building a project's roster by combining the shared role with that project's own additions. Like a document assembled from a shared template plus a local addendum: the template stays one file, and each office gets a copy with its own details filled in.</dd>
+      <dt id="g-compose">Compose</dt>
+      <dd>Building a Project's Roster by combining each shared Role with that Project's own additions. Nothing is duplicated and then edited by hand: a hand-edited duplicate goes stale the moment the shared version moves, and nothing tells you. The generated version is rebuilt from the current source, so it cannot be out of date.</dd>
 
       <dt id="g-uat">UAT</dt>
-      <dd>User acceptance testing: the stage where the person who asked for the thing decides whether it is actually the thing. It is the one column on the board that belongs to you, and it is the reason the rest of the board can be automated.</dd>
+      <dd>User acceptance testing. The stage where the person who asked for the work decides whether it is the work they asked for. It is the one point on the board that waits for you. QA alone moves work into the column and an agent moves it out, so what you own is the acceptance itself rather than the column.</dd>
 
-      <dt id="g-stackcard">stack card</dt>
-      <dd>One file per project describing what that project is built on and how it works, written once. Every role reads it, so nobody has to be told the stack sixteen times. It is the shared half of an <a href="#g-overlay">overlay</a>; the per-role half sits beside it.</dd>
+      <dt id="g-stackcard">Stack Card</dt>
+      <dd>One file per Project recording what the Project is built with and how it works. Every Role reads it, so the stack is written once instead of sixteen times. The Stack Card is what all Roles need to know; an <a href="#g-overlay">Overlay</a> is what one of them needs to know.</dd>
 
-      <dt id="g-overlay">overlay</dt>
-      <dd>The project-specific half of that combination. Facts about this project's stack, extra rules, or a shared rule deliberately waived. The waiver is the only kind that carries ceremony, because it is the only dangerous one: it needs an owner, a reason and a review date.</dd>
+      <dt id="g-overlay">Overlay</dt>
+      <dd>What one Project adds to one shared Role during <a href="#g-compose">Compose</a>. It may hold facts about the Project's stack, extra rules, or a shared rule deliberately waived. A waiver must have an owner, a reason and a review date.</dd>
 
-      <dt id="g-fragment">fragment</dt>
-      <dd>A rule that belongs to every role, written once and pulled into each one at <a href="#g-compose">compose</a> time. Before fragments, changing one shared rule meant editing eleven files by hand, and an edit that tedious is an edit that does not get done. Eleven copies with ten updated looks exactly like eleven copies all updated.</dd>
+      <dt id="g-fragment">Fragment</dt>
+      <dd>A rule shared by more than one Role, written once and pulled into each Role that needs it during <a href="#g-compose">Compose</a>. Some Fragments reach all sixteen Roles and some reach a handful. Before Fragments, the most widely shared rule sat in eleven Role files and had to be edited in each one by hand. Eleven copies with ten updated look exactly like eleven copies all updated.</dd>
 
-      <dt id="g-drift">drift</dt>
-      <dd>A project's copy of the team no longer matching the shared original. Silent by nature: a copy is correct on the day you make it and wrong from then on, and nothing announces the moment it diverges. One project ran a retired process for weeks. The health check reports drift and, importantly, which direction it went, because syncing over a local improvement destroys it and promoting a stale copy reverts everyone.</dd>
+      <dt id="g-drift">Drift</dt>
+      <dd>A Project's generated copy of the team no longer matching the shared source. Drift is silent unless something checks for it. The health check reports it and shows which direction it went, because syncing over a local improvement would destroy that improvement, while promoting a stale copy would revert every Project.</dd>
 
-      <dt id="g-gate">gate</dt>
-      <dd>A review that has to pass before work goes further, run by an agent that did not build the thing. Code review, content review, security review, mobile check. Each one reports what it found and changes nothing, so the agent that built the thing is never the one that signs it off.</dd>
+      <dt id="g-gate">Gate</dt>
+      <dd>A review that must pass before work continues, carried out by an agent that did not build the work. Code review, content review, security review and the mobile check are all Gates. A Gate reports what it found and changes nothing, so the builder never signs off its own work.</dd>
 
-      <dt id="g-frontdoor">the front door</dt>
-      <dd>The assessment an idea goes through before anything is built. Six leads argue it from their own disciplines, one paragraph each, and return build, kill, or park, with the one <a href="#g-measure">measure</a> it is meant to move and the objections including the ones that lost. <b>A kill is the gate working.</b> If nothing is ever killed there, it is not assessing, it is rubber-stamping.</dd>
+      <dt id="g-frontdoor">The Front Door</dt>
+      <dd>The assessment an idea passes before anything is built. Six leads assess it from their own disciplines, one paragraph each, and return build, kill or park, with the one <a href="#g-measure">Measure</a> it is meant to move and every objection raised, including those that did not prevail. <b>A kill means The Front Door is doing its job.</b> If nothing is ever killed, the assessment is a rubber stamp.</dd>
 
-      <dt id="g-measure">measure</dt>
-      <dd>What a piece of work is supposed to improve, agreed before it is built, with today's number where that is known. If nobody can name one, the idea is usually killed at that point, because there would be no version of next month in which anyone could say whether it worked.</dd>
+      <dt id="g-measure">Measure</dt>
+      <dd>What a piece of work is expected to improve, agreed before it is built, with the current number where that is known. If no Measure can be named, the idea is usually killed, because there would be no clear way to judge the result later.</dd>
 
-      <dt id="g-reality">reality check</dt>
-      <dd>A monthly reading of what a project actually did. Revenue, orders, sessions, cost. Declining to answer is valid and gets recorded; not being asked is not. Every project that has never taken one is named on every health check, so an unanswered month stays visible rather than forgotten.</dd>
+      <dt id="g-reality">Reality Check</dt>
+      <dd>A reading of what a Project actually did: revenue, orders, sessions, cost, and where the attention went. Thirty days is the default gap and a Project may set its own. Declining to answer is valid and is recorded. Any Project keeping its own ways of working document is named on every health check until it records a reading, so an unanswered month stays visible. A Project that keeps no such document is skipped and never appears at all, which is worth knowing: the ones furthest outside the process are the ones the check cannot see.</dd>
 
-      <dt id="g-wip">the ceiling</dt>
-      <dd>The cap on how much can be in flight at once: two large things and three small ones. Reaching it is said out loud with the count rather than absorbed silently, so the next thing waits somewhere visible instead of joining a queue nobody is tracking.</dd>
+      <dt id="g-wip">The Ceiling</dt>
+      <dd>The most work that can be in flight at once: two large items and three small ones. When The Ceiling is reached the count is stated out loud, and the next item waits somewhere visible.</dd>
 
-      <dt id="g-warmstart">warm start</dt>
-      <dd>The file a session reads on the way in to find out what is true right now: the single next action, what is deliberately unbuilt, and the decisions already settled so they are not re-argued. Written at the end of every session and loaded automatically at the start of the next, so picking the work back up does not depend on anyone remembering to open it.</dd>
+      <dt id="g-warmstart">Warm Start</dt>
+      <dd>The file written at the end of each session and loaded automatically at the start of the next. It records the single next action, what is deliberately unbuilt, and the decisions already settled. Work resumes without relying on anyone remembering which file to open.</dd>
 
-      <dt id="g-mutation">proving a check</dt>
-      <dd>Deliberately breaking the thing a check exists to catch, and confirming the check goes red. A check nobody has ever watched fail is indistinguishable from one that always passes, and several here have turned out to be exactly that.</dd>
+      <dt id="g-mutation">Proving a Check</dt>
+      <dd>Deliberately breaking the condition a check exists to catch, then confirming the check goes red. Until a check has been seen to fail, a passing result does not prove the check works. Several here turned out to be passing for reasons that had nothing to do with what they claimed to test.</dd>
 
     </dl>
 

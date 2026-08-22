@@ -22,6 +22,7 @@ stack already proven on the most complete product in the studio.
 |---|---|---|
 | Framework | Next.js, TypeScript, Tailwind | Already the roster's strongest surface. React everywhere means one component idiom |
 | Data and auth | Supabase Postgres | Real relational data with row-level security. Auth and storage included, so no second vendor |
+| Source control | GitHub | Free for private repositories, and the host builds from it. Named here because it was missing: the rest of this document already treats it as the default, and the row absent from a table is the choice nobody makes deliberately. Do not depend on the git connection alone; see below |
 | Hosting | Cloudflare Pages | Free tier covers validation, and it issues its own TLS in minutes |
 | DNS | Cloudflare | Same vendor as hosting, which removes an entire class of certificate problem |
 | Analytics | GA4 | Free, and the funnel work is already understood |
@@ -187,6 +188,28 @@ If you are on that pairing anyway:
   anything.
 
 `reference/DNS_TLS_RUNBOOK.md` has the full sequence and the checks.
+
+---
+
+## A git-connected deploy can stop firing and still report itself connected
+
+Confirmed by test, not suspected. A push produced no build at all, while the project settings
+showed the repository connected with automatic deployments enabled on the main branch. The
+dashboard reported both states at once: a banner saying the project was disconnected from the git
+account, and settings saying it was connected.
+
+**Do not treat a git connection as the deploy mechanism.** Trigger the build explicitly from
+whatever performs the release, using the host's deploy hook, and treat the git linkage as a
+convenience that may or may not work. The hook URL is a credential and belongs with the other
+secrets, never in a published script.
+
+The failure mode is the reason this is worth a section. Nothing errors. The release reports
+success, the site keeps serving the previous build, and the gap between what was published and
+what is live grows silently until somebody loads the page and notices. A release that reports
+success over a stale site is worse than one that fails, because only one of them gets fixed.
+
+**Verify the deployment, not the push.** After a release, check that the host recorded a new
+build. A green push is not evidence of a deploy.
 
 ---
 
