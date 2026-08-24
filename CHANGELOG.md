@@ -6,6 +6,77 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-24
+
+**What this gives you.**
+- **Winding down now saves the record it just wrote.** It used to write the state of a session and leave it sitting on the disk unless somebody thought to ask for it, and the session that would have noticed had already ended.
+- **The check that should have caught that is now a measurement.** It asks for the reference of the save or the count of lines still unsaved, rather than a judgement from the session being judged.
+- **The prompt that gets you back into a project is handed to you when you open it.** No finding the file and copying it out. There is a command, `/warm-start`, for asking on demand, and it tells you which parts have gone out of date rather than handing them to you as though they were checked.
+- **The two commands that point in opposite directions are written down.** One sends your work out; the other pulls somebody else's in and rewrites what your projects are built from. The published guide named only the first.
+- **A long session now stops itself.** Cost grows with the square of how long a session runs, so the expensive sessions are the ones that feel productive. It counts, and it interrupts, and it tells you what is still open before you go.
+- **You can see what a project costs to open, and what that adds up to.** The health check already reported how much a project loads. It now converts that to what you pay on every single request, and multiplies it out across a session, which is the number that actually decides anything.
+- **Two test suites that nothing was running now run.** They were sitting in the repository being nobody's job.
+
+### The wind-down was saving everything except its own work
+
+Closing a session writes down what happened: what was decided, what is half-finished, what the next session should pick up. The whole point is that the next session starts from a record rather than a memory.
+
+It was writing that record and not saving it. One project ended a session with a hundred and thirty lines of new history written to the disk and filed nowhere durable, including two decisions and the whole account of that day, because the instruction said not to save anything unless asked and nobody thought to ask on the way out. The session that would have spotted it was the one that had just ended.
+
+The instruction is now the other way round. Saving the record is the default and the four safety checks still run first, each of them there because of a real failure: which repository you are actually in, whether an untracked file is genuinely ignored, whether a repository inside another one inherits its protections, and whether there is anywhere to send it. Only the two documents are saved, named individually. Anything else you had open stays yours, and it says how many it left alone.
+
+### A row that graded itself
+
+The same file kept a small table at the end of every session, and one line of it read "state is durable: repository exists, has a remote, documents committed". A session that had just left everything unsaved could tick that line, because the line was a judgement made by the party being judged.
+
+It now asks for evidence: run the command, and write down either the reference of the save or the number of lines still sitting unsaved. If you cannot run it, that is unknown, and unknown counts as a gap rather than a pass.
+
+This is the same rule this studio applies to everything else, finally applied to its own scorecard.
+
+### Getting back into a project
+
+A project can keep a prompt describing where the work is: the next thing to do, what is deliberately unbuilt, and the rules that were expensive to learn. It sits inside a long document, and getting it meant opening the file and hunting for it.
+
+Now it arrives when you open the project. It comes through unchanged, with a line saying it was written at the end of the last session and every number in it is worth checking rather than trusting. That warning is not decoration: this studio's own prompt was telling sessions to expect three hundred and eight checks when the real number was three hundred and sixty, and pointing at work that had shipped two days earlier. Nothing had read it in between, because the only thing that read it was a person copying it, and copying is not checking.
+
+There is a command for asking on demand too, `/warm-start`. It hands you the same prompt and adds what it found: which numbers in it no longer match, and whether the work it points at is still open. What it will not do is quietly correct the file, because that document is written at the close of a session from a reading of the whole session, and a session that has done no work yet should not be editing it.
+
+### Which command is yours
+
+If you have taken this studio and made it your own, the command that sends your work out is the release. The other one pulls in changes from wherever you took it from, and rewrites the team every one of your projects is built against.
+
+The published guide listed the first and never mentioned the second, which left the more dangerous of the two undocumented. Both are now described, along with what happens if you run the wrong one: you can end up with somebody else's team in place of your own, you publish nothing, and every project recomposes against a base you did not write.
+
+### The most expensive session is the one that feels like it is going well
+
+Every request an assistant makes re-sends the whole conversation so far. So a step taken early is not paid for once, it is paid for again by every step that follows it, and the total grows with the square of how long the session runs rather than in proportion to it.
+
+Nobody noticed, because nothing about it feels wasteful from the inside. One build was measured afterwards from the records the runtime already keeps: five hundred and seventy four requests, and three hundred and forty units of input paid for every unit of output produced. The largest single file it read in the whole run was small. Nothing was careless. The shape was wrong. The same work, at the same quality and with the same checks, split into five shorter runs instead of one long one, costs about a third of that.
+
+This was found because somebody ran out of a monthly budget, which is the worst way to find anything.
+
+There is now a guard that counts and refuses. It stops the session at a threshold and again at every interval after it, and the message says how long it has run, roughly what it has cost, and how much work is still open on the board. What it will not do is trap you: it blocks once, then lets you carry on, because a wall that blocks everything also blocks the tidy-up on the way out and would cost more than it saved. It also fails open, so if any part of it breaks, work continues.
+
+Sixteen roles were given the reasoning as well as the rule, because a rule with no defect attached is one the next person deletes as noise.
+
+### What a project costs to open
+
+The health check already told you how much a project loads before any work starts. That is a size, and a size is easy to look at and do nothing about.
+
+It now reports it as what it is: a charge on every request, projected across a session. The same figure that reads as unremarkable when stated once becomes hard to ignore when multiplied by two hundred, and that is the same number.
+
+Running it found one project paying seventy per cent more per request than the one that had already caused a problem, and another close behind. Both are heavy for the same reason: they keep an honest, growing record of every decision ever made, and they re-read all of it every time. The fix is not to delete history. It is to split each document into the current part that gets loaded and an archive that is pointed at, which keeps the trail whole and stops paying for it repeatedly.
+
+The tool now says that, in the place where you see the number.
+
+### Two suites nobody was running
+
+Two sets of tests lived in the repository with nothing to run them. The instructions carried a note saying so, which is another way of saying the checks were optional.
+
+They now run inside the suite that does get run. While wiring that up, the new guard's own tests caught a real defect in the guard: it was re-reading its whole record on every check and reporting a cost forty times higher than the truth, with a straight face. A guard against expensive work, quietly being the expensive work. Every check here has been proved by breaking the thing it exists to catch and watching it go red.
+
+---
+
 ## 2026-08-23
 
 **What this gives you.**

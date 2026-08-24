@@ -1444,6 +1444,40 @@ function Write-HookLog ([string]$Event, [string]$Detail) {
     } catch { }
 }
 
+
+# --------------------------------------------------------------- resume prompt
+
+# The resume prompt is the most valuable thing in a project's state document and the most often
+# wrong, because nothing reads it between wind-downs. The studio's own said to expect 308
+# assertions when the suite reported 360, and named a next action that had shipped two days
+# earlier. A founder who opens the file and copies it does not verify it; nobody does.
+#
+# So the session start hands it over automatically: the whole prompt, verbatim, rather than a
+# summary, because the alternative depends on somebody remembering, and not remembering is exactly
+# how it went stale in the first place.
+#
+# Verbatim is deliberate. This does not rewrite the prompt or correct it in passing: the founder
+# should see what the record actually says. A wind-down is what updates that record, written from
+# a reading of the whole session, and a session start that quietly amends it has done no work yet.
+function Get-ResumePrompt ([string]$ProjectPath) {
+    $warm = Join-Path $ProjectPath 'WARM_START.md'
+    if (-not (Test-Path $warm)) { return $null }
+    $text = Read-TextUtf8 $warm
+
+    # The heading wording varies by project, so match the intent rather than one exact string.
+    $m = [regex]::Match($text, '(?ms)^##\s+[^\r\n]*(resume|restart)[^\r\n]*$')
+    if (-not $m.Success) { return $null }
+
+    # The prompt is the first fenced block under that heading. Taking the whole section instead
+    # would sweep in whatever else sits below it, which on some projects is another section.
+    $after = $text.Substring($m.Index + $m.Length)
+    $fence = [regex]::Match($after, '(?s)```[a-z]*\r?\n(.*?)```')
+    if (-not $fence.Success) { return $null }
+    $body = $fence.Groups[1].Value.Trim()
+    if (-not $body) { return $null }
+    $body
+}
+
 # --------------------------------------------------------------- recall
 
 # Compaction is the one event that fires exactly when context is being dropped, which makes it the
@@ -2012,11 +2046,12 @@ function Show-Status ([switch]$Fix) {
     # founder was asked and said not now, which is an answer and is recorded as one.
     Write-Host ""
     Write-Host "CONTEXT (what a session loads before it starts)" -ForegroundColor Cyan
-    $ctxOver = 0; $ctxNear = 0
+    $ctxOver = 0; $ctxNear = 0; $ctxFloor = 0; $ctxFloorName = ''
     foreach ($t in $stateTargets) {
         $ctx = Get-LoadedContext $t.Path
         if (-not $ctx) { continue }
         $k = [math]::Round($ctx.Total / 1000)
+        if ($ctx.Total -gt $ctxFloor) { $ctxFloor = $ctx.Total; $ctxFloorName = $t.Name }
         if ($ctx.Over.Count) {
             $ctxOver++
             $worst = ($ctx.Over | Sort-Object Chars -Descending | Select-Object -First 1)
@@ -2043,6 +2078,36 @@ function Show-Status ([switch]$Fix) {
                 Write-Host ("  ok       {0,-38} {1,5}k loaded" -f $t.Name, $k) -ForegroundColor Gray
             }
         }
+    }
+    # THE FLOOR, REPORTED AS A RUNNING COST RATHER THAN A SIZE.
+    #
+    # Everything above answers "how big is it", which is the question that let a real project
+    # reach a 56k floor without anyone noticing. Size is not what is paid. Every request
+    # re-sends the whole conversation, so the floor is charged AGAIN on every request of every
+    # session and every agent, and the bill grows with the SQUARE of session length.
+    #
+    # The number that made this visible came from a founder's monthly budget running out, not
+    # from any control here: 574 requests, 39.2M weighted input tokens, 115k of output. 340
+    # tokens paid for every token produced, with no single file read over 5k. The floor alone
+    # was 21 per cent of it, spent re-reading process documents before doing anything.
+    #
+    # Four characters per token is an approximation and is stated as one. It is close enough to
+    # tell a 15k floor from a 56k one, which is the decision this line exists to inform.
+    if ($ctxFloor) {
+        $floorTok = [math]::Round($ctxFloor / 4000)
+        Write-Host ""
+        Write-Host ("  FLOOR    worst is {0} at ~{1}k tokens, charged on EVERY request" -f `
+            $ctxFloorName, $floorTok) -ForegroundColor $(if ($floorTok -ge 40) { 'Red' } elseif ($floorTok -ge 20) { 'Yellow' } else { 'Gray' })
+        foreach ($n in @(100, 200)) {
+            Write-Host ("           over {0,3} requests that floor alone is ~{1,5}k tokens, before any work" -f `
+                $n, ($floorTok * $n)) -ForegroundColor DarkGray
+        }
+        if ($floorTok -ge 20) {
+            Write-Host "  the fix is not deleting history. Split each imported document into a current file" -ForegroundColor Yellow
+            Write-Host "  that IS @-imported and an archive that is only pointed at. The audit trail stays" -ForegroundColor Yellow
+            Write-Host "  whole and stops being re-read on every request." -ForegroundColor Yellow
+        }
+        Write-Host ""
     }
     if ($ctxOver) {
         Write-Host "  a document past the limit is not loaded quietly: the session opens with a warning," -ForegroundColor Red
@@ -2176,6 +2241,13 @@ if ($Autoload) {
             if ($proj) {
                 foreach ($f in (Get-ProjectBrief $proj)) {
                     $lines += ("STUDIO: " + $f.Rule + ". " + $f.What + " " + $f.Fix)
+                }
+                # The resume prompt, verbatim, so nobody has to open the file and find it. It goes
+                # LAST, after any findings: a finding is about this project right now and is worth
+                # reading first, while the prompt is standing instruction.
+                $rp = Get-ResumePrompt $proj
+                if ($rp) {
+                    $lines += ("RESUME PROMPT, from WARM_START.md. Written at the last wind-down, so treat every number in it as a claim to verify rather than a fact:" + "`n`n" + $rp)
                 }
             }
         } catch {

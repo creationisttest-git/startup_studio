@@ -220,9 +220,25 @@ Run from `_STUDIO`.
 .\studio.ps1 -Compose -All                  rebuild every tuned project
 .\studio.ps1 -Governance                    shared governance only
 .\studio.ps1 -Release                       commit private and publish public, one note
+.\studio.ps1 -Update                        pull upstream changes, then rebuild everything
 ```
 
 `-WhatIf` previews any of them.
+
+**`-Release` and `-Update` point in opposite directions, and the difference matters most to
+somebody running their own copy of this.**
+
+`-Release` sends your work out. It commits, publishes and rebuilds the site from a single note in
+`CHANGELOG.md`. If you have cloned this studio and made it yours, this is the command you use:
+you are releasing your studio, not ours.
+
+`-Update` brings somebody else's work in. It pulls, then rewrites your machine-wide roster and
+recomposes every project from what arrived. Useful for tracking an upstream you trust, and not
+something to run casually: it moves the base your projects are built from.
+
+The failure worth naming is running `-Update` when you meant `-Release`. You will have replaced
+your own roster with an upstream one and published nothing, and the projects will recompose
+against a base you did not write.
 
 ---
 

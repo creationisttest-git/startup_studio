@@ -135,15 +135,25 @@ not reach any other project.
 
 **Do not `git add .claude/agents/`.** It is build output.
 
-**Do not commit or deploy anything as part of winding down**, unless the user asks. Winding
-down records state; it does not ship.
+**Commit the governance documents. Do not deploy anything.** Those are different acts and the
+difference matters: winding down makes the record durable, and it does not ship product.
+
+This rule used to say do not commit unless asked, and that was wrong. A wind-down wrote a hundred
+and thirty lines of state into a project and left every one of them uncommitted, because nobody
+thought to ask on the way out. The session that would have noticed had already ended. A record
+that exists on one disk is not a record, it is a draft, and the next session opens against
+whatever was last committed.
+
+The four checks in the next section run FIRST, every time, and none of them is optional. Then you
+stage the two documents **by name** and commit. Never `git add -A` and never `git add .`.
 
 ---
 
-## If you are asked to commit the governance documents
+## Committing the governance documents
 
 This is the moment wind-down turns dangerous, because it is when someone reaches for
-`git add -A`. Four checks first, in order. None is optional.
+`git add -A`. Four checks first, in order. None is optional. Every one of them came from a real
+failure during a real wind-down, which is why none of them is skippable on a quiet day.
 
 **Which repository are you actually in?** Run `git rev-parse --show-toplevel`. A project
 folder can contain a nested repository with its own `.git`, and a parent `.gitignore`
@@ -171,13 +181,20 @@ a credential is in history, removing it is a rewrite, not a delete.
 **Stage by name. Never `git add -A` or `git add .`** in a wind-down. You are committing two
 or three known documents, so name them.
 
-**Then check the repository has a remote.** `git remote -v`. A commit with no remote buys
-integrity but not durability: the history dies with the disk, and surviving the machine is
-half the point of writing state down. If there is no remote, say so plainly rather than
-reporting the commit as done.
+**Then check the repository has a remote.** `git remote -v`. Without one there is nowhere for the
+record to go, and the four checks end here.
 
 After committing, confirm what actually went in with `git show --stat`, and say if anything
 unexpected came along.
+
+**Then push, and say plainly whether it worked.** A commit with no remote, or a push that failed,
+buys integrity and not durability: the history dies with the disk, and surviving the machine is
+half the point of writing any of this down. If there is no remote, say so rather than reporting
+the wind-down as done.
+
+**Say what you did NOT touch.** A project usually has other modified files at the end of a
+session, and they are not yours to commit. Name the count so the founder knows they are still
+there and still theirs.
 
 ---
 
@@ -201,9 +218,23 @@ and `unknown` is a gap.
 | Done without a measure | the measure field on the ticket |
 | Loose ends | anything the CEO raised this session that did not become a ticket or a backlog row |
 | In-flight ceiling | count of large items In Progress. Two large and three small is the ceiling |
-| State is durable | repository exists, has a remote, documents committed |
+| State is durable | **measured, not judged.** The commit hash from `git show --stat`, or the count of lines `git status --short` still reports uncommitted |
 
 Record each as `ok`, `n/a`, or a gap with an **owner and a review date**.
+
+**The last row is measured, not judged, and that is deliberate.** It used to read "repository
+exists, has a remote, documents committed", which a session could tick while a hundred and thirty
+lines of the state it had just written sat uncommitted on the disk. It did. The row that exists to
+catch that failure was a self-report by the party being assessed, which is this studio's own rule
+about a claim not being evidence, aimed at its own instrument. So run the command and write down
+what it says:
+
+```
+| State is durable | ok, both documents committed at 4a91c2f and pushed |
+| State is durable | GAP, 130 lines still uncommitted in WARM_START.md   |
+```
+
+If you cannot run it, that is `unknown`, and `unknown` is a gap.
 
 **Report two numbers, not a percentage: how many gaps are open, and how many have no owner.**
 A score out of a hundred makes people stop looking, because falling short creates work and the
