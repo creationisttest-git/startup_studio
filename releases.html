@@ -241,6 +241,7 @@
           <li><strong>A long session now stops itself.</strong> Cost grows with the square of how long a session runs, so the expensive sessions are the ones that feel productive. It counts, and it interrupts, and it tells you what is still open before you go.</li>
           <li><strong>You can see what a project costs to open, and what that adds up to.</strong> The health check already reported how much a project loads. It now converts that to what you pay on every single request, and multiplies it out across a session, which is the number that actually decides anything.</li>
           <li><strong>Two test suites that nothing was running now run.</strong> They were sitting in the repository being nobody's job.</li>
+          <li><strong>A resume prompt can no longer send you to state it has already replaced.</strong> Closing a session adds a new block of current state and marks the previous one superseded. The line telling the next session which block to start from is written by hand, and it could be left pointing at the old one. Nothing compared the two, so the document could contradict itself and still look finished.</li>
         </ul>
       </div>
     </details>

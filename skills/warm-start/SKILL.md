@@ -34,6 +34,13 @@ follows.
 If there is no such section, say so and stop. Do not invent one: a resume prompt assembled on the
 spot is a guess about the state of work dressed as a record of it.
 
+**If the section exists but has no fenced block, say that and stop as well.** Do not hand over the
+prose around it. A document was found whose resume prompt was written as bare paragraphs, so there
+was nothing to extract, and what got handed over was whatever text sat nearby. That text pointed
+the session at a block the same document marked superseded, and the session believed it, because
+anything returned under this heading reads as the record. Returning nothing is recoverable.
+Returning the wrong thing confidently is not.
+
 ## Step 2: check what it claims
 
 The prompt makes claims. Check the ones that are cheap to check, and only report the ones that are
@@ -46,6 +53,11 @@ actually wrong.
 - **A role count.** If it says to expect a number of roles, that is for the session to verify by
   naming them, not for this skill to answer on its behalf. Pass it through untouched.
 - **A file it tells you to read.** If the path does not exist, say so.
+- **A pointer into the document itself.** If the prompt says to work from a dated block, check that
+  the document does not mark that block superseded, and that no newer one exists. Run
+  `node <studio>/tools/check-resume-pointer.js <path>` if the studio is reachable, or read the
+  dated blocks and compare. This is the check that was missing: the prompt is written by hand at
+  wind-down and has to track state that moves underneath it, and nothing compared the two.
 
 Anything you cannot check cheaply, pass through unchanged and do not comment on. A skill that
 editorialises about every line is one people stop reading.
@@ -60,6 +72,8 @@ because the gap between them is itself information about how long it has been si
 CURRENT   the prompt, verbatim
 STALE     expects <n> assertions, the suite reports <m>
 STALE     names <ticket> as next; that shipped on <date>
+STALE     points at the block dated <old>, which this document marks superseded by <new>
+BROKEN    the resume section carries no fenced block, so there was nothing to extract
 ```
 
 ## Step 4: do not fix the file

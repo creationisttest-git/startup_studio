@@ -16,6 +16,7 @@ Newest first. Dates are when the change went public.
 - **A long session now stops itself.** Cost grows with the square of how long a session runs, so the expensive sessions are the ones that feel productive. It counts, and it interrupts, and it tells you what is still open before you go.
 - **You can see what a project costs to open, and what that adds up to.** The health check already reported how much a project loads. It now converts that to what you pay on every single request, and multiplies it out across a session, which is the number that actually decides anything.
 - **Two test suites that nothing was running now run.** They were sitting in the repository being nobody's job.
+- **A resume prompt can no longer send you to state it has already replaced.** Closing a session adds a new block of current state and marks the previous one superseded. The line telling the next session which block to start from is written by hand, and it could be left pointing at the old one. Nothing compared the two, so the document could contradict itself and still look finished.
 
 ### The wind-down was saving everything except its own work
 
@@ -76,6 +77,20 @@ Two sets of tests lived in the repository with nothing to run them. The instruct
 They now run inside the suite that does get run. While wiring that up, the new guard's own tests caught a real defect in the guard: it was re-reading its whole record on every check and reporting a cost forty times higher than the truth, with a straight face. A guard against expensive work, quietly being the expensive work. Every check here has been proved by breaking the thing it exists to catch and watching it go red.
 
 ---
+
+### The document that disagreed with itself
+
+Closing a session writes a block of current state and marks the previous block superseded, so the record keeps its whole history without pretending the old part is still true. Separately, near the bottom, sits the prompt that tells the next session where to begin.
+
+One of those was updated on the way out and the other was not. The new block was written, the old block was correctly marked superseded, and the prompt was left saying to start from the old one. The document now held both statements at once: that the block was history, and that it was the place to begin.
+
+The next session read the prompt. A prompt reads as instruction rather than as a claim, so nothing about it invited checking, and the work carried on from state that was three days stale.
+
+The instruction to rewrite that prompt every time already existed and had done for months. It was skipped, which is the ordinary fate of an instruction nothing verifies. So it is now checked instead of asked for: the newest dated block and the prompt are compared, and a wind-down will not commit while they disagree. The failure names the line that demoted the block, so the fix is obvious rather than a hunt.
+
+The same check found a second thing. The tool that hands you a prompt takes the fenced block under the heading, and one document had never had a fence, so there was nothing to take and the surrounding paragraphs went out instead. Handing over the wrong text confidently is worse than handing over nothing, so both are now refusals rather than guesses.
+
+Eighteen assertions cover this, and every one has been watched failing by breaking the checker and confirming the suite goes red. One further assertion was written, proved unable to fail, and deleted rather than shipped: a check that cannot go red is indistinguishable from one that always passes, and this file has published that mistake before.
 
 ## 2026-08-23
 

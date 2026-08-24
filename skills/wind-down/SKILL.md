@@ -73,6 +73,14 @@ This is session state. It answers "where are we right now".
   must be able to continue with zero additional context. It is the most valuable thing in
   the file and the most often left stale.
 
+  **If the document marks blocks of state with a date, the prompt must name the newest one.**
+  A wind-down that adds a new current block, correctly demotes the previous one, and leaves
+  the prompt saying "work from the block headed <the old date>" has written a document that
+  contradicts itself. One half says that block is superseded, the other sends the next
+  session straight to it. That shipped, and a fresh session was handed state days old and
+  believed it, because a prompt looks authoritative. Step 5a now checks this rather than
+  trusting that this paragraph was read.
+
 Record what is half-finished and exactly where it stopped. "Mid-way through the tenant
 filter on the property service, service layer done, controller not started" is useful.
 "In progress" is not.
@@ -146,6 +154,32 @@ whatever was last committed.
 
 The four checks in the next section run FIRST, every time, and none of them is optional. Then you
 stage the two documents **by name** and commit. Never `git add -A` and never `git add .`.
+
+---
+
+## Step 5a: prove the resume prompt still aims at current state
+
+Before committing, run the checker against the warm start you just wrote:
+
+```
+node <studio>/tools/check-resume-pointer.js <path-to-WARM_START.md>
+```
+
+It exits non-zero and names the line if the prompt points at a block the same document marks
+superseded, if the prompt names an older dated block than the newest one, or if the resume
+section carries no fenced block.
+
+**A failure here blocks the commit.** Fix the prompt and run it again. Do not commit a document
+whose own halves disagree, because the next session reads the prompt and not the argument.
+
+The fenced block matters as much as the dates. The warm-start skill extracts the first fenced
+block under the resume heading; a prompt written as bare prose is not findable, so whatever text
+happens to sit nearby gets handed over instead. One project's prompt had no fence at all and
+nobody knew until it handed over the wrong thing.
+
+If the studio is not reachable from this project, say so and check by reading instead: find the
+newest dated block, then confirm the prompt names that date and no other. Say which way you
+checked. An unrun check reported as run is worse than no check.
 
 ---
 
