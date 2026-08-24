@@ -6,6 +6,24 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-25
+
+**What this gives you.**
+- **The page that explains how to run this now tells you what to type.** It covered installing the team and tuning it, and never mentioned the four commands you actually use in a session. They were in the repository, working, and findable only if you already knew to look.
+- **The command list no longer calls itself complete while leaving out the one that ships anything.** It was headed as the whole workflow and did not include releasing.
+
+### Four commands nobody was told about
+
+The commands for building and maintaining the team were on the site from early on. A second set was not: the ones you type inside a session once the team is running. Opening a session and being handed where the work actually got to. Putting an idea in front of the leads before anything is built, and getting a no when a no is the right answer. Reading what a project genuinely earned and cost before deciding anything from a roadmap. Closing a session so the next one starts from a record instead of a memory.
+
+All four shipped in the repository and none of them appeared on any page of the site. Checked rather than assumed: a search for their names across every published page returned nothing at all.
+
+This is the fourth time the same thing has happened here, and the pattern is worth naming rather than fixing quietly each time. Something gets built, it goes into the repository, and the website is never told. Board columns, the technology choices, the vocabulary, and now the commands. Each was correct where it lived and absent from the place a reader would look.
+
+The closing one is the one worth reading twice. Skipping it loses everything since the last update: what got decided, what is half finished, and where exactly it stopped. That is written on the page now, next to the reason.
+
+---
+
 ## 2026-08-24
 
 **What this gives you.**

@@ -84,10 +84,34 @@ studio -Status              <span class="c"># what exists, what has drifted</spa
 studio -Doctor              <span class="c"># the same, plus the fix for each</span>
 studio -Sync                <span class="c"># push the base out, rebuild everyone</span>
 studio -Tune    -Project X  <span class="c"># start a project's layer</span>
-studio -Compose -Project X  <span class="c"># rebuild one project</span></pre>
+studio -Compose -Project X  <span class="c"># rebuild one project</span>
+studio -Release             <span class="c"># ship it, changelog entry first</span></pre>
 
     <p style="margin-top:1.6rem">One command rebuilds every project from the current handbook, so nobody has to work out which ones changed.</p>
     <p>If any of the words above are doing work you can't see, the <a href="/reference#glossary">glossary</a> defines each of them in a sentence: <a href="/reference#g-compose">compose</a>, <a href="/reference#g-overlay">overlay</a>, <a href="/reference#g-drift">drift</a>, <a href="/reference#g-roster">roster</a>.</p>
+
+    <h3 id="skills" style="margin-top:2.5rem">The commands you type inside a session</h3>
+    <p style="margin-top:0.6rem">Everything above is run from a terminal, to build the team and look after it. There's a second set you type inside a session, once the team is running. They're called skills and they're in the repo under <code>skills/</code>. Each one is a procedure the team follows the same way every time, so it doesn't depend on anyone remembering it.</p>
+
+    <div class="tablewrap">
+    <table class="stacktable">
+      <tbody>
+      <tr><th scope="col">Skill</th><th scope="col">When</th><th scope="col">What it does</th></tr>
+      <tr><td><b>/warm-start</b></td><td>Opening a session</td><td>Hands you the note the last session left about where the work is, after checking it. Does the ticket it names still exist, does the test count still match, does it point at state that has since been replaced. A note like that reads as measured, so a wrong one is worse than none.</td></tr>
+      <tr><td><b>/assess</b></td><td>Before anything is built</td><td>The leads take an idea apart from their own disciplines, argue it out, and come back with a verdict, a way to measure it, and the objections. No is a legitimate answer and is most of the value.</td></tr>
+      <tr><td><b>/reality-check</b></td><td>Before a roadmap decision</td><td>Reads what the project actually earned, cost and attracted, and writes it down with where it came from and the date it was read. Use it before trusting anyone's claim about traction, your own included.</td></tr>
+      <tr><td><b>/wind-down</b></td><td>Closing a session</td><td>Writes what happened back into the project's own documents, reading them off the disk first rather than from memory, and saves it where the next session will find it.</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+<pre><span class="c"># a session, start to finish</span>
+/warm-start                 <span class="c"># where the work actually is</span>
+<span class="c">#   ...the work...</span>
+/wind-down                  <span class="c"># write down what happened, and save it</span></pre>
+
+    <p style="margin-top:1.6rem">The last one is the one people skip, and it's the one that costs. A session that ends without it loses everything since the last update: what got decided, what's half finished, and where exactly it stopped. The next session starts from a memory nobody has.</p>
+    <p>Winding down now checks its own work too. The record grows by adding a new block of current state and marking the previous one superseded, and the line telling the next session where to begin is written by hand, so it can be left pointing at the block that was just retired. The document then disagrees with itself and still looks finished. That gets compared and refused rather than trusted, because the next session reads the instruction and not the argument underneath it.</p>
   
 
     <h2>One shared handbook, printed fresh for each project</h2>
