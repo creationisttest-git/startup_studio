@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>Startup Studio Reference</title>
-<meta name="description" content="Defines the Startup Studio board, its default technology stack and the terms used across the site and the repository. For anyone running it, contributing to it, or checking what a term means.">
+<meta name="description" content="Defines the Startup Studio board, its default technology stack, every studio.ps1 command with what it changes on disk, and the terms used across the site and the repository.">
 <link rel="canonical" href="https://startupstudio.projectfreedom.xyz/reference">
 <link rel="stylesheet" href="/site.css">
 
@@ -18,7 +18,7 @@
 <meta property="og:site_name" content="Startup Studio">
 <meta property="og:url" content="https://startupstudio.projectfreedom.xyz/reference">
 <meta property="og:title" content="Startup Studio Reference">
-<meta property="og:description" content="Defines the Startup Studio board, its default technology stack and the terms used across the site and the repository. For anyone running it, contributing to it, or checking what a term means.">
+<meta property="og:description" content="Defines the Startup Studio board, its default technology stack, every studio.ps1 command with what it changes on disk, and the terms used across the site and the repository.">
 <meta property="og:image" content="https://startupstudio.projectfreedom.xyz/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -26,7 +26,7 @@
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Startup Studio Reference">
-<meta name="twitter:description" content="Defines the Startup Studio board, its default technology stack and the terms used across the site and the repository. For anyone running it, contributing to it, or checking what a term means.">
+<meta name="twitter:description" content="Defines the Startup Studio board, its default technology stack, every studio.ps1 command with what it changes on disk, and the terms used across the site and the repository.">
 <meta name="twitter:image" content="https://startupstudio.projectfreedom.xyz/og.png">
 </head>
 <body>
@@ -54,7 +54,7 @@
 <section id="reference">
     <h2>Startup Studio Reference</h2>
 
-    <p class="rel-intro">This page defines the Startup Studio board, its default technology stack and the terms used across the site and the repository. It is for anyone running Startup Studio, contributing to it, or checking the precise meaning of a term.</p>
+    <p class="rel-intro">This page defines the Startup Studio board, its default technology stack, every command the tool accepts, and the terms used across the site and the repository. It is for anyone running Startup Studio, contributing to it, or checking the precise meaning of a term.</p>
 
     <h3 id="board">1 &gt; The Board</h3>
     <p>Every Project uses the same board as its only work queue. It has seven columns and eight status keys. I keep the structure fixed because the agents use these exact column names and keys. If they change, the team no longer matches the board.</p>
@@ -111,7 +111,7 @@
     </div>
 
     <div class="tablewrap">
-    <table class="stacktable">
+    <table class="stacktable board-key">
       <tbody>
       <tr><th scope="col">Column</th><th scope="col">Status key</th><th scope="col">Meaning</th><th scope="col">Who moves it</th></tr>
       <tr><td>Backlog</td><td><b>backlog</b></td><td>An idea that has not been scheduled. Work may be created here.</td><td>Agents</td></tr>
@@ -224,6 +224,86 @@
       <dd>Deliberately breaking the condition a check exists to catch, then confirming the check goes red. Until a check has been seen to fail, a passing result does not prove the check works. Several here turned out to be passing for reasons that had nothing to do with what they claimed to test.</dd>
 
     </dl>
+
+    <h3 id="commands">4 &gt; Commands</h3>
+    <p class="rel-intro">Every switch <code>studio.ps1</code> accepts, what it does, and what it changes on disk. The recommended order of operations is on the <a href="/how-to#flow">how to run it</a> page. Switches that modify another command are listed last.</p>
+
+    <div class="tablewrap">
+    <table class="stacktable">
+      <tbody>
+      <tr><th scope="col">Command</th><th scope="col">What it does</th><th scope="col">What it changes on disk</th></tr>
+
+      <tr><td><code>-Status</code></td><td>The default when no switch is given. Reports every project: roster state, drift and its direction, shared governance, state documents, whether the roles load, context cost per request, reality readings and open deviations.</td><td>Nothing. Read only.</td></tr>
+
+      <tr><td><code>-Doctor</code></td><td>The same report, followed by the command that fixes each finding.</td><td>Nothing. Read only.</td></tr>
+
+      <tr><td><code>-Sync</code></td><td>Installs the base roster and the skills machine wide, updates shared governance in every project that already holds it, then recomposes every tuned project.</td><td><code>~\.claude\agents\</code>, <code>~\.claude\skills\</code>, three governance files per project, and <code>.claude\agents\</code> in every tuned project.</td></tr>
+
+      <tr><td><code>-Sync -Force</code></td><td>The same, and replaces an installed role or a governance file that was edited in place. Without <code>-Force</code> those are reported and left alone, because that edit exists nowhere else.</td><td>As above. Each governance file is copied into <code>.archive\</code> before it is replaced.</td></tr>
+
+      <tr><td><code>-Global</code></td><td>The machine wide half of <code>-Sync</code> on its own: roster and skills. No governance is distributed and no project is composed.</td><td><code>~\.claude\agents\</code> and <code>~\.claude\skills\</code>.</td></tr>
+
+      <tr><td><code>-Tune -Project X</code></td><td>Starts a project's own layer by writing a stack card template for you to fill in.</td><td>Creates <code>X\.claude\agent-overlays\_project.md</code>. An existing card is never overwritten.</td></tr>
+
+      <tr><td><code>-Compose -Project X</code></td><td>Rebuilds one project's roster from the base roles, that project's stack card and its role overlays.</td><td>Rewrites <code>X\.claude\agents\</code> in full, writes <code>.sync-manifest.json</code> beside it, and deletes any role the base no longer defines. Refused for the studio itself, which owns the base rather than consuming it.</td></tr>
+
+      <tr><td><code>-Compose -All</code></td><td>The same for every project that holds an overlay directory.</td><td>As above, once per project.</td></tr>
+
+      <tr><td><code>-Governance</code></td><td>Distributes the three shared governance documents to every project that already holds them.</td><td><code>GLOBAL_WAYS_OF_WORKING.md</code>, <code>AGENTS.md</code> and <code>BRIDGE_PROTOCOL.md</code> at each project's governance root.</td></tr>
+
+      <tr><td><code>-Connect</code></td><td>Writes the block that tells a project's sessions where the roster comes from and what must never be hand edited. Without <code>-Project</code> it targets every project and every directory a session has been opened in.</td><td>Creates or edits <code>CLAUDE.md</code>, replacing whatever lies between the <code>STUDIO:BEGIN</code> and <code>STUDIO:END</code> markers and leaving the rest of the file alone.</td></tr>
+
+      <tr><td><code>-Publish</code></td><td>Stages the public export from the manifest, scans the staged copy for private material, then pushes the public repository. A single finding blocks the push.</td><td>Rebuilds <code>.public\</code> from scratch, then pushes the public remote.</td></tr>
+
+      <tr><td><code>-Release</code></td><td>The only supported way to ship. Takes the newest dated section of <code>CHANGELOG.md</code> as the release note, commits and pushes the private repository, publishes the public export from that same note, then triggers the site rebuild.</td><td>The private repository, <code>.public\</code>, and the public repository. Refused when <code>CHANGELOG.md</code> carries no dated section.</td></tr>
+
+      <tr><td><code>-Update</code></td><td>Fast forwards this studio from its own remote, then reinstalls the machine wide roster and recomposes every project from what arrived. Read the contrast below before running it.</td><td><code>~\.claude\agents\</code>, <code>~\.claude\skills\</code> and <code>.claude\agents\</code> in every project, from upstream content rather than yours.</td></tr>
+
+      <tr><td><code>-Autoload -Path X</code></td><td>Session start hook. Recomposes the project owning <code>X</code> only when the base has moved, then returns that project's findings and its resume prompt.</td><td>That project's <code>.claude\agents\</code> when the base has moved, and <code>.studio-hooks.log</code>.</td></tr>
+
+      <tr><td><code>-Recall</code></td><td>Pre compact hook. Restates the standing rules from <code>base\governance\SESSION_RECALL.md</code> once context has been dropped.</td><td><code>.studio-hooks.log</code>.</td></tr>
+
+      <tr><td><code>-WhatIf</code></td><td>Modifier for any command that writes. Every writer reports what it would have done.</td><td>Nothing.</td></tr>
+
+      <tr><td><code>-DryRun</code></td><td>Modifier for <code>-Publish</code>. Stages the export and runs the leak scan, and pushes nothing.</td><td><code>.public\</code> only.</td></tr>
+
+      <tr><td><code>-Force</code></td><td>Modifier for <code>-Sync</code>. See <code>-Sync -Force</code> above.</td><td>As <code>-Sync -Force</code>.</td></tr>
+
+      <tr><td><code>-All</code></td><td>Modifier for <code>-Compose</code>. See <code>-Compose -All</code> above.</td><td>As <code>-Compose -All</code>.</td></tr>
+
+      </tbody>
+    </table>
+    </div>
+
+    <h4 class="sub-h" id="release-vs-update">4.1 &gt; Release and Update point in opposite directions</h4>
+    <p>These two commands sit one letter apart in a terminal history and send work opposite ways. <code>-Release</code> sends your work out. <code>-Update</code> pulls somebody else's work in and rebuilds every roster on the machine from it.</p>
+
+<pre>studio.ps1 -Release   <span class="c"># your work goes OUT</span>
+studio.ps1 -Update    <span class="c"># upstream work comes IN</span></pre>
+
+    <div class="pullbox">
+      <p class="pk">Running the wrong one</p>
+      <p>Typing <code>-Update</code> when you meant <code>-Release</code> rebuilds every project on the machine from the upstream roster and <strong>publishes nothing</strong>. Anything you had committed is still in the repository, so the recovery is a <code>-Sync</code>, but until you run it your projects are being briefed by somebody else's base. Preview either command with <code>-WhatIf</code> when you are not certain which one you are holding.</p>
+    </div>
+
+    <h4 class="sub-h" id="examples">4.2 &gt; Worked examples</h4>
+
+    <p>Improve one role for every project at once. This is the common case, and the reason the studio exists.</p>
+<pre><span class="c"># a rule learned once that applies everywhere</span>
+edit base\agents\qa-tester.md
+studio.ps1 -Sync
+studio.ps1 -Doctor</pre>
+
+    <p style="margin-top:1.8rem">Make a single project behave differently, without touching the base and without forking the role.</p>
+<pre><span class="c"># true of this project and of no other</span>
+edit my-app\.claude\agent-overlays\qa-tester.md
+studio.ps1 -Compose -Project "my-app"</pre>
+
+    <p style="margin-top:1.8rem">Publish your own version of the studio. The changelog entry is written first, because the release note is generated from it and the two cannot then disagree.</p>
+<pre><span class="c"># newest dated section at the top, written first</span>
+edit CHANGELOG.md
+studio.ps1 -Release -WhatIf
+studio.ps1 -Release</pre>
 
     <p class="bridge"><a class="hcta" href="/how-to">How to run it &#8594;</a></p>
   </section>

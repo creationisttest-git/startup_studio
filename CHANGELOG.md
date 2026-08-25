@@ -11,6 +11,11 @@ Newest first. Dates are when the change went public.
 **What this gives you.**
 - **The page that explains how to run this now tells you what to type.** It covered installing the team and tuning it, and never mentioned the four commands you actually use in a session. They were in the repository, working, and findable only if you already knew to look.
 - **The command list no longer calls itself complete while leaving out the one that ships anything.** It was headed as the whole workflow and did not include releasing.
+- **Every command the tool accepts is now written down, with what each one changes on disk.** Seventeen switches. The site had shown five of them in a code block with a one-line comment each, so anyone evaluating this had to clone the repository and read a file to find out what it does.
+- **The two commands that point in opposite directions now sit next to each other.** One sends your work out. The other pulls somebody else's in and rebuilds every project on your machine from it, publishing nothing. They are one letter apart in a terminal history, and only the first of them was named on the site.
+- **Three worked examples, for the three things people actually do.** Improve one role for every project at once. Make a single project behave differently without forking anything. Publish your own version.
+- **The two pages you read before you type are much shorter.** Same ground, written the way developer documentation is written: a table you can scan and code you can copy, instead of paragraphs you have to read in order.
+- **Two tables on the site were wider than the screen and are now not.** The stack table and the skills table were each forced onto a single line per row, so they scrolled sideways on a desktop monitor, not only on a phone.
 
 ### Four commands nobody was told about
 
@@ -21,6 +26,30 @@ All four shipped in the repository and none of them appeared on any page of the 
 This is the fourth time the same thing has happened here, and the pattern is worth naming rather than fixing quietly each time. Something gets built, it goes into the repository, and the website is never told. Board columns, the technology choices, the vocabulary, and now the commands. Each was correct where it lived and absent from the place a reader would look.
 
 The closing one is the one worth reading twice. Skipping it loses everything since the last update: what got decided, what is half finished, and where exactly it stopped. That is written on the page now, next to the reason.
+
+### The site told you what the tool was for and never what to type
+
+The pages explained the idea well enough. One shared team, tuned per project, rebuilt whenever either half moves. What they never did was tell you the commands. Five appeared in a code block on the how-to page with a comment each, and the reference page, which exists precisely so a reader can look something up, did not mention a single one.
+
+Every switch is now documented in one table: what it does, when you would reach for it, and what it changes on disk. That last column is the one worth having. A command that quietly rewrites a directory you have been editing is only surprising once, and it should not be surprising at all.
+
+Two of them deserve their own section, and now have one. One command sends your work out to the world. The other pulls the upstream version in and rebuilds every project on your machine from it. They differ by one letter in a terminal history, and running the wrong one leaves every project on the machine briefed by somebody else's team while publishing nothing at all. Both are previewable before you commit to them, and the page says so.
+
+### Shorter, in the register of documentation rather than argument
+
+The rest of this site is written in the first person, because it is an argument for a way of working. The two pages you actually run the tool from are not an argument, and writing them that way made them long. They are now dense and scannable, in plain professional English, with the recommended order of operations first and the reference material after it. Nothing was dropped: the board, the skills, the composition model and the three ways a project may differ are all still there, and shorter.
+
+### Two tables that had never fitted on a screen
+
+A rule that keeps the board table's short labels on one line was written against every table on the site. Two of the other tables are three columns of prose with the long one last, so that rule forced each row onto a single line and pushed the table far past the width of the page. Measured on a desktop before the fix: one rendered at nearly three times the width of the column that holds it, the other at more than twice.
+
+The comment above that rule had described the board table alone for as long as the rule has existed. A comment is not a selector, and nothing was comparing the two.
+
+### A page that cannot quietly go stale
+
+A published command list is a hand-kept copy of something that moves. Add a switch to the tool and the page silently omits it. Remove one and the page keeps recommending it, which is worse, because a reader types it and gets an error from the document that was supposed to be the reference.
+
+Both directions are now checked on every test run. It found a real gap on its first run, before it had been proved: one modifier was documented only as part of a longer command and never on its own.
 
 ---
 

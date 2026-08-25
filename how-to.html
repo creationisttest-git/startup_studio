@@ -53,78 +53,50 @@
 
 <section id="using">
     <p class="eyebrow">How to run it</p>
-    <h2>Install once, then tune only what genuinely differs</h2>
+    <h2>Install once, tune only what differs</h2>
 
-    <ol class="steps">
-      <li><b>Install the shared team</b>Put the shared handbook where your tools look for it, and every project has the full team from then on.</li>
-      <li><b>Write a stack card, once per project</b>Say what it's built with, how it works, and which shared rules don't apply here. Skip it and sixteen roles will each assume something that was only ever true of a different product.</li>
-      <li><b>Build the project's team</b>Print it. What comes out is generated, so keep it out of version control. Edit it and your change disappears the next time it prints.</li>
-      <li><b>Improve the base whenever anything is learned</b>Write it into the shared handbook, keeping what's general and dropping what was specific to you. Then it's everywhere.</li>
-    </ol>
+    <p class="lede-new">Startup Studio is one PowerShell entry point, <code>studio.ps1</code>. It installs a base roster of sixteen roles machine wide, and each project layers its own facts on top of that base. This page gives the recommended order of operations. The <a href="/reference#commands">command reference</a> lists every switch and what each one writes.</p>
 
-    <h3 style="margin-top:2.5rem">How work reaches the team</h3>
-    <p style="margin-top:0.6rem">Everything goes through a kanban board, the same way you'd run it in Jira or Asana. You write a ticket with a title and a description, and the description is where the real requirements live. The board is the only queue, so nothing gets built that you didn't ask for and nothing you asked for quietly gets lost.</p>
+    <h3 id="flow" style="margin-top:2.5rem">Recommended flow</h3>
+    <p style="margin-top:0.6rem">Steps 1 to 4 are run once for a new machine and a new project. After that, only the loop below repeats.</p>
 
-    <div class="lanes">
-      <div class="lane"><span class="lane-n">Backlog</span><p>Ideas not scheduled yet. Sitting here is a decision that it isn't next.</p></div>
-      <div class="lane"><span class="lane-n">To Do</span><p>The only place work is picked from. The team takes the top one and works down.</p></div>
-      <div class="lane"><span class="lane-n">In Progress</span><p>They play the plan back to you first, then build it in one go.</p></div>
-      <div class="lane you"><span class="lane-n">UAT</span><p>Your turn. You test it and confirm on the ticket. Nothing moves past here without you.</p></div>
-      <div class="lane"><span class="lane-n">Prod Ready</span><p>Accepted by you and waiting to go out.</p></div>
-      <div class="lane"><span class="lane-n">Prod Deployed</span><p>Only on your explicit say-so, tagged with the release version.</p></div>
-      <div class="lane"><span class="lane-n">Done</span><p>Live, and only then.</p></div>
-    </div>
+<pre><span class="c"># 1. install the shared roster and the skills</span>
+studio.ps1 -Sync
 
-    <p style="margin-top:1.8rem">The agents drive the board themselves from the terminal, moving tickets along and appending what they did, what they decided and anything they had to assume as they go. So the ticket becomes the history of that piece of work rather than something you reconstruct later.</p>
-    <p>They take it as far as UAT on their own. Then it stops, and you're the tester, exactly as you'd be in any product business. That's the one part I've never automated and don't intend to.</p>
-    <p>The board is called the Startup Studio Kanban and it's in the repo under <code>board/</code>, spec and working code both. Take it, it's the same one my projects run on. Every column and status is laid out on the <a href="/reference#board">reference page</a>.</p>
+<span class="c"># 2. tell a project where its roster comes from</span>
+studio.ps1 -Connect -Project "my-app"
 
-<pre><span class="c"># the whole workflow</span>
-studio -Status              <span class="c"># what exists, what has drifted</span>
-studio -Doctor              <span class="c"># the same, plus the fix for each</span>
-studio -Sync                <span class="c"># push the base out, rebuild everyone</span>
-studio -Tune    -Project X  <span class="c"># start a project's layer</span>
-studio -Compose -Project X  <span class="c"># rebuild one project</span>
-studio -Release             <span class="c"># ship it, changelog entry first</span></pre>
+<span class="c"># 3. start that project's own layer, then fill it in</span>
+studio.ps1 -Tune    -Project "my-app"
 
-    <p style="margin-top:1.6rem">One command rebuilds every project from the current handbook, so nobody has to work out which ones changed.</p>
-    <p>If any of the words above are doing work you can't see, the <a href="/reference#glossary">glossary</a> defines each of them in a sentence: <a href="/reference#g-compose">compose</a>, <a href="/reference#g-overlay">overlay</a>, <a href="/reference#g-drift">drift</a>, <a href="/reference#g-roster">roster</a>.</p>
+<span class="c"># 4. build the project's roster: base plus layer</span>
+studio.ps1 -Compose -Project "my-app"
 
-    <h3 id="skills" style="margin-top:2.5rem">The commands you type inside a session</h3>
-    <p style="margin-top:0.6rem">Everything above is run from a terminal, to build the team and look after it. There's a second set you type inside a session, once the team is running. They're called skills and they're in the repo under <code>skills/</code>. Each one is a procedure the team follows the same way every time, so it doesn't depend on anyone remembering it.</p>
+<span class="c"># 5. what exists, what has drifted, what to run</span>
+studio.ps1 -Doctor</pre>
 
-    <div class="tablewrap">
-    <table class="stacktable">
-      <tbody>
-      <tr><th scope="col">Skill</th><th scope="col">When</th><th scope="col">What it does</th></tr>
-      <tr><td><b>/warm-start</b></td><td>Opening a session</td><td>Hands you the note the last session left about where the work is, after checking it. Does the ticket it names still exist, does the test count still match, does it point at state that has since been replaced. A note like that reads as measured, so a wrong one is worse than none.</td></tr>
-      <tr><td><b>/assess</b></td><td>Before anything is built</td><td>The leads take an idea apart from their own disciplines, argue it out, and come back with a verdict, a way to measure it, and the objections. No is a legitimate answer and is most of the value.</td></tr>
-      <tr><td><b>/reality-check</b></td><td>Before a roadmap decision</td><td>Reads what the project actually earned, cost and attracted, and writes it down with where it came from and the date it was read. Use it before trusting anyone's claim about traction, your own included.</td></tr>
-      <tr><td><b>/wind-down</b></td><td>Closing a session</td><td>Writes what happened back into the project's own documents, reading them off the disk first rather than from memory, and saves it where the next session will find it.</td></tr>
-      </tbody>
-    </table>
-    </div>
+    <p style="margin-top:1.6rem">Step 3 writes a stack card at <code>.claude\agent-overlays\_project.md</code>: what the project is built with, where authorisation lives, and any shared rule it waives. Skipping it is legitimate, and that project runs the base roster unchanged.</p>
 
-<pre><span class="c"># a session, start to finish</span>
-/warm-start                 <span class="c"># where the work actually is</span>
-<span class="c">#   ...the work...</span>
-/wind-down                  <span class="c"># write down what happened, and save it</span></pre>
+    <h3 id="loop" style="margin-top:2.5rem">The loop after that</h3>
+    <p style="margin-top:0.6rem">Two commands cover most days.</p>
 
-    <p style="margin-top:1.6rem">The last one is the one people skip, and it's the one that costs. A session that ends without it loses everything since the last update: what got decided, what's half finished, and where exactly it stopped. The next session starts from a memory nobody has.</p>
-    <p>Winding down now checks its own work too. The record grows by adding a new block of current state and marking the previous one superseded, and the line telling the next session where to begin is written by hand, so it can be left pointing at the block that was just retired. The document then disagrees with itself and still looks finished. That gets compared and refused rather than trusted, because the next session reads the instruction and not the argument underneath it.</p>
-  
+<pre><span class="c"># a rule that applies to every project</span>
+edit base\agents\&lt;role&gt;.md
+studio.ps1 -Sync
 
-    <h2>One shared handbook, printed fresh for each project</h2>
-    <p>So nobody photocopies anything. Each project keeps one short page of its own, listing the few things that are true there and nowhere else.</p>
-    <p>When a project needs its handbook, it gets printed fresh: the shared one and its own page together. Change either of them and it simply prints again.</p>
-    <p>A handbook that's reprinted every time can't go out of date, so there's nothing to keep track of.</p>
+<span class="c"># something true of one project only</span>
+edit my-app\.claude\agent-overlays\_project.md
+studio.ps1 -Compose -Project "my-app"</pre>
+
+    <p style="margin-top:1.6rem">One question decides which of the two you are running. <em>Would a project on a different stack benefit from this?</em> If it would, the change belongs in the base. If it would not, it belongs in that project's layer.</p>
+    <p><b>Never edit <code>.claude\agents\</code>.</b> That directory is generated output. It is rebuilt from scratch on the next compose, so an edit there is live in the current session, invisible to every other project, and then destroyed without warning.</p>
 
     <div class="pipeline">
       <div class="pipeline-inner">
         <div class="stage">
           <span class="stage-n">01 / SOURCE</span>
           <span class="stage-path">base/agents/&lt;role&gt;.md</span>
-          <p>The shared handbook. True for every project, and the only thing a person writes by hand.</p>
+          <p>The shared roster. True for every project, and the only part written by hand.</p>
         </div>
         <div class="stage">
           <span class="stage-n">02 / LAYER</span>
@@ -134,39 +106,79 @@ studio -Release             <span class="c"># ship it, changelog entry first</sp
         <div class="stage">
           <span class="stage-n">03 / OUTPUT</span>
           <span class="stage-path">.claude/agents/</span>
-          <p>Printed fresh from the two on the left. Edit this and your change is gone the next time it prints.</p>
+          <p>Generated from the two on the left, and rebuilt whenever either one moves.</p>
         </div>
       </div>
     </div>
 
-    <p class="flow"><b>write it once</b> &rarr; every project reprints &rarr; <b>nobody else does anything</b></p>
+    <h3 id="shipping" style="margin-top:2.5rem">Shipping, and the one pair to be careful with</h3>
+    <p style="margin-top:0.6rem"><code>-Release</code> is the only supported way to ship. It takes the newest dated section of <code>CHANGELOG.md</code> as the note, so the changelog entry is written before the release rather than after it.</p>
 
-    <p style="margin-top:2rem">There's one question I ask to decide where anything new goes. <em>Would another project benefit from this?</em> If yes, it belongs in the shared handbook. If no, it belongs on that project's own page.</p>
+<pre>studio.ps1 -Release -WhatIf   <span class="c"># preview, writes nothing</span>
+studio.ps1 -Release           <span class="c"># your work goes OUT</span>
+studio.ps1 -Update            <span class="c"># upstream comes IN</span></pre>
 
-    <h2>Three ways a project can differ, and only one needs your approval</h2>
-    <p>A project's own page ends up holding three different kinds of thing, and at a glance they all look equally important. They aren't. Two of them you can just write down. The third can quietly undo a rule that every other project still follows, so it's the one worth stopping for.</p>
+    <p style="margin-top:1.6rem">The last two point in opposite directions and sit one letter apart in a terminal history. <code>-Update</code> rebuilds every roster on the machine from upstream content and publishes nothing, which is wrong twice over if you meant to release. The <a href="/reference#release-vs-update">reference page</a> states what each one writes.</p>
+
+    <h3 id="board" style="margin-top:2.5rem">How work reaches the team</h3>
+    <p style="margin-top:0.6rem">Every request becomes a ticket on one kanban board before work starts, and the description is where the requirements live. The board is the only queue, so nothing is built unasked and nothing asked for is lost.</p>
+
+    <div class="lanes">
+      <div class="lane"><span class="lane-n">Backlog</span><p>Raised, not scheduled. Sitting here is a decision that it is not next.</p></div>
+      <div class="lane"><span class="lane-n">To Do</span><p>The only place work is picked from. The team takes the top one and works down.</p></div>
+      <div class="lane"><span class="lane-n">In Progress</span><p>The plan is played back to you first, then built in one pass.</p></div>
+      <div class="lane you"><span class="lane-n">UAT</span><p>Your turn. You test it and accept it on the ticket. Nothing passes here without you.</p></div>
+      <div class="lane"><span class="lane-n">Prod Ready</span><p>Accepted by you and waiting to go out.</p></div>
+      <div class="lane"><span class="lane-n">Prod Deployed</span><p>Released on your explicit instruction, carrying the version.</p></div>
+      <div class="lane"><span class="lane-n">Done</span><p>Live in production, and only then.</p></div>
+    </div>
+
+    <p style="margin-top:1.8rem">The agents drive the board from the terminal and append what they did, decided and assumed, so the ticket becomes the history of that work. They take it as far as UAT and stop, because testing is yours. Specification and working code are under <code>board/</code>, and every column and status key is on the <a href="/reference#board">reference page</a>.</p>
+
+    <h3 id="skills" style="margin-top:2.5rem">The commands you type inside a session</h3>
+    <p style="margin-top:0.6rem">Everything above runs in a terminal. Skills run inside a session, live under <code>skills/</code>, and each is a procedure the team follows identically every time.</p>
+
+    <div class="tablewrap">
+    <table class="stacktable">
+      <tbody>
+      <tr><th scope="col">Skill</th><th scope="col">When</th><th scope="col">What it does</th></tr>
+      <tr><td><b>/warm-start</b></td><td>Opening a session</td><td>Hands over the note the last session left about where the work is, after checking it: does the ticket still exist, does the test count still match, has the state it points at been replaced. A stale note reads as measured, which is worse than none.</td></tr>
+      <tr><td><b>/assess</b></td><td>Before anything is built</td><td>The leads take an idea apart from their own disciplines and return a verdict, a measure and every objection. No is a legitimate answer and is most of the value.</td></tr>
+      <tr><td><b>/reality-check</b></td><td>Before a roadmap decision</td><td>Reads what the project actually earned, cost and attracted, and records it with its source and read date. Run it before trusting any claim about traction.</td></tr>
+      <tr><td><b>/wind-down</b></td><td>Closing a session</td><td>Writes what happened back into the project's own documents, read from disk rather than from memory, and commits the result.</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+<pre><span class="c"># a session, start to finish</span>
+/warm-start                 <span class="c"># where the work actually is</span>
+<span class="c">#   ...the work...</span>
+/wind-down                  <span class="c"># write it down, and save it</span></pre>
+
+    <p style="margin-top:1.6rem">The last one is the one people skip and the one that costs. A session ending without it loses everything since the last update: what was decided, what is half finished, and where it stopped.</p>
+
+    <h3 id="layers" style="margin-top:2.5rem">Three ways a project may differ, and only one needs approval</h3>
+    <p style="margin-top:0.6rem">A project's layer holds three kinds of thing. At a glance they look equally important. They are not.</p>
 
     <div class="kinds">
       <div class="kind">
         <h3>A fact</h3>
-        <p>Something that's simply true here. What it's built with, how it works. It argues with nothing, and most of the page is this.</p>
+        <p>Something simply true here: the stack, how it is deployed, how access is enforced. It contradicts nothing, and most of the layer is this.</p>
         <span class="verdict">Just write it</span>
       </div>
       <div class="kind">
         <h3>An addition</h3>
-        <p>Something extra this project needs that the handbook doesn't cover. It only adds, so nothing clashes.</p>
+        <p>An extra rule this project needs that the base does not carry. It only adds, so nothing clashes.</p>
         <span class="verdict">Just write it</span>
       </div>
       <div class="kind risk">
         <h3>An exception</h3>
-        <p>A shared rule switched off or changed for this project. It's the only risky kind, so it's the only one that needs a signature: what changed, why, who agreed, and when it gets looked at again.</p>
+        <p>A shared rule waived, weakened or replaced here. It is the only kind that can quietly undo a rule every other project still follows.</p>
         <span class="verdict">Needs a name and a date</span>
       </div>
     </div>
 
-    <p style="margin-top:2rem">Exceptions go at the top of the page rather than buried at the bottom, because a rule you've switched off is no use to anyone who never reads that far.</p>
-    <p>One check lists every exception across every project and flags anything nobody owns or that's overdue for another look. If nobody owns it, nobody can say why it's there, and nobody will ever dare turn it back on.</p>
-    <p>Safety checks are the one thing that can never be switched off this way. Allow it once and every awkward review becomes an exception.</p>
+    <p style="margin-top:2rem">An exception goes at the top of the layer, with an owner and a review date. <code>-Doctor</code> lists every one across every project and flags any that is unowned or overdue. Security gates cannot be waived this way: allow it once and every awkward review becomes an exception.</p>
   </section>
   <section id="close">
     <p class="eyebrow">Closing</p>

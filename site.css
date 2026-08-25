@@ -719,15 +719,21 @@
 .stacktable td:first-child{color:var(--bright); white-space:nowrap; font-family:var(--mono); font-size:.8rem}
 /* The board table carries four columns and the last one is a short label that wrapped to two
    lines at every width. Giving the two label columns a floor stops the meaning column taking
-   everything and leaving them to break mid-phrase. */
-.stacktable th:last-child,.stacktable td:last-child{white-space:nowrap}
+   everything and leaving them to break mid-phrase.
+
+   SCOPED to that table, which is what the paragraph above always described and the selector
+   never said. Written bare, it applied to every .stacktable, and the other two are three
+   columns of PROSE with the long one last. Measured at 1920px in a 944px column: the stack
+   table rendered 2751px wide and the skills table 2107px, each with its last column on a
+   single line, so both scrolled sideways on a desktop. A comment is not a selector. */
+.stacktable.board-key th:last-child,.stacktable.board-key td:last-child{white-space:nowrap}
 /* The one move on the board that belongs to the founder. It is amber for the same reason the
    UAT card is: the board's whole point is that single boundary, and a table where every row
    says Agents makes the exception disappear into the pattern. */
 .stacktable td.yours{color:var(--amber)}
 .stacktable td .sub{color:var(--muted); font-size:.9em}
 .bown .sub{color:var(--rule); text-transform:none; letter-spacing:0}
-.stacktable th:nth-child(2),.stacktable td:nth-child(2){white-space:nowrap}
+.stacktable.board-key th:nth-child(2),.stacktable.board-key td:nth-child(2){white-space:nowrap}
 .stacktable td{color:var(--muted)}
 .stacktable td b{color:var(--prose); font-weight:600}
 .tablewrap{overflow-x:auto}
@@ -740,8 +746,8 @@
    100% for a heading, so the reader is shown the next entry above a definition that is not its
    own. The anchor resolved correctly the whole time. Resolving and landing are separate
    questions and only the first was being asked. */
-#reference h3{scroll-margin-top:5rem}
-#using h3{scroll-margin-top:5rem}
+#reference h3,#reference h4{scroll-margin-top:5rem}
+#using h3,#using h4{scroll-margin-top:5rem}
 .gloss{margin:1.5rem 0 0; border-top:1px solid var(--rule)}
 .gloss dt{font-family:var(--mono); font-size:.82rem; letter-spacing:.04em; color:var(--phosphor);
           padding:1rem 0 .3rem; border-bottom:0; scroll-margin-top:5rem}
