@@ -182,7 +182,7 @@
       <dd>One agent's brief: product manager, tech lead, designer, QA and security reviewer are examples. A Role is a document, not a program. It tells the agent what its job is before work begins.</dd>
 
       <dt id="g-load">Load</dt>
-      <dd>Whether Claude Code can read a Role and register it as an agent you can call. A Role may be present on disk, current and identical to its source, and still fail to Load. When that happens the agent silently does not exist. Thirteen of the sixteen were in that state for weeks, because each file carried three invisible bytes at the front, while every check at the time reported everything clear. File presence does not prove Load.</dd>
+      <dd>Whether your coding agent can read a Role and register it as an agent you can call. A Role may be present on disk, current and identical to its source, and still fail to Load. When that happens the agent silently does not exist. Thirteen of the sixteen were in that state for weeks, because each file carried three invisible bytes at the front, while every check at the time reported everything clear. File presence does not prove Load.</dd>
 
       <dt id="g-compose">Compose</dt>
       <dd>Building a Project's Roster by combining each shared Role with that Project's own additions. Nothing is duplicated and then edited by hand: a hand-edited duplicate goes stale the moment the shared version moves, and nothing tells you. The generated version is rebuilt from the current source, so it cannot be out of date.</dd>
@@ -226,84 +226,105 @@
     </dl>
 
     <h3 id="commands">4 &gt; Commands</h3>
-    <p class="rel-intro">Every switch <code>studio.ps1</code> accepts, what it does, and what it changes on disk. The recommended order of operations is on the <a href="/how-to#flow">how to run it</a> page. Switches that modify another command are listed last.</p>
+    <p class="rel-intro">Every switch <code>studio.ps1</code> accepts, when you would reach for it, and what it writes. You run these in <a href="#g-studio">the studio</a>, the one place that owns the shared roles and the skills. They act on <a href="#g-project">your projects</a>, which use those roles to build products of their own. The two exceptions are the hooks, which run on their own and say so in their rows. The recommended order of operations is on the <a href="/how-to#flow">how to run it</a> page, and the switches that modify another command are listed last.</p>
 
     <div class="tablewrap">
     <table class="stacktable">
       <tbody>
-      <tr><th scope="col">Command</th><th scope="col">What it does</th><th scope="col">What it changes on disk</th></tr>
+      <tr><th scope="col">Command</th><th scope="col">When to use it</th><th scope="col">What it writes</th></tr>
 
-      <tr><td><code>-Status</code></td><td>The default when no switch is given. Reports every project: roster state, drift and its direction, shared governance, state documents, whether the roles load, context cost per request, reality readings and open deviations.</td><td>Nothing. Read only.</td></tr>
+      <tr><td><code>-Status</code></td><td>Use this before you change anything, to see the state of every project. It reports the roster, any drift and which direction it went, shared governance, state documents, whether the roles load, what each project costs to open, reality readings and open deviations. This is also what runs when you give no switch at all.</td><td>Read-only. No file is created, modified or deleted.</td></tr>
 
-      <tr><td><code>-Doctor</code></td><td>The same report, followed by the command that fixes each finding.</td><td>Nothing. Read only.</td></tr>
+      <tr><td><code>-Doctor</code></td><td>Use this when you want the fix as well as the finding. It prints everything <code>-Status</code> prints, and adds the exact command that repairs each finding.</td><td>Read-only. No file is created, modified or deleted.</td></tr>
 
-      <tr><td><code>-Sync</code></td><td>Installs the base roster and the skills machine wide, updates shared governance in every project that already holds it, then recomposes every tuned project.</td><td><code>~\.claude\agents\</code>, <code>~\.claude\skills\</code>, three governance files per project, and <code>.claude\agents\</code> in every tuned project.</td></tr>
+      <tr><td><code>-Sync</code></td><td>Use this after you change a shared role, a fragment or a skill in the studio, so that every project receives the change.</td><td>Overwrites the sixteen role files in the machine-wide agents directory (<code>%USERPROFILE%\.claude\agents</code>) and the skills directory beside it. Writes the three shared governance files into each project that already holds at least one of them. Rebuilds the agents directory in every tuned project. A file that was edited where it was installed is reported and skipped rather than overwritten.</td></tr>
 
-      <tr><td><code>-Sync -Force</code></td><td>The same, and replaces an installed role or a governance file that was edited in place. Without <code>-Force</code> those are reported and left alone, because that edit exists nowhere else.</td><td>As above. Each governance file is copied into <code>.archive\</code> before it is replaced.</td></tr>
+      <tr><td><code>-Sync -Force</code></td><td>Use this when <code>-Sync</code> reports that a file was edited where it was installed, and you have decided the studio's version should win.</td><td>The same writes, and it overwrites the files <code>-Sync</code> skips. Each governance file is copied into <code>.archive\</code> before it is replaced.</td></tr>
 
-      <tr><td><code>-Global</code></td><td>The machine wide half of <code>-Sync</code> on its own: roster and skills. No governance is distributed and no project is composed.</td><td><code>~\.claude\agents\</code> and <code>~\.claude\skills\</code>.</td></tr>
+      <tr><td><code>-Global</code></td><td>Use this to refresh the machine-wide roster and skills without touching any project.</td><td>Overwrites the machine-wide agents and skills directories. No project directory is touched.</td></tr>
 
-      <tr><td><code>-Tune -Project X</code></td><td>Starts a project's own layer by writing a stack card template for you to fill in.</td><td>Creates <code>X\.claude\agent-overlays\_project.md</code>. An existing card is never overwritten.</td></tr>
+      <tr><td><code>-Tune -Project X</code></td><td>Use this the first time a project needs to differ from the base. It writes a template for you to fill in: what the project is built with, where authorisation lives, and any shared rule it waives.</td><td>Creates the overlay directory and writes one template file into it (<code>my-app\.claude\agent-overlays\_project.md</code>). An existing file of that name is left as it is.</td></tr>
 
-      <tr><td><code>-Compose -Project X</code></td><td>Rebuilds one project's roster from the base roles, that project's stack card and its role overlays.</td><td>Rewrites <code>X\.claude\agents\</code> in full, writes <code>.sync-manifest.json</code> beside it, and deletes any role the base no longer defines. Refused for the studio itself, which owns the base rather than consuming it.</td></tr>
+      <tr><td><code>-Compose -Project X</code></td><td>Use this after you edit one project's stack card or one of its role overlays.</td><td>Rewrites that project's agents directory (<code>my-app\.claude\agents</code>), one file per role, and writes a manifest recording what each was built from. Deletes any role file the base no longer defines. No other file in the project is touched. Refused for the studio itself, which owns the base rather than consuming it.</td></tr>
 
-      <tr><td><code>-Compose -All</code></td><td>The same for every project that holds an overlay directory.</td><td>As above, once per project.</td></tr>
+      <tr><td><code>-Compose -All</code></td><td>Use this when more than one project has a layer and you want all of them rebuilt.</td><td>The same writes, once per project that holds an overlay directory.</td></tr>
 
-      <tr><td><code>-Governance</code></td><td>Distributes the three shared governance documents to every project that already holds them.</td><td><code>GLOBAL_WAYS_OF_WORKING.md</code>, <code>AGENTS.md</code> and <code>BRIDGE_PROTOCOL.md</code> at each project's governance root.</td></tr>
+      <tr><td><code>-Governance</code></td><td>Use this when a shared governance document has changed and the projects need the new copy.</td><td>Writes <code>GLOBAL_WAYS_OF_WORKING.md</code>, <code>AGENTS.md</code> and <code>BRIDGE_PROTOCOL.md</code> into each project that already holds at least one of them. Creates nothing in a project that holds none.</td></tr>
 
-      <tr><td><code>-Connect</code></td><td>Writes the block that tells a project's sessions where the roster comes from and what must never be hand edited. Without <code>-Project</code> it targets every project and every directory a session has been opened in.</td><td>Creates or edits <code>CLAUDE.md</code>, replacing whatever lies between the <code>STUDIO:BEGIN</code> and <code>STUDIO:END</code> markers and leaving the rest of the file alone.</td></tr>
+      <tr><td><code>-Connect</code></td><td>Use this once for each project, so that a session opened there is told where its roster comes from and what must never be hand-edited. Without <code>-Project</code> it targets every project and every directory a session has been opened in.</td><td>Creates <code>CLAUDE.md</code> if the project has none. Otherwise edits the existing file, replacing only the text between the <code>STUDIO:BEGIN</code> and <code>STUDIO:END</code> markers and leaving the rest of it unchanged.</td></tr>
 
-      <tr><td><code>-Publish</code></td><td>Stages the public export from the manifest, scans the staged copy for private material, then pushes the public repository. A single finding blocks the push.</td><td>Rebuilds <code>.public\</code> from scratch, then pushes the public remote.</td></tr>
+      <tr><td><code>-Publish</code></td><td>Use this to update the public copy without making a release. Rarely needed on its own, because <code>-Release</code> does this as its second half.</td><td>Deletes and rebuilds the staging directory <code>.public\</code> from the publish manifest, then pushes that content to the public repository. Nothing is pushed if the scan finds anything.</td></tr>
 
-      <tr><td><code>-Release</code></td><td>The only supported way to ship. Takes the newest dated section of <code>CHANGELOG.md</code> as the release note, commits and pushes the private repository, publishes the public export from that same note, then triggers the site rebuild.</td><td>The private repository, <code>.public\</code>, and the public repository. Refused when <code>CHANGELOG.md</code> carries no dated section.</td></tr>
+      <tr><td><code>-Release</code></td><td>Use this when you have changed the studio itself: a shared role, a skill, the method or the website. Do not use it to deploy a project's product, because a project ships its product with its own tools. The note comes from the newest dated entry in <code>CHANGELOG.md</code>, so that entry is written before the release.</td><td>Commits and pushes the studio's private repository, rebuilds <code>.public\</code> and pushes it to the public repository, then calls the deploy hook that rebuilds the website. Refused when <code>CHANGELOG.md</code> carries no dated section. Assumes the two-repository layout: with no public repository configured it commits and pushes the private one, then stops with an error.</td></tr>
 
-      <tr><td><code>-Update</code></td><td>Fast forwards this studio from its own remote, then reinstalls the machine wide roster and recomposes every project from what arrived. Read the contrast below before running it.</td><td><code>~\.claude\agents\</code>, <code>~\.claude\skills\</code> and <code>.claude\agents\</code> in every project, from upstream content rather than yours.</td></tr>
+      <tr><td><code>-Update</code></td><td>Use this when you are running a studio that somebody else publishes and you want their newer version. Read 4.1 below before you run it.</td><td>Fast-forwards this studio from its remote, then overwrites the machine-wide agents and skills directories and every project's agents directory from what arrived.</td></tr>
 
-      <tr><td><code>-Autoload -Path X</code></td><td>Session start hook. Recomposes the project owning <code>X</code> only when the base has moved, then returns that project's findings and its resume prompt.</td><td>That project's <code>.claude\agents\</code> when the base has moved, and <code>.studio-hooks.log</code>.</td></tr>
+      <tr><td><code>-Autoload -Path X</code></td><td>You do not run this. It runs when a session starts, and it rebuilds that project's roster only if the base has moved since the last build.</td><td>Rewrites that project's agents directory only when the base has moved since it was last built. Appends one line to <code>.studio-hooks.log</code>.</td></tr>
 
-      <tr><td><code>-Recall</code></td><td>Pre compact hook. Restates the standing rules from <code>base\governance\SESSION_RECALL.md</code> once context has been dropped.</td><td><code>.studio-hooks.log</code>.</td></tr>
+      <tr><td><code>-Recall</code></td><td>You do not run this. It runs when a session's context is compacted, and it restates the standing rules from <code>base\governance\SESSION_RECALL.md</code>.</td><td>Appends one line to <code>.studio-hooks.log</code>. No other file is touched.</td></tr>
 
-      <tr><td><code>-WhatIf</code></td><td>Modifier for any command that writes. Every writer reports what it would have done.</td><td>Nothing.</td></tr>
+      <tr><td><code>-WhatIf</code></td><td>Add this to any command that writes, to see what it would do before it does it.</td><td>Read-only. Each writer prints what it would have written.</td></tr>
 
-      <tr><td><code>-DryRun</code></td><td>Modifier for <code>-Publish</code>. Stages the export and runs the leak scan, and pushes nothing.</td><td><code>.public\</code> only.</td></tr>
+      <tr><td><code>-DryRun</code></td><td>Add this to <code>-Publish</code> to stage the export and run the scan without pushing anything.</td><td>Rebuilds <code>.public\</code> and stops. Nothing is pushed.</td></tr>
 
-      <tr><td><code>-Force</code></td><td>Modifier for <code>-Sync</code>. See <code>-Sync -Force</code> above.</td><td>As <code>-Sync -Force</code>.</td></tr>
+      <tr><td><code>-Force</code></td><td>Add this to <code>-Sync</code>. See <code>-Sync -Force</code> above.</td><td>See <code>-Sync -Force</code>.</td></tr>
 
-      <tr><td><code>-All</code></td><td>Modifier for <code>-Compose</code>. See <code>-Compose -All</code> above.</td><td>As <code>-Compose -All</code>.</td></tr>
+      <tr><td><code>-All</code></td><td>Add this to <code>-Compose</code>. See <code>-Compose -All</code> above.</td><td>See <code>-Compose -All</code>.</td></tr>
 
       </tbody>
     </table>
     </div>
 
+    <p style="margin-top:1.4rem">One limitation, stated plainly. The roster is installed into the directories Claude Code reads, and the two hooks are registered the way Claude Code registers hooks. The method itself is not tied to any one coding agent, but this tool is, and support for other agents is not built yet.</p>
+
     <h4 class="sub-h" id="release-vs-update">4.1 &gt; Release and Update point in opposite directions</h4>
-    <p>These two commands sit one letter apart in a terminal history and send work opposite ways. <code>-Release</code> sends your work out. <code>-Update</code> pulls somebody else's work in and rebuilds every roster on the machine from it.</p>
+    <p>Use <code>-Release</code> when you are shipping a change you made to the studio. Use <code>-Update</code> when you want a newer version of a studio that somebody else publishes. The two sit one letter apart in a shell history and they move work in opposite directions.</p>
 
 <pre>studio.ps1 -Release   <span class="c"># your work goes OUT</span>
 studio.ps1 -Update    <span class="c"># upstream work comes IN</span></pre>
 
     <div class="pullbox">
       <p class="pk">Running the wrong one</p>
-      <p>Typing <code>-Update</code> when you meant <code>-Release</code> rebuilds every project on the machine from the upstream roster and <strong>publishes nothing</strong>. Anything you had committed is still in the repository, so the recovery is a <code>-Sync</code>, but until you run it your projects are being briefed by somebody else's base. Preview either command with <code>-WhatIf</code> when you are not certain which one you are holding.</p>
+      <p>Typing <code>-Update</code> when you meant <code>-Release</code> rebuilds every project on the machine from the upstream roster and publishes nothing. Anything you had committed is still in your repository, so the recovery is to run <code>-Sync</code>, but until you do, your projects are briefed by the upstream version rather than by yours. Preview either command with <code>-WhatIf</code> when you are not sure which one you want.</p>
     </div>
 
     <h4 class="sub-h" id="examples">4.2 &gt; Worked examples</h4>
 
-    <p>Improve one role for every project at once. This is the common case, and the reason the studio exists.</p>
-<pre><span class="c"># a rule learned once that applies everywhere</span>
+    <p><b>You have improved a role and want every project to receive it.</b> This is the common case, and the reason the studio exists.</p>
+<pre><span class="c"># 1. change the shared role</span>
 edit base\agents\qa-tester.md
+
+<span class="c"># 2. send it to every project</span>
 studio.ps1 -Sync
+
+<span class="c"># 3. confirm nothing drifted</span>
 studio.ps1 -Doctor</pre>
 
-    <p style="margin-top:1.8rem">Make a single project behave differently, without touching the base and without forking the role.</p>
-<pre><span class="c"># true of this project and of no other</span>
+    <p style="margin-top:1.6rem">Every tuned project now carries the new wording. A project with no layer of its own receives it from the machine-wide install instead.</p>
+
+    <p style="margin-top:1.8rem"><b>You want one project to behave differently, without changing the base.</b></p>
+<pre><span class="c"># 1. write what is true of this project only</span>
 edit my-app\.claude\agent-overlays\qa-tester.md
+
+<span class="c"># 2. rebuild that project's roster</span>
 studio.ps1 -Compose -Project "my-app"</pre>
 
-    <p style="margin-top:1.8rem">Publish your own version of the studio. The changelog entry is written first, because the release note is generated from it and the two cannot then disagree.</p>
-<pre><span class="c"># newest dated section at the top, written first</span>
+    <p style="margin-top:1.6rem">Only that project changes. The base roster and every other project are untouched.</p>
+
+    <p style="margin-top:1.8rem"><b>You have changed the studio itself and want to publish your own version.</b> A shared role, a skill, the method or the website. This does not deploy a project's product.</p>
+<pre><span class="c"># 1. improve the shared role</span>
+edit base\agents\qa-tester.md
+
+<span class="c"># 2. write a dated entry saying what changed</span>
 edit CHANGELOG.md
+
+<span class="c"># 3. preview it, then ship it</span>
 studio.ps1 -Release -WhatIf
 studio.ps1 -Release</pre>
+
+    <p style="margin-top:1.6rem">The command reads that entry, commits and pushes the studio's private repository, publishes the public copy from the same entry, and rebuilds the website. Both repositories carry the same note.</p>
+
+    <p>Publishing used to be two separate commands. A change was committed to the private repository and never published to the public one, and nothing compared the two, so the public copy stayed behind for weeks. One dated entry now drives both.</p>
 
     <p class="bridge"><a class="hcta" href="/how-to">How to run it &#8594;</a></p>
   </section>

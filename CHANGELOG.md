@@ -6,6 +6,38 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-26
+
+**What this gives you.**
+- **The command reference tells you when to reach for each command, not only what it does.** Every row now opens with the situation you are in: after you change a shared role, the first time a project needs to differ, when a file was edited where it was installed.
+- **What each command writes is spelled out in plain sentences.** It used to be a list of paths, which only helps a reader who already knows what those paths are.
+- **The two commands nobody should ever run by hand say so.** They are hooks. Your tooling runs them for you, and the table used to describe them as though you would type them.
+- **The three worked examples are numbered steps.** What you are trying to do, the commands in order, then one sentence saying what changed as a result.
+- **Releasing says what it ships and what it does not.** It ships the studio itself: the shared roles, the skills and the website. It does not deploy the product a project builds, and a reader could previously have assumed it did.
+- **One limitation is now stated on the page rather than left to be discovered.** The roster installs into the directories one specific coding agent reads. The method does not depend on any particular agent, but this tool does, and other agents are not supported yet.
+
+### Written for the person about to type it
+
+The command reference shipped yesterday answered the wrong half of the question. It said what each command did, in the vocabulary of somebody who already knew, and it listed the directories each one touched as bare paths. That is a reference for people who do not need one.
+
+Every row now opens with the trigger. You reach for the sync after changing a shared role so that every project receives it. You reach for the forced version when a file was edited where it was installed and you have decided the shared version should win. The same wording opens twelve of the nineteen rows, deliberately, because a reader scanning the column gets the same kind of answer in the same place every time.
+
+The writes column is now sentences. Overwrites the sixteen role files in the machine-wide agents directory and the skills beside it. Creates the project file if there is none, and otherwise edits only the block between two markers and leaves the rest of the file unchanged. Read-only, no file created, modified or deleted. A reader can now tell, before pressing enter, whether a command is about to rewrite something they have been editing.
+
+### What releasing actually is
+
+It ships the studio: the shared roles, the skills, the method and the website. It is not a product deploy. A project built with this team ships its product through its own pipeline, and nothing in this tool touches that.
+
+It is one command rather than two because it used to be two. A change was committed to the private repository and never published to the public one, nothing compared them, and the public copy stayed behind for weeks. One dated entry in the changelog now drives both, so the two repositories cannot describe the same day differently.
+
+### The tables had never fitted on a screen, and the fix was one selector
+
+Reported yesterday and worth repeating with the numbers, because the cause is the interesting part. A rule that keeps one table's short labels on a single line had been written against every table on the site, while the comment directly above it described the one table it was meant for. Measured in a browser: two tables rendered at nearly three times and more than twice the width of the column holding them, scrolling sideways on a desktop rather than only on a phone.
+
+Every check this project owns reads text. None of them could see this, because it does not exist until a browser has laid the page out. A comment is not a selector.
+
+---
+
 ## 2026-08-25
 
 **What this gives you.**
