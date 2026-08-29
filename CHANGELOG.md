@@ -6,6 +6,36 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-28
+
+**What this gives you.**
+- **Your project now tells you when its own record has grown too big to load, at the moment you are writing that record.** The health check has reported this correctly for weeks. It only helps if somebody chooses to run it, and the person who makes a document longer is winding down, not running a health check, usually on a different day.
+- **It separates two problems that look identical and have opposite remedies.** A record that has honestly grown needs archiving. A section that is supposed to be rewritten every session, and is being added to instead, needs rewriting. Archiving would return nothing there, and until now nothing could tell you which one you had.
+- **The cost is reported as a running charge rather than a file size.** A document of 165,000 characters is roughly 42,000 tokens re-sent on every single request for the whole session, before any work happens at all. Those are the same number and only one of them reads as a problem.
+- **An archive stays findable.** If a project moves older decisions into an archive file, the check refuses unless a document the session actually loads points at it. Decisions nobody can find get argued again from the start.
+
+### Why a size is not a cost
+
+The file that holds a project's state is loaded automatically at the start of every session, and it is re-sent with every request in that session. So its length is not paid once. It is paid on every exchange, for hours, before anybody types anything.
+
+Measured across the projects on this machine, the worst was loading just over 307,000 characters on every request. That is about 77,000 tokens of context before a single question is asked, and across two hundred requests it is more than fifteen million tokens spent on re-reading a record rather than doing work.
+
+The health check has been printing that number in red for weeks. Nothing acted on it, because reading it required choosing to run a separate command, and the growth happens somewhere else entirely.
+
+### The two diseases
+
+The obvious remedy is to archive old history, and for one project that is exactly right: it had accumulated 141 decisions in a single loaded document.
+
+The project that raised the alarm had no decisions table at all. Its weight was in two sections that are supposed to be replaced every session, the next action and the prompt used to resume work. Together they were 111,000 of its 165,000 characters. Nothing there was history. It was current state, written five times over and never cleared out.
+
+Those two problems look identical from the outside, they have opposite remedies, and choosing the wrong one leaves the file exactly as large as it was. The new check names which sections are the offenders, so the remedy follows from the report instead of from a guess.
+
+### It reports, and it does not refuse
+
+A failing check here does not stop the session from saving its state.
+
+That is deliberate, and it is the opposite of the other pre-commit check that ships alongside it. A guard that blocks the save leaves the record unwritten, and losing a session's state costs far more than a document that is too long. The check reports the numbers, names the section responsible, and lets the save go through.
+
 ## 2026-08-26
 
 **What this gives you.**

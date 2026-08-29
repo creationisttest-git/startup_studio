@@ -157,7 +157,9 @@ stage the two documents **by name** and commit. Never `git add -A` and never `gi
 
 ---
 
-## Step 5a: prove the resume prompt still aims at current state
+## Step 5a: prove the documents you just wrote are safe to commit
+
+**First, the resume pointer.**
 
 Before committing, run the checker against the warm start you just wrote:
 
@@ -176,6 +178,37 @@ The fenced block matters as much as the dates. The warm-start skill extracts the
 block under the resume heading; a prompt written as bare prose is not findable, so whatever text
 happens to sit nearby gets handed over instead. One project's prompt had no fence at all and
 nobody knew until it handed over the wrong thing.
+
+**Second, the context budget, and this one is about what the document COSTS rather than what
+it says.**
+
+```
+node <studio>/tools/check-context-budget.js <path-to-the-project-directory>
+```
+
+`CLAUDE.md` @-imports the documents a session loads before it starts, so every character in them
+is re-sent on EVERY request for the life of the session. That is a running charge, not a file
+size. S44 is the rule that a cost is reported multiplied out: 165k reads as a big file, ~42k
+tokens on every call reads as a problem, and they are the same number.
+
+It checks four things. No single loaded document past the limit; the TOTAL under it too, because
+weight spread over several files costs the same and trips no per-file warning; every section that
+is meant to be REPLACED each session within budget; and every archive file pointed at from a
+document that is actually loaded.
+
+**The third one is the reason this exists and it is the one to read carefully.** A section saying
+what to do RIGHT NOW -- the next action, the resume prompt -- is rewritten every wind-down, so it
+cannot honestly accumulate. Measured on a real project: those two sections were 62,340 and 48,970
+characters, together 111k of a 165k file, in a project with no decisions table at all. Archiving
+history would have returned nothing there. A section that should be replaced and is being appended
+to is a different disease from a record that has honestly grown, and only this check tells them
+apart. If it fires, you are appending where you should be replacing.
+
+**A failure here does NOT block the commit.** That is deliberate and it is the opposite of the
+rule above. A guard that refuses the commit leaves the state documents unwritten, which costs far
+more than the bloat it was preventing -- the same reasoning that makes the session budget guard
+fire once and then let the session continue. Report the numbers to the founder, say which section
+is the offender, and commit anyway.
 
 If the studio is not reachable from this project, say so and check by reading instead: find the
 newest dated block, then confirm the prompt names that date and no other. Say which way you
