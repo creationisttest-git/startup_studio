@@ -6,7 +6,7 @@ Newest first. Dates are when the change went public.
 
 ---
 
-## 2026-08-28
+## 2026-08-29
 
 **What this gives you.**
 - **Your project now tells you when its own record has grown too big to load, at the moment you are writing that record.** The health check has reported this correctly for weeks. It only helps if somebody chooses to run it, and the person who makes a document longer is winding down, not running a health check, usually on a different day.
