@@ -1,20 +1,17 @@
 #!/usr/bin/env node
 'use strict';
 /*
- * Tests for the decision-targeting rules in board.js.
+ * Tests for board.js.
  *
  * Every assertion here has been watched failing, by breaking board.js and confirming this suite
  * goes red. A check nobody has seen fail is indistinguishable from one that always passes.
  *
- * Why this file exists at all. On 2026-08-26 the CEO answered one of three open decisions on
- * ST-065 and the board recorded the answer against a different one, carrying the explanatory
- * note across with it. `answer` resolved to open[open.length - 1] and offered no way to name a
- * decision. The false entry matched the option that had been recommended, so it read as
- * agreement rather than as an error, and nothing in the tool flagged it. That is ST-066.
- *
- * Note what had to be true for that to happen: board.js enforces the studio's rules for every
- * rehearsal, and until now it had no tests of any kind. The published board carries
- * board-refusals.test.js; the board we actually run carried nothing.
+ * Why this file exists. A board that ENFORCES its rules is only as trustworthy as the proof
+ * that those refusals still refuse. One of them stopped working silently once: with several
+ * questions open on a ticket, answering resolved to the most recently asked one and offered no
+ * way to name a different one, so an answer was filed against the wrong question. It happened
+ * to match the recommended option, which made the false record read as agreement rather than
+ * as an error. Nothing caught it, because nothing was testing it.
  *
  * Each rule is asserted twice where it can be: once that it refuses what it names, and once
  * that it does NOT refuse a legitimate case. A guard that refuses everything passes the first
@@ -39,7 +36,7 @@ const SANDBOX = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-board-'));
 const TOOL = path.join(SANDBOX, 'board.js');
 fs.copyFileSync(path.join(__dirname, 'board.js'), TOOL);
 
-// Time is SUPPLIED rather than read, which is what BOARD_NOW exists for: a rehearsal that is
+// Time is SUPPLIED rather than read, which is what BOARD_NOW exists for: a run that is
 // reproducible and a diff that is reviewable. It is also what makes the byte comparison further
 // down deterministic.
 //
