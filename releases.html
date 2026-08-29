@@ -259,6 +259,9 @@
           <li><strong>It separates two problems that look identical and have opposite remedies.</strong> A record that has honestly grown needs archiving. A section that is supposed to be rewritten every session, and is being added to instead, needs rewriting. Archiving would return nothing there, and until now nothing could tell you which one you had.</li>
           <li><strong>The cost is reported as a running charge rather than a file size.</strong> A document of 165,000 characters is roughly 42,000 tokens re-sent on every single request for the whole session, before any work happens at all. Those are the same number and only one of them reads as a problem.</li>
           <li><strong>An archive stays findable.</strong> If a project moves older decisions into an archive file, the check refuses unless a document the session actually loads points at it. Decisions nobody can find get argued again from the start.</li>
+          <li><strong>There is now a command that moves older decisions out of the file a session loads, and loses none of them.</strong> It reports what it would do and changes nothing at all until you ask it to write.</li>
+          <li><strong>It refuses to guess.</strong> A decisions table can run newest first or oldest first, and both are in use here. If it cannot establish which end is which from the row numbers, it stops rather than archiving the wrong twenty.</li>
+          <li><strong>It writes the copy first and reads it back before touching the original.</strong> If anything fails in between, you are left with a duplicate rather than a truncated record.</li>
         </ul>
       </div>
     </details>

@@ -13,6 +13,9 @@ Newest first. Dates are when the change went public.
 - **It separates two problems that look identical and have opposite remedies.** A record that has honestly grown needs archiving. A section that is supposed to be rewritten every session, and is being added to instead, needs rewriting. Archiving would return nothing there, and until now nothing could tell you which one you had.
 - **The cost is reported as a running charge rather than a file size.** A document of 165,000 characters is roughly 42,000 tokens re-sent on every single request for the whole session, before any work happens at all. Those are the same number and only one of them reads as a problem.
 - **An archive stays findable.** If a project moves older decisions into an archive file, the check refuses unless a document the session actually loads points at it. Decisions nobody can find get argued again from the start.
+- **There is now a command that moves older decisions out of the file a session loads, and loses none of them.** It reports what it would do and changes nothing at all until you ask it to write.
+- **It refuses to guess.** A decisions table can run newest first or oldest first, and both are in use here. If it cannot establish which end is which from the row numbers, it stops rather than archiving the wrong twenty.
+- **It writes the copy first and reads it back before touching the original.** If anything fails in between, you are left with a duplicate rather than a truncated record.
 
 ### Why a size is not a cost
 
@@ -29,6 +32,20 @@ The obvious remedy is to archive old history, and for one project that is exactl
 The project that raised the alarm had no decisions table at all. Its weight was in two sections that are supposed to be replaced every session, the next action and the prompt used to resume work. Together they were 111,000 of its 165,000 characters. Nothing there was history. It was current state, written five times over and never cleared out.
 
 Those two problems look identical from the outside, they have opposite remedies, and choosing the wrong one leaves the file exactly as large as it was. The new check names which sections are the offenders, so the remedy follows from the report instead of from a guess.
+
+### Moving history out of the way without losing it
+
+The remedy for a record that has honestly grown is to move the older entries somewhere that is
+read on demand instead of on every request. Nothing is deleted and the trail stays whole. The
+policy for this has been written down for months and no project had ever carried it out, which
+is the ordinary fate of a policy that depends on somebody remembering it.
+
+The new command carries it out. It is a dry run unless you ask it to write, it proves that what
+it keeps plus what it moves equals what it started with before it changes a single byte, and it
+leaves a line in the document you keep saying which entries moved and where they went. That last
+part is the one that matters most. Moving a decision out of the loaded file stops it being read
+every time, which is the point, and stops it being seen, which is not. A decision nobody can find
+gets argued again from the beginning.
 
 ### It reports, and it does not refuse
 
