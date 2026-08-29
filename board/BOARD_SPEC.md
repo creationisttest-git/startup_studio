@@ -11,11 +11,23 @@ A reference implementation lives in `reference/`. Start from it.
 
 ## Statuses
 
-Eight, in this order, and these exact keys. A ticket has exactly one.
+Ten. Eight of them are the column statuses, in this order and with these exact keys.
+A ticket has exactly one status.
 
 ```
 backlog  todo  in_progress  uat  uat_complete  prod_ready  prod_deployed  done
 ```
+
+Two further statuses are terminal and render as no column at all:
+
+```
+parked  killed
+```
+
+A ticket is `parked` when it was started and deliberately stopped, and `killed` when it was
+decided against. Both require a reason. They exist because everything started has to end
+explicitly: finished, parked with a reason, or killed. Four things at sixty per cent ship
+nothing, and a board that can only express `done` quietly encourages exactly that.
 
 ## Columns
 
@@ -35,7 +47,7 @@ a later column, because a ticket that appears mid-board has skipped the queue.
 |---|---|
 | `title` | A short summary. Never the requirements. |
 | `description` | Where the real requirements live, and the running record. Agents append progress, decisions and assumptions here as they work. |
-| `status` | One of the eight above. |
+| `status` | One of the ten above. |
 | `release_version` | The build tag at UAT and at PROD. **Writable by the agents only, read-only in the UI.** |
 | `assignee` | Whoever the project says. Declared per board, and declaring nothing means no restriction. A fixed studio-wide list is what made one existing board impossible to migrate. |
 | `created_at` / `updated_at` | Timestamps. |

@@ -16,6 +16,10 @@ Newest first. Dates are when the change went public.
 - **There is now a command that moves older decisions out of the file a session loads, and loses none of them.** It reports what it would do and changes nothing at all until you ask it to write.
 - **It refuses to guess.** A decisions table can run newest first or oldest first, and both are in use here. If it cannot establish which end is which from the row numbers, it stops rather than archiving the wrong twenty.
 - **It writes the copy first and reads it back before touching the original.** If anything fails in between, you are left with a duplicate rather than a truncated record.
+- **You can now run the same board this studio runs, in a repository you already have.** One file per ticket in a folder, committed beside your code. No database, no account, no service to sign up for, and nothing to keep running.
+- **Its rules refuse instead of reminding.** Only QA moves work into acceptance testing, and only once test notes a person can follow have been written. Nothing closes over a question nobody answered. Work in progress has a ceiling. Each of those is a refusal in the program rather than a paragraph somebody is trusted to remember.
+- **You can read it without opening a terminal.** A rendered board file is rewritten on every change and committed with the tickets, so it opens on a phone in any code host. Acceptance testing is the one column that waits for you, and it would be a poor joke if that were the one thing you could not look at.
+- **The documentation now matches the board.** Two states the board has always had, parked and killed, were described nowhere. The vocabulary of record now defines Board, which was the most used word on this site and the only one never explained.
 
 ### Why a size is not a cost
 
@@ -32,6 +36,26 @@ The obvious remedy is to archive old history, and for one project that is exactl
 The project that raised the alarm had no decisions table at all. Its weight was in two sections that are supposed to be replaced every session, the next action and the prompt used to resume work. Together they were 111,000 of its 165,000 characters. Nothing there was history. It was current state, written five times over and never cleared out.
 
 Those two problems look identical from the outside, they have opposite remedies, and choosing the wrong one leaves the file exactly as large as it was. The new check names which sections are the offenders, so the remedy follows from the report instead of from a guess.
+
+### The board you can have on the first day
+
+The board this studio uses to run itself was, until now, not something you could have. What was published needed a hosted database, a project, a bot user, policies and a deploy before it would show you a single ticket, against a free tier that allows two projects. So the one board a new project could realistically start with was the one thing that was never shipped.
+
+That is what changes. The board is a directory of files in your own repository. Git is the durable store, which means your board is versioned, diffable and reviewable exactly like the work it tracks, and a ticket carries a real history rather than a last-modified date. Starting one takes a single command and produces something you can read, commit and push in the same minute.
+
+A visual version on the web remains a decision you make for one project, and it is not an upgrade. The board in your repository is the one every project starts with.
+
+### Two states that existed and were nowhere written down
+
+A board that can only say done quietly encourages the worst habit in software, which is four things at sixty per cent and nothing shipped.
+
+This board has always had two more endings. Work can be parked, meaning it was started and deliberately stopped, and it can be killed, meaning it was decided against. Both require a reason. Neither appeared in the specification or on the reference page, which described eight states for a board that has ten, so a reader learned about them by accident or not at all. They are now written down where they belong, and the rendered board shows them, because a board that displays only its columns hides every ending it recorded.
+
+### One limitation, stated rather than discovered
+
+The board expects a single writer. Ticket changes happen on one branch.
+
+Two branches can each work out the next ticket number, each write a different file, and the merge will succeed without a conflict, so the collision is silent. The tool detects a duplicate afterwards and does not prevent one. That is a real constraint and it is now in the program's own opening paragraph, rather than being something you find out when two numbers collide.
 
 ### Moving history out of the way without losing it
 

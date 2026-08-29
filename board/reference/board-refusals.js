@@ -1,11 +1,11 @@
 // ---------------------------------------------------------------- refusals
 
-// PORTED FROM THE REHEARSAL BOARD, which enforces these and has done since 2026-08-18. This
+// PORTED FROM board.js, THE BOARD IN YOUR REPOSITORY, which enforces these and has done since 2026-08-18. This
 // reference documented them and enforced none, so every project built from it got a board that
 // TRUSTS its operator to remember the rules. The studio's own position on that is not subtle: a
 // rule nobody can break is the only kind that survives a bad afternoon.
 //
-// The rehearsal board refused a shipped ticket being reopened during the session that wrote this,
+// board.js refused a shipped ticket being reopened during the session that wrote this,
 // and it changed what got done. That is the argument, in one instance.
 
 const CEILING = { large: 2, small: 3 };

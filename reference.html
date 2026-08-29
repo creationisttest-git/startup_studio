@@ -122,6 +122,8 @@
       <tr><td>PROD Ready</td><td><b>prod_ready</b></td><td>Accepted and waiting to go out.</td><td>Agents</td></tr>
       <tr><td>PROD Deployed</td><td><b>prod_deployed</b></td><td>Deployed on your explicit instruction, carrying the release version.</td><td>Agents <span class="sub">(you are blocked)</span></td></tr>
       <tr><td>Done</td><td><b>done</b></td><td>Live in production. A merge, or a deployment to a test environment, does not qualify.</td><td>Agents</td></tr>
+      <tr><td><span class="sub">no column</span></td><td><b>parked</b></td><td>Started and deliberately stopped, with the reason recorded. It leaves the board without being finished.</td><td>Agents</td></tr>
+      <tr><td><span class="sub">no column</span></td><td><b>killed</b></td><td>Decided against, with the reason recorded. Nothing that was started is left without an ending.</td><td>Agents</td></tr>
       </tbody>
     </table>
     </div>
@@ -183,6 +185,9 @@
 
       <dt id="g-load">Load</dt>
       <dd>Whether your coding agent can read a Role and register it as an agent you can call. A Role may be present on disk, current and identical to its source, and still fail to Load. When that happens the agent silently does not exist. Thirteen of the sixteen were in that state for weeks, because each file carried three invisible bytes at the front, while every check at the time reported everything clear. File presence does not prove Load.</dd>
+
+      <dt id="g-board">Board</dt>
+      <dd>The Roadmap Actions Kanban: the record of what a Project is doing, kept as one file per ticket inside that Project&rsquo;s own repository, so it is versioned and reviewable like the work it tracks. Its rules refuse rather than remind: QA alone moves a ticket to UAT, and only with test notes. A visual version on the web is a decision a founder makes for one Project, never an upgrade.</dd>
 
       <dt id="g-compose">Compose</dt>
       <dd>Building a Project's Roster by combining each shared Role with that Project's own additions. Nothing is duplicated and then edited by hand: a hand-edited duplicate goes stale the moment the shared version moves, and nothing tells you. The generated version is rebuilt from the current source, so it cannot be out of date.</dd>
