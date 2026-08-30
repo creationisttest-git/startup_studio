@@ -30,6 +30,7 @@
  *   node board.js move <ref> <column> --by <role> [--notes "..."]
  *   node board.js assign <ref> <name>|none --by <role>
  *   node board.js rank <ref> --top|--bottom|--before <ref>|--after <ref> --by <role>
+ *   node board.js assess <ref> --verdict build|kill|park --measure "..." --by <role>
  *   node board.js note <ref> "<text>" --by <role>
  *   node board.js ask <ref> "<question>" --options "a|b|c" --recommend N --by <role>
  *   node board.js answer <ref> <n> [--decision <key>] [--note "..."]
@@ -95,6 +96,8 @@ const PROJECT = path.join(ROOT, 'project.json');
 // S27 says everything started ends explicitly and "ended" is not a synonym for "finished".
 const COLUMNS = ['backlog', 'todo', 'in_progress', 'uat', 'uat_complete', 'prod_ready', 'prod_deployed', 'done'];
 const TERMINAL = ['done', 'parked', 'killed'];
+// A front-door verdict. KILL is not a failure of the process, it is the process working.
+const VERDICTS = ['build', 'kill', 'park'];
 
 // S27's ceiling. Large is more than one session or more than one discipline.
 const CEILING = { large: 2, small: 3 };
@@ -325,6 +328,31 @@ commands.add = () => {
   ok(ref + '  ' + title + '  [' + size + ']');
 };
 
+// THE FRONT DOOR, RECORDED. Large work is assessed before it starts: the team argues the idea,
+// reaches a verdict, and names the one measure it is expected to move. This command does not
+// RUN that assessment. It records the outcome, and the move to in_progress refuses without it,
+// which is the only part a program can honestly enforce.
+//
+// Why a control rather than a paragraph. The process is already written down and being written
+// down is exactly what has not worked: a session opens, the work is described, and building
+// starts. Every rule on this board that now holds became a refusal at the point of action.
+commands.assess = () => {
+  const t = findTicket(positionals()[0]);
+  const by = requireBy();
+  const verdict = flag('verdict', '');
+  const measure = flag('measure', '');
+  if (!VERDICTS.includes(verdict))
+    die('--verdict must be one of: ' + VERDICTS.join(', ') + '. A kill is a legitimate outcome ' +
+        'and is the whole point of having a front door.');
+  if (!measure || measure === true)
+    die('--measure is required: what should this move, and what is that number today? An ' +
+        'assessment with no measure is an opinion with a verdict attached to it.');
+  t.assessment = { verdict: verdict, measure: measure, by: by, at: now() };
+  log(t, by, 'assessed ' + verdict + ': ' + measure);
+  save(t);
+  ok(t.ref + '  assessed ' + verdict + '  by ' + by);
+};
+
 commands.move = () => {
   const pos = positionals();
   const t = findTicket(pos[0]);
@@ -354,6 +382,16 @@ commands.move = () => {
           '       In progress: ' + live.filter(x => x.size === t.size).map(x => x.ref).join(', ') + '\n' +
           '       Finish or park one before starting another. Four things at sixty per cent ship nothing.');
   }
+
+  // THE FRONT DOOR IS A PRECONDITION, NOT A SUGGESTION. Large work cannot start until it has
+  // been assessed and the verdict is on the ticket.
+  //
+  // Small work is exempt deliberately. A gate that fires on everything gets routed around, and
+  // the cost of assessing a one-line fix is precisely what teaches people to skip the gate that
+  // matters. The exemption is what keeps this one enforceable.
+  if (to === 'in_progress' && t.size === 'large' && !t.assessment)
+    die(t.ref + ' is large and has not been assessed. Run the front door, then record it: ' +
+        'assess ' + t.ref + ' --verdict build|kill|park --measure "..." --by <role>');
 
   const from = t.status;
   t.status = to;
@@ -732,7 +770,7 @@ commands.doctor = () => {
 //
 // It warns and never refuses, and it fails open on every path. A board outside a repository, or
 // on a machine with no git at all, is a legitimate way to run this and must not be blocked.
-const MUTATORS = ['init', 'add', 'move', 'assign', 'rank', 'note', 'ask', 'answer', 'close', 'reopen', 'delete', 'restore'];
+const MUTATORS = ['init', 'add', 'assess', 'move', 'assign', 'rank', 'note', 'ask', 'answer', 'close', 'reopen', 'delete', 'restore'];
 if (MUTATORS.indexOf(cmd) !== -1 && !process.env.BOARD_NO_GIT_WARN) {
   process.on('exit', () => {
     try {

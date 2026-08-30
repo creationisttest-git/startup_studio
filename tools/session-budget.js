@@ -91,12 +91,20 @@ function tally (transcript, state) {
   return out;
 }
 
-// The count of work in flight, read from the rehearsal board if this project runs one. Session
+// The board lives in .board at the repository root. The path is named ONCE here and asserted
+// against the real repository by session-budget.test.js, because a hand-kept path that has to
+// track a directory is exactly what went stale when the board moved: this guard kept looking
+// in the old place, found nothing, and reported no work in flight while three tickets were
+// open. Both the tool and its test named the same dead path, so they agreed with each other
+// and neither agreed with the repository.
+const BOARD_TICKETS = ['.board', 'tickets'];
+
+// The count of work in flight, read from the board in this repository if it runs one. Session
 // length and work in flight are the same question asked twice: a session that is long AND
 // holding open tickets cannot simply stop, and that is the situation worth interrupting.
 function wip (cwd) {
   try {
-    const dir = path.join(cwd, 'testbed', 'board', 'tickets');
+    const dir = path.join(cwd, ...BOARD_TICKETS);
     if (!fs.existsSync(dir)) return null;
     let n = 0;
     for (const f of fs.readdirSync(dir)) {

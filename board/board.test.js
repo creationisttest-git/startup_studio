@@ -705,6 +705,58 @@ function runCapture(prog, cwd, args, env) {
   ok('an ending is visible in the rendered board, not just the columns',
      /## KILLED/.test(third) && third.indexOf(kref) > -1);
 }
+// --- THE PUBLISHED HEADER IS PART OF THE PRODUCT, SO IT IS ASSERTED -------------------------
+// Two of this board promises lived only in prose and were guarded by nothing. Reinserting the
+// words -- a test bed, not a product -- left the suite fully green, and deleting the ENTIRE
+// single-writer paragraph did too. That paragraph is the whole implementation of a decision
+// the founder made: it is not decoration, and a rule that ships as words and is checked by
+// nothing is a rule the next refactor removes for free.
+{
+  const prog = fs.readFileSync(path.join(__dirname, 'board.js'), 'utf8');
+  const header = prog.slice(0, prog.indexOf('use strict'));
+  ok('the program does not describe itself as a rehearsal or a test bed',
+     !/rehears/i.test(header) && !/test bed/i.test(header));
+  ok('and it states the single-writer rule, which is a ruling rather than a preference',
+     /SINGLE WRITER/.test(header));
+  ok('and it says what that rule COSTS, rather than only naming it',
+     /merge/i.test(header) && /duplicate/i.test(header));
+}
+// --- THE FRONT DOOR IS A PRECONDITION FOR LARGE WORK, NOT A SUGGESTION ----------------------
+// The process was already written down, and being written down is exactly what had not worked:
+// a session opens, work is described, and building starts. This is the refusal that turns the
+// front door from an instruction into a control.
+{
+  const mkL = title => run(['add', title, '--desc', 'fixture', '--size', 'large']).out.trim().split(' ')[0];
+  const L1 = mkL('GATE a large idea');
+  run(['move', L1, 'todo', '--by', 'pm']);
+  const blocked = run(['move', L1, 'in_progress', '--by', 'pm']);
+  ok('large work cannot start without an assessment', blocked.code === 1);
+  ok('and the refusal names the command that unblocks it',
+     /has not been assessed/.test(blocked.out) && /assess/.test(blocked.out));
+  ok('and the ticket did not move', ticket(L1).status === 'todo');
+
+  ok('assess refuses a verdict it does not recognise',
+     run(['assess', L1, '--verdict', 'maybe', '--measure', 'x', '--by', 'pm']).code === 1);
+  ok('assess refuses a verdict with no measure behind it',
+     run(['assess', L1, '--verdict', 'build', '--by', 'pm']).code === 1);
+  ok('assess refuses an unattributed assessment',
+     run(['assess', L1, '--verdict', 'build', '--measure', 'x']).code === 1);
+
+  const done = run(['assess', L1, '--verdict', 'build', '--measure', 'refusals reachable, 2 of 5 today', '--by', 'pm']);
+  ok('a complete assessment is accepted', done.code === 0);
+  ok('and it is WRITTEN to the ticket rather than merely reported',
+     !!ticket(L1).assessment && ticket(L1).assessment.verdict === 'build');
+  ok('and the measure survives, because the measure is the part that gets skipped',
+     /2 of 5/.test(ticket(L1).assessment.measure));
+
+  // THE DISCRIMINATION HALF. A gate that fires on everything gets routed around, and then it
+  // protects nothing at all.
+  const S1 = run(['add', 'GATE a small fix', '--desc', 'fixture', '--size', 'small']).out.trim().split(' ')[0];
+  run(['move', S1, 'todo', '--by', 'pm']);
+  const small = run(['move', S1, 'in_progress', '--by', 'pm']);
+  ok('small work still starts without an assessment',
+     small.code === 0 || !/has not been assessed/.test(small.out));
+}
 junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 fs.rmSync(SANDBOX, { recursive: true, force: true });
 console.log(pass + ' passed, ' + fail + ' failed');

@@ -34,7 +34,9 @@ How you take work, every time:
 
 **The CEO is the tester, and that boundary is absolute.** You take work as far as UAT on your own. You never mark anything PROD deployed except on an explicit CEO instruction to deploy, and only then do you tag the release version with the PROD build. The CEO tests in UAT and says so on the ticket; nothing leaves UAT without that.
 
-If the project has no board yet, it gets the Startup Studio Kanban before feature work starts, built to `_STUDIO/base/board/BOARD_SPEC.md` from the reference implementation beside it. Never improvise a different shape. The CLI holds NO privileged key. It signs in as that project's own bot user and obeys the same row-level security as the UI, because a service-role key bypasses every policy by definition and would give one project's tooling access to every other project's board. It refuses to start if it finds a service key in its environment, and the repo carries a hygiene check that fails if any privileged credential reaches a tracked file.
+If the project has no board yet, it gets the Roadmap Actions Kanban before feature work starts: `board.js` from `_STUDIO/base/board/`, run inside the project's own repository. It needs a git repository and nothing else, so there is never a reason to defer it. Never improvise a different shape.
+
+A hosted database enters the picture ONLY if the founder has explicitly chosen a visual board on the web for that project. In that case the CLI holds NO privileged key. It signs in as that project's own bot user and obeys the same row-level security as the UI, because a service-role key bypasses every policy by definition and would give one project's tooling access to every other project's board. It refuses to start if it finds a service key in its environment, and the repo carries a hygiene check that fails if any privileged credential reaches a tracked file.
 
 **Drive the board from the terminal** using the project's board tool, never by hand in the UI and never by asking a person to click through it. Any credential the tool needs stays server-side and never reaches browser code.
 

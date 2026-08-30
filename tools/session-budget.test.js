@@ -108,7 +108,7 @@ function drive (id, n, extra) {
 {
   const s = fresh();
   const proj = fs.mkdtempSync(path.join(os.tmpdir(), 'proj-'));
-  const tix = path.join(proj, 'testbed', 'board', 'tickets');
+  const tix = path.join(proj, '.board', 'tickets');
   fs.mkdirSync(tix, { recursive: true });
   fs.writeFileSync(path.join(tix, 'a.json'), JSON.stringify({ status: 'in_progress' }));
   fs.writeFileSync(path.join(tix, 'b.json'), JSON.stringify({ status: 'in_progress' }));
@@ -118,6 +118,24 @@ function drive (id, n, extra) {
   ok('the refusal counts tickets in flight', /2 ticket\(s\)/.test(r.err));
   ok('a done ticket is not counted as in flight', !/3 ticket/.test(r.err));
   fs.unlinkSync(s.file);
+}
+
+// --- THE PATH THIS GUARD READS MUST EXIST IN THIS REPOSITORY ------------------------------
+// Every assertion above seeds a fixture at whatever path the tool names, so the two agree by
+// construction and both can be wrong together. They were: the board moved, the guard kept
+// reading the old directory, and it silently reported no work in flight for a whole session.
+// This is the only assertion here that compares the tool against the WORLD rather than
+// against a fixture built to match it.
+{
+  const src = fs.readFileSync(path.join(__dirname, 'session-budget.js'), 'utf8');
+  const key = 'const BOARD_TICKETS = [';
+  const i = src.indexOf(key);
+  ok('the guard names its board path in exactly one place', i > -1);
+  const raw = i > -1 ? src.slice(i + key.length, src.indexOf(']', i)) : '';
+  const segs = raw.split(',').map(x => x.trim().split(String.fromCharCode(39)).join('')).filter(Boolean);
+  const real = path.join(__dirname, '..', ...segs);
+  ok('and the directory it names actually exists in this repository',
+     segs.length > 0 && fs.existsSync(real));
 }
 
 // --- a project with no board is not punished for it --------------------------------------

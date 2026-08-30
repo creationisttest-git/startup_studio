@@ -6,6 +6,37 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-08-30
+
+**What this gives you.**
+- **Large work cannot start until somebody has written down what it is for and how you will know it worked.** The board now refuses to move a large item into progress without a recorded verdict and one named measure. It does not perform the assessment and does not pretend to. It refuses to let the work begin without one, which is the only part a program can honestly enforce.
+- **A measure is required, not optional, and that is the point.** An assessment with no measure is an opinion with a verdict attached, and the measure is the part that gets skipped.
+- **Small work is deliberately exempt, and the exemption is tested rather than trusted.** Making the gate fire on small items turns the test suite red on purpose. A gate that fires on everything gets routed around, and then it protects nothing.
+- **A guard that was quietly reporting that nothing was in flight now reads the right place.** The session cost guard counted open work from a folder that had been moved, so for a whole session it reported an empty board while three items were open. It was confident and wrong, which is worse than silent.
+- **Two rules that were written down and guarded by nothing are now genuinely guarded.** One is a decision about how the board may be written to; the other is a sentence published on this site. Either could have been deleted in full with every test still passing.
+- **New projects are no longer sent to the board that was replaced.** Two roles in the shared team still pointed at the older tool.
+
+### Why this is a refusal rather than a reminder
+
+The instruction to assess an idea before building it had been written down here for months, and it kept being skipped. That is not unusual and it is not a discipline problem. Every rule in this project that now holds became a rule the software enforces, and every rule that stayed a paragraph eventually stopped applying.
+
+So the front door stopped being a sentence in a document. A large ticket cannot enter progress without a verdict and a measure attached to it, and the attempt fails with an explanation of what is missing.
+
+The immediate cost is real and worth stating plainly, because it is what the change is for: work already sitting in the backlog cannot start until each item has been through that step. That is not a side effect.
+
+### A test that cannot fail is not a test
+
+Two of the things repaired here were rules with tests that could not fail.
+
+The first was a decision about how the board may be written to. Deleting the entire paragraph implementing it left the suite fully green. The second was a sentence describing what the published board is. Replacing it with the older, wrong description also left the suite fully green.
+
+Both had been reviewed. Both had tests near them. Neither had a test that would notice if the thing it described disappeared, because the tests asserted that nothing bad happened rather than asserting that the right thing was present.
+
+The rule that came out of it, and it is the more useful half: check what the code did, never that it failed to misbehave. Read the record back and confirm it changed.
+
+
+---
+
 ## 2026-08-29
 
 **What this gives you.**
