@@ -6,6 +6,40 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-01
+
+**What this gives you.**
+- **The message you see when a session opens is now written for you rather than for the assistant.** It used to read out the whole operating manual: ninety six lines and 977 words, every time, whether or not any of it concerned you. It is now fourteen lines and 197 words that say what is being worked on, why it matters, and what is needed from you. Both numbers are counted from what the tool actually emits.
+- **It cannot quietly grow back, because two caps are now enforced when you save your work.** Twenty five lines for the whole message, twelve for the part addressed to you. This matters more than it sounds: the message grew twenty two lines in a single day before this, because every session had a reason to add to it and none had a reason to cut.
+- **A project that has never had one of these is told about it, never locked out.** The check reports a missing brief and lets the save through. An earlier version of it refused, and it turned out that almost every project on the machine that built it would have hit a wall it could not pass on its next save. You adopt the rule by writing the section once, and until then you are only reminded.
+- **The check tells the difference between broken and absent, and only one of those stops you.** A brief that is too long, too wide, or identical to the session text is a genuine problem and blocks the save. A project that simply has not written one yet is not.
+- **What is written for you and what is written for the assistant are now separate text on separate routes, so neither can swallow the other.** The founder-facing block is read to you at session start. The assistant's instructions reach it another way and are never read out.
+- **Asking for a summary of where things stand now leads with the answer.** The corrections come second and the full record third, instead of the answer arriving after eighty lines of process notes.
+
+### The session start now speaks to the founder, and the long version was a duplicate
+
+The obvious fix was to write something shorter. The actual finding was that the long version never needed to be sent at all.
+
+The assistant was already receiving the full record by a completely separate route, on every single request, because the project's main instruction file imports it. So the ninety six lines being read out at session start were a duplicate of something already in hand. They were spending the founder's attention to deliver text to a reader that had it before the greeting began.
+
+Once that was measured, the split cost almost nothing. The founder gets a brief. The assistant keeps the manual by the route that was always carrying it.
+
+### A cap becomes a target, which is why it is split rather than flat
+
+A single limit for the whole message would have left roughly a dozen spare lines, and "we are still under the cap" is precisely the argument that produced the ninety six line version in the first place.
+
+So the spare room is fenced off. The part written for you has its own tighter limit, because it is the part you read every day and the part with nothing else stopping it expanding. The remaining room belongs to warnings about problems in your project, and those are self limiting: there are only a few of them and each one stops appearing once the thing it reports is fixed. The growth has nowhere to go.
+
+### Four rounds of review, three failures, and all three were in the evidence
+
+This is worth publishing because the pattern is more useful than the feature.
+
+The change itself was substantially right after the first attempt. What failed review, three times running, was the proof that it was right. A control was added that no test would notice being deleted. A section boundary was fixed and the fix was described as complete when it covered only part of the case. And a test named after the exact situation it was meant to prove turned out not to contain that situation at all, so it had been passing for the wrong reason.
+
+Every one of those was found by someone other than the author, by deliberately breaking the thing and checking that the tests complained. Two controls that could not fail were repaired during review rather than shipped. The rule this reinforces is one this project has written down before and keeps relearning: a check nobody has watched fail cannot be distinguished from a check that always passes, and that applies to the check itself as much as to the code beneath it.
+
+---
+
 ## 2026-08-30
 
 **What this gives you.**

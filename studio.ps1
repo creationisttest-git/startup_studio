@@ -1459,23 +1459,94 @@ function Write-HookLog ([string]$Event, [string]$Detail) {
 # Verbatim is deliberate. This does not rewrite the prompt or correct it in passing: the founder
 # should see what the record actually says. A wind-down is what updates that record, written from
 # a reading of the whole session, and a session start that quietly amends it has done no work yet.
-function Get-ResumePrompt ([string]$ProjectPath) {
+# THE AUDIENCE SPLIT, ruled by the CEO on ST-069. This used to be Get-ResumePrompt, and the hook
+# read the whole resume prompt out loud at every session start. Measured 2026-08-30 that was 74
+# lines and 754 words; measured 2026-08-31, after ONE wind-down, it was 96 lines and 977 words. It
+# grew 22 lines in a day, because every wind-down has a reason to add to the handover and none has
+# a reason to cut. The CEO's words: "it just gives me this massive verbose message, but I only
+# care about what."
+#
+# The prompt was also DUPLICATION. Measured across the population rather than assumed (S67): 4 of
+# the 5 projects holding a CLAUDE.md import WARM_START.md directly, so the session already had the
+# whole prompt on every request, and the fifth has no WARM_START.md at all so this produced nothing
+# for it either way. The hook was paying 96 lines of the founder's attention to deliver something
+# the session already had.
+#
+# So the hook now carries FOUNDER text only, and the session gets its manual by the import that was
+# always loading it. Two audiences, two strings, two routes. FOUNDER-FACING AND SESSION-FACING TEXT
+# MUST NEVER BE THE SAME STRING, and tools\check-session-brief.js asserts exactly that against this
+# document, because as a style note it would lose to the same gradient that grew the prompt.
+#
+# The one case removing the read-out could have broken is already covered: Get-ProjectBrief above
+# reports a WARM_START.md that no CLAUDE.md imports, as a single line naming the fix.
+function Get-FounderBrief ([string]$ProjectPath) {
     $warm = Join-Path $ProjectPath 'WARM_START.md'
     if (-not (Test-Path $warm)) { return $null }
     $text = Read-TextUtf8 $warm
 
     # The heading wording varies by project, so match the intent rather than one exact string.
-    $m = [regex]::Match($text, '(?ms)^##\s+[^\r\n]*(resume|restart)[^\r\n]*$')
-    if (-not $m.Success) { return $null }
+    # CASE-INSENSITIVE, and the `i` is not decoration. Written first as (?ms), it looked correct
+    # and returned nothing against a real heading of "## Founder brief", so the hook emitted an
+    # EMPTY message. The predecessor got away with (?ms) only because "resume" happens to be
+    # lowercase inside "Prompt to resume this session". Caught by measuring the hook's output
+    # rather than by reading this line, and an empty hook payload is indistinguishable from a
+    # healthy silent one, which is the same shape as the studio's own rule about empty test output.
+    # ANY heading level, not '##' alone. The checker blessed a '### Founder brief' that this
+    # function could not read, so a project could pass its wind-down and still emit nothing at
+    # session start. Two instruments disagreeing about the same document is the ST-055 shape:
+    # a claim true where it was measured and false where the reader lives.
+    $lines = $text -split "`r?`n"
+    $start = -1
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '(?i)^#{1,6}\s+[^\r\n]*founder brief') { $start = $i; break }
+    }
+    if ($start -lt 0) { return $null }
 
-    # The prompt is the first fenced block under that heading. Taking the whole section instead
-    # would sweep in whatever else sits below it, which on some projects is another section.
-    $after = $text.Substring($m.Index + $m.Length)
-    $fence = [regex]::Match($after, '(?s)```[a-z]*\r?\n(.*?)```')
-    if (-not $fence.Success) { return $null }
-    $body = $fence.Groups[1].Value.Trim()
-    if (-not $body) { return $null }
-    $body
+    # The brief is the first fenced block under that heading, and the search is BOUNDED TO THIS
+    # SECTION. The bound is the whole defect, not tidiness. Without it the fence search runs to
+    # end of file, so a "## Founder brief" heading followed by PROSE picks up the next section's
+    # fence, which is the resume prompt, and the hook hands over 42 lines of session manual under
+    # the label FOUNDER BRIEF. That is the 96-line defect this ticket exists to fix, returning
+    # through its own new code path with a new name. Found by qa-tester at the ST-069 gate, and it
+    # was reachable precisely because six other projects are about to be told to add this section.
+    #
+    # A HEADING IS NOT THE ONLY THING THAT ENDS A SECTION, and the first fix here assumed it was.
+    # Markdown also ends one with a horizontal rule or a setext underline, and THIS DOCUMENT puts
+    # a '---' immediately after the founder brief. So the same 42-line paste came back a second
+    # time through the same code path, measured live at the round-two gate. Rules end the section
+    # too.
+    #
+    # WHY THIS WALKS LINES INSTEAD OF TRUNCATING AT THE BOUND. Cutting the text at the first rule
+    # would break a brief that legitimately CONTAINS a '---' line, because the cut would land
+    # inside its fence and leave the fence unterminated, and the hook would emit nothing at all.
+    # Silence is indistinguishable from health here, which is the failure this file already
+    # records one level up. So a fence that has OPENED wins: inside it, a rule is content.
+    $FENCE = [string][char]96 + [char]96 + [char]96
+    $body = New-Object System.Collections.Generic.List[string]
+    $inFence = $false
+    for ($j = $start + 1; $j -lt $lines.Count; $j++) {
+        $line = $lines[$j]
+        if (-not $inFence) {
+            if ($line.TrimStart().StartsWith($FENCE)) { $inFence = $true; continue }
+            if ($line -match '^#{1,6}\s+\S') { return $null }
+            if ($line -match '^\s{0,3}(-{3,}|\*{3,}|_{3,}|={3,})\s*$') { return $null }
+            # A SETEXT UNDERLINE IS SHORTER THAN A RULE, and the line above claims to cover it
+            # while requiring three characters. CommonMark allows an underline of ANY length from
+            # one, so '-' and '==' under a paragraph end that section and match nothing above.
+            # Measured at the round-three gate: a section titled by a TWO-DASH underline handed
+            # the next block to the founder labelled FOUNDER BRIEF. It counts only DIRECTLY under
+            # a non-blank line, which is what makes it an underline rather than stray dashes.
+            if (($line -match '^\s{0,3}(=+|-+)\s*$') -and ($lines[$j - 1].Trim() -ne '')) { return $null }
+            continue
+        }
+        if ($line.TrimStart().StartsWith($FENCE)) {
+            $found = ($body -join "`n").Trim()
+            if (-not $found) { return $null }
+            return $found
+        }
+        $body.Add($line) | Out-Null
+    }
+    return $null
 }
 
 # --------------------------------------------------------------- recall
@@ -2242,12 +2313,17 @@ if ($Autoload) {
                 foreach ($f in (Get-ProjectBrief $proj)) {
                     $lines += ("STUDIO: " + $f.Rule + ". " + $f.What + " " + $f.Fix)
                 }
-                # The resume prompt, verbatim, so nobody has to open the file and find it. It goes
+                # The founder brief, verbatim, so nobody has to open the file and find it. It goes
                 # LAST, after any findings: a finding is about this project right now and is worth
-                # reading first, while the prompt is standing instruction.
-                $rp = Get-ResumePrompt $proj
-                if ($rp) {
-                    $lines += ("RESUME PROMPT, from WARM_START.md. Written at the last wind-down, so treat every number in it as a claim to verify rather than a fact:" + "`n`n" + $rp)
+                # reading first, while the brief is standing orientation.
+                $fb = Get-FounderBrief $proj
+                if ($fb) {
+                    # WRAPPED AT TWO LINES BY HAND. Written as one sentence this was 134 characters,
+                    # which breaks the same 100-column rule the check enforces on the brief below it.
+                    # The width rule applied to the founder's words and not to mine, which is the
+                    # check having a blind spot exactly where its author was standing.
+                    $lines += ("FOUNDER BRIEF, from WARM_START.md, written at the last wind-down." + "`n" +
+                               "Treat every number in it as a claim to verify rather than a fact:" + "`n`n" + $fb)
                 }
             }
         } catch {
@@ -2273,7 +2349,34 @@ if ($Autoload) {
         # not happen must not be suppressed. That conflated suppressing the raw stdout with
         # suppressing the MESSAGE, which are different things, and it broke an existing assertion
         # that had been guarding the correct behaviour since before any of this was written.
-        @{ systemMessage = ($lines -join " "); suppressOutput = $true } | ConvertTo-Json -Compress
+        # WRAPPED AT 100 COLUMNS. The findings are 175 and 193 characters as written, so they broke
+        # the same width rule check-session-brief.js enforces on the brief, and a line count cannot
+        # see that: measured at the ST-069 gate, 13 physical lines rendered as 19 at 100 columns and
+        # 21 at 80. Wrapping is display only and loses nothing. It does NOT make three findings plus
+        # a ten-line brief fit inside 15 lines. Put to the CEO rather than settled by quietly
+        # widening their number, and they ruled TWO caps on 2026-08-31: 25 for the whole message,
+        # 12 for the brief alone, so the spare room belongs to findings and not to the brief.
+        $wrapped = @()
+        foreach ($ln in (($lines -join "`n") -split "`r?`n")) {
+            if ($ln.Length -le 100) { $wrapped += $ln; continue }
+            $cur = ''
+            foreach ($w in ($ln -split ' ')) {
+                if ($cur -and ($cur.Length + 1 + $w.Length) -gt 100) { $wrapped += $cur; $cur = $w }
+                elseif ($cur) { $cur = $cur + ' ' + $w }
+                else { $cur = $w }
+            }
+            if ($cur) { $wrapped += $cur }
+        }
+        $lines = $wrapped
+
+        # JOINED WITH A NEWLINE, not a space, and the difference is the whole line cap. Joined
+        # with " ", three findings plus a rebuild sentence arrive as ONE line of about 650
+        # characters, which renders as 19 lines at 100 columns and 21 at 80. So the budget the CEO
+        # ruled was being counted in units the tool did not emit: the check subtracted four LINES
+        # that never existed as lines, and could not see the one thing that actually blew the
+        # budget. qa-tester measured this at the ST-069 gate. Making them real lines is the fix
+        # that lets a line cap mean anything at all.
+        @{ systemMessage = ($lines -join "`n"); suppressOutput = $true } | ConvertTo-Json -Compress
     }
     return
 }

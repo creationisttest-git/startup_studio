@@ -62,7 +62,12 @@ const DISPOSABLE_LIMIT = 12000;
 
 // Matched case-insensitively against `##` heading text. These are the sections the wind-down
 // protocol says are rewritten every session rather than added to.
-const DISPOSABLE = [/next action/i, /prompt to resume/i];
+//
+// `founder brief` joined this list when ST-069 created it, because the wind-down now says to
+// rewrite it every session, which is the definition this list uses. A hand-kept list that must
+// track something else needs the thing it tracks to be added when it appears (S39); this one had
+// already gone stale by one entry on the day the section was invented.
+const DISPOSABLE = [/next action/i, /prompt to resume/i, /founder brief/i];
 
 const args = process.argv.slice(2);
 const quiet = args.includes('--quiet');

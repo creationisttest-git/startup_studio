@@ -62,11 +62,28 @@ actually wrong.
 Anything you cannot check cheaply, pass through unchanged and do not comment on. A skill that
 editorialises about every line is one people stop reading.
 
-## Step 3: hand it over
+## Step 3: hand it over, answer first
 
-Print the prompt as it stands, in full, then any corrections underneath it under a plain heading.
-Do not silently rewrite it: the founder should see what the record says AND what is actually true,
-because the gap between them is itself information about how long it has been since a wind-down.
+**Three parts, in this order. The order is the whole fix.**
+
+1. **The answer, in about four lines.** What we are working on, why it matters, what done looks
+   like, and what is needed from the founder. If the document carries a `## Founder brief`, that
+   IS the answer: print it. If it does not, take the four facts from the top of the prompt and
+   say you did.
+2. **The corrections**, under a plain heading, in the table below.
+3. **The prompt in full, verbatim**, underneath, for the session to work from.
+
+Why the order and not a trim. The founder asked what we are working on and received 98 lines. The
+CEO's words on ST-069: *"warm start does not really help me as it just gives me this massive
+verbose message, but I only care about what."*
+
+**The prompt is still printed in full, deliberately.** The founder should see what the record
+CLAIMS and what is actually TRUE, because the gap between them is itself information about how
+long it has been since a wind-down. That reasoning was right when it was written and it survives
+here. What was wrong was making the founder read the operating manual to reach the four facts.
+Ordering, not deletion.
+
+Never silently rewrite the prompt.
 
 ```
 CURRENT   the prompt, verbatim

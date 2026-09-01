@@ -179,7 +179,63 @@ block under the resume heading; a prompt written as bare prose is not findable, 
 happens to sit nearby gets handed over instead. One project's prompt had no fence at all and
 nobody knew until it handed over the wrong thing.
 
-**Second, the context budget, and this one is about what the document COSTS rather than what
+**Second, the founder brief.**
+
+```
+node <studio>/tools/check-session-brief.js <path-to-WARM_START.md>
+```
+
+It reports if the brief is missing, has no fenced block, is over 12 lines, has a line over 100
+characters, carries an em-dash, is the same string as the resume prompt, or disagrees with the
+board about what is in flight. It also adds up the WHOLE session-start message in its worst case,
+with every finding firing, against a cap of 25.
+
+**Two caps, ruled by the CEO on 2026-08-31: 25 lines for the whole message, 12 for the brief.**
+The brief is capped separately on purpose. It is the part the founder reads at every single
+session start and the part with nothing else stopping it growing, so the spare room in the 25
+belongs to findings, which are bounded because each one stops firing once the thing it reports is
+fixed. A flat 25 would have left twelve empty lines, and "we are still under the cap" is exactly
+the argument that grew the old message by 22 lines in a single day.
+
+**Read the exit code, not just the output.**
+
+- `0` clean.
+- `1` the brief exists and is broken. **This blocks the commit.** Fix it and run again.
+- `2` the file could not be read. Say so; do not treat it as a pass.
+- `3` this project has no founder brief at all. **This does NOT block the commit.**
+
+That asymmetry is deliberate and it was a defect first. This check shipped as an unconditional
+blocker and was live machine-wide within the hour; measured at the gate, **six of seven projects
+failed it**, none of which had ever had the section it demands. The next wind-down in any of them
+would have hit a wall it could not pass, and twenty-six lines below this one sits the rule that
+forbids exactly that: a guard that refuses the commit leaves the state documents unwritten, which
+costs far more than the bloat it was preventing. The context-budget check already deliberately
+does not block for that reason.
+
+So a project opts in by writing a brief once, and from then on the cap is enforced. A project that
+has never had one is told, every wind-down, and is never locked out. **If you see that message and
+this project has no brief, write one now** rather than carrying it: the founder-facing channel
+here is dark until you do, and nothing else will tell them.
+
+**Rewrite the brief every wind-down. It is the only founder-facing text in the document.** The
+session-start hook reads it out and reads out nothing else, so a stale brief is what the founder
+is told at the start of every session until somebody notices.
+
+Why this is a check and not a note in this file. Reading the resume prompt out loud was 74 lines
+on 2026-08-30 and 96 lines the next day, after one wind-down. **Every wind-down has a reason to
+add to the handover and none has a reason to cut**, so a cap written as guidance loses to that
+gradient every single session. It only survives as something that refuses the commit. That is the
+same argument the resume pointer above was built on, and the CEO's ruling on ST-069.
+
+The brief serves a different reader from everything else here: what we are working on, why it
+matters, what done looks like, and what is needed from the founder. **Founder-facing and
+session-facing text must never be the same string.** The session gets the operating manual from
+the `CLAUDE.md` import, which already loads this whole document on every request.
+
+What the check cannot see, so you have to: whether what the brief says about a ticket is TRUE. It
+proves the brief names the right tickets and nothing more.
+
+**Third, the context budget, and this one is about what the document COSTS rather than what
 it says.**
 
 ```
