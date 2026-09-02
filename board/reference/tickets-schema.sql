@@ -1,4 +1,4 @@
--- Startup Studio Kanban -- shared backend, one board per project, hard isolation.
+-- Roadmap Actions Kanban -- shared backend, one board per project, hard isolation.
 --
 -- Run in the Supabase SQL editor. Safe to re-run: it creates what is missing, upgrades an
 -- existing single-project board. It DOES touch ticket data: it normalises legacy status

@@ -57,11 +57,11 @@
     <p class="rel-intro">This page defines the Startup Studio board, its default technology stack, every command the tool accepts, and the terms used across the site and the repository. It is for anyone running Startup Studio, contributing to it, or checking the precise meaning of a term.</p>
 
     <h3 id="board">1 &gt; The Board</h3>
-    <p>Every Project uses the same board as its only work queue. It has seven columns and eight status keys. I keep the structure fixed because the agents use these exact column names and keys. If they change, the team no longer matches the board.</p>
+    <p>Every Project uses the same board as its only work queue. It has eight columns, one for each status key, and two further statuses that leave the board rather than sitting in a column. I keep the structure fixed because the agents use these exact names and keys. If they change, the team no longer matches the board.</p>
     <p>The cards below are made up, to show the shape.</p>
-    <p><b>Agents move a ticket through all seven columns.</b> One transition is yours and no agent can make it: accepting the work. That changes the ticket from <b>uat</b> to <b>uat_complete</b> inside the UAT column rather than moving it along, and until you make it nothing goes any further.</p>
+    <p><b>Agents move a ticket through all eight columns but one.</b> That move is yours and no agent can make it: accepting the work, which moves the ticket out of UAT and into UAT Complete. Until you make it, nothing goes any further.</p>
 
-    <p class="boardhint">Seven columns: swipe to see them all</p>
+    <p class="boardhint">Eight columns: swipe to see them all</p>
     <div class="boardwrap">
       <div class="board">
 
@@ -84,8 +84,14 @@
         </div>
 
         <div class="bcol">
-          <p class="bhead">UAT<span class="bkey">uat + uat_complete</span></p>
-          <div class="bcard"><b>Add a search box</b>Tested by QA, waiting for you.<span class="chip">UAT Complete</span></div>
+          <p class="bhead">UAT<span class="bkey">uat</span></p>
+          <div class="bcard"><b>Add a search box</b>Tested by QA, waiting for you.</div>
+          <p class="bown">Agents <span class="sub">(QA alone)</span></p>
+        </div>
+
+        <div class="bcol">
+          <p class="bhead">UAT Complete<span class="bkey">uat_complete</span></p>
+          <div class="bcard"><b>Rename a workspace</b>You tested it and accepted it.</div>
           <p class="bown you">You accept</p>
         </div>
 
@@ -118,9 +124,9 @@
       <tr><td>To Do</td><td><b>todo</b></td><td>Work that is ready to start, and the only status the team picks new work from. Work may also be created here.</td><td>Agents</td></tr>
       <tr><td>In Progress</td><td><b>in_progress</b></td><td>The team has played back its plan and the work is under way.</td><td>Agents</td></tr>
       <tr><td>UAT</td><td><b>uat</b></td><td>QA has reviewed the work, written test notes a person can follow, and passed it to you for acceptance testing.</td><td>Agents <span class="sub">(QA alone)</span></td></tr>
-      <tr><td>UAT</td><td><b>uat_complete</b></td><td>You have tested the work and accepted it. It stays in the UAT column until an agent advances it.</td><td class="yours">You</td></tr>
+      <tr><td>UAT Complete</td><td><b>uat_complete</b></td><td>You have tested the work and accepted it. It waits in its own column until an agent advances it.</td><td class="yours">You</td></tr>
       <tr><td>PROD Ready</td><td><b>prod_ready</b></td><td>Accepted and waiting to go out.</td><td>Agents</td></tr>
-      <tr><td>PROD Deployed</td><td><b>prod_deployed</b></td><td>Deployed on your explicit instruction, carrying the release version.</td><td>Agents <span class="sub">(you are blocked)</span></td></tr>
+      <tr><td>PROD Deployed</td><td><b>prod_deployed</b></td><td>Deployed on your explicit instruction, with the build reference recorded on the ticket.</td><td>Agents <span class="sub">(you are blocked)</span></td></tr>
       <tr><td>Done</td><td><b>done</b></td><td>Live in production. A merge, or a deployment to a test environment, does not qualify.</td><td>Agents</td></tr>
       <tr><td><span class="sub">no column</span></td><td><b>parked</b></td><td>Started and deliberately stopped, with the reason recorded. It leaves the board without being finished.</td><td>Agents</td></tr>
       <tr><td><span class="sub">no column</span></td><td><b>killed</b></td><td>Decided against, with the reason recorded. Nothing that was started is left without an ending.</td><td>Agents</td></tr>
@@ -129,9 +135,9 @@
     </div>
 
     <h4 class="sub-h">Who may move what</h4>
-    <p>The UAT column holds two statuses. <b>uat</b> means the work is waiting for you to test it. <b>uat_complete</b> means you have accepted it.</p>
-    <p>Agents control every move except one. Moving a ticket from <b>uat</b> to <b>uat_complete</b> belongs to you. Only QA may move a ticket into UAT, and only with test notes a person can follow. The agent that built the work cannot certify it.</p>
-    <p>An agent may set <b>prod_deployed</b> only after you have instructed the deployment. The tool prevents a person from setting that status, and from editing the build tag a ticket carries.</p>
+    <p>Two columns are the acceptance pair. <b>uat</b> means the work is waiting for you to test it. <b>uat_complete</b> means you have accepted it, and the move between them is the one move on the board that is yours.</p>
+    <p>The owner shown under each column is whoever makes the move INTO it, which is the same question the table above answers. Agents make every one of those except one: moving a ticket from <b>uat</b> to <b>uat_complete</b> belongs to you. Only QA may move a ticket into UAT, and only with test notes a person can follow. The agent that built the work cannot certify it.</p>
+    <p>An agent may set <b>prod_deployed</b> only after you have instructed the deployment, and the build reference goes in the note on that move. Where a project has built the visual version, its interface blocks a person from selecting that status and keeps the release reference read-only.</p>
     <p>Tickets are created only in Backlog or To&nbsp;Do. That one is a convention rather than a lock, and it stops work appearing part way along the board without passing through the queue.</p>
 
     <div class="pullbox">

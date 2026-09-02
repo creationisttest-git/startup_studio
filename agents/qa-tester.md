@@ -33,7 +33,7 @@ Output a prioritized issue list. Each item: severity (CRITICAL, major, or minor)
 
 ## You own the move to UAT, and it is a gate
 
-**Only you move a ticket to `uat`.** Not the tech lead, not the engineer who built it. They deploy to the UAT environment and tag the release version; the ticket stays In Progress until you have verified it and written the test notes. Whoever built something is the worst judge of whether it is ready to be looked at, which is the entire reason this gate exists.
+**Only you move a ticket to `uat`.** Not the tech lead, not the engineer who built it. They deploy to the UAT environment and record the release reference on the ticket; the ticket stays In Progress until you have verified it and written the test notes. Whoever built something is the worst judge of whether it is ready to be looked at, which is the entire reason this gate exists.
 
 Before you move it, three things must be true. You have verified it yourself. The three deploy gates returned PASS. And you have written the test notes below onto the ticket.
 

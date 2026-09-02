@@ -1,4 +1,4 @@
-# Startup Studio Kanban: reference implementation
+# Roadmap Actions Kanban: reference implementation
 
 A working board, taken from a live project and stripped of its credentials and names.
 It is a starting point, not a finished product. Read ../BOARD_SPEC.md first; that file

@@ -6,6 +6,43 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-02
+
+**What this gives you.**
+- **The board's required contract now describes the board you actually get.** It specified seven columns; the program has always drawn eight, one for each status. It required a field the board you install has never had. It listed ten commands the program does not have and left out all nineteen it does. Every one of those is corrected, and the reference page and the how-to page were redrawn to match.
+- **The page that explains the board no longer says two different things about the one decision that is yours.** Accepting work is the single move on the board that belongs to you and to nobody else. The board drawing labelled that column as the team's while the table two inches below it labelled the same status as yours.
+- **A part of the toolkit that ships to you had never been checked for the fault that once broke thirteen of sixteen roles.** The list of directories the health check reads was missing one, and that directory publishes. Nothing was wrong inside it, and nothing had been looking.
+- **Three rules the contract states are now checked against the program rather than against another document.** The board is rendered and compared. The commands it documents are compared to the commands it has. Two directories that are supposed to hold the same list are compared by reading both.
+- **Every project on this machine was carrying a rule that told it to invent its own board shape**, twenty-five lines above a rule saying the shape is fixed. That file loads at the start of every session in every project.
+
+### Three descriptions of one board, all agreeing with each other and none with the board
+
+The contract, the reference page and the how-to page all said the board has seven columns, with a tested item and an accepted item sharing one column and a small marker telling them apart. The program has never done that. It draws one column per status, so an accepted item sits in its own column and needs no marker.
+
+Nothing caught it for months, and the reason is worth more than the fix. Every check compared a page to another page, or a page to the contract. The three of them agreed, so every check passed. None of them was ever compared to the board itself.
+
+The correction is not only the number. What a board looks like is now written down twice, in two places, on purpose: what the file-based board draws, and what a version built on the web has to draw, which is the seven-column layout and which is a requirement only of that version. A test now renders a real board and compares it to the contract, in both directions and in order.
+
+### The claim in a comment is a claim
+
+Four separate times this release, a sentence written beside a check said the check caught something it did not catch. A check that skips what it cannot read is worse than no check at all, because the record then says the claim is guarded.
+
+One example, because it is the clearest. The comparison between the board drawing and the table beneath it read the table with a text pattern. Add one space inside a cell and that row stops matching, and the comparison then skipped that row in silence. Everything stayed green while the two halves of the page said opposite things. It now counts how many pairs it actually compared and fails if that is fewer than the number it was supposed to.
+
+Where a check genuinely cannot fail on its own, that is now written next to it along with the experiment that proved it, rather than claimed otherwise.
+
+### A directory that ships to you and was never scanned
+
+The health check reads a list of directories looking for invisible control characters, which is the fault that once left thirteen of sixteen roles silently unusable across every project for weeks. The tooling directory publishes to you and was not on that list.
+
+It was found only because two lists that are supposed to be identical were finally compared by reading both of them, rather than by searching one file for the text of the other. The old comparison could not have failed for any change made to either list. Nothing was wrong inside the directory; it had simply never been looked at.
+
+### Not marketing, and worth saying plainly
+
+Two things were released here that a reader receives and one that only this machine sees. Nothing in this release changes what the board does. It changes what the board says about itself, which was wrong in eleven measurable ways, and it adds the checks that stop it going wrong again in the same way.
+
+---
+
 ## 2026-09-01
 
 **What this gives you.**

@@ -475,7 +475,7 @@ function New-ComposedAgent ($BaseFile, $ProjectPath, $ProjectName) {
 # Every tree the studio owns as TEXT. base\governance is not published but IS distributed to
 # every project, so it belongs in any check about what readers receive.
 $PUBLISHED_TREES = @('base\agents', 'base\fragments', 'base\skills', 'base\governance',
-                     'base\board', 'base\infra', 'new-project')
+                     'base\board', 'base\infra', 'new-project', 'tools')
 
 # A control byte does not stop a file parsing, does not stop an agent registering, and is
 # invisible in every diff and every review tool. It sits in the middle of a rule. Seven were

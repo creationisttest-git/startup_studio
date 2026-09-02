@@ -128,10 +128,12 @@ studio.ps1 -Update            <span class="c"># upstream comes IN</span></pre>
       <div class="lane"><span class="lane-n">To Do</span><p>The only place work is picked from. The team takes the top one and works down.</p></div>
       <div class="lane"><span class="lane-n">In Progress</span><p>The plan is played back to you first, then built in one pass.</p></div>
       <div class="lane you"><span class="lane-n">UAT</span><p>Your turn. You test it and accept it on the ticket. Nothing passes here without you.</p></div>
-      <div class="lane"><span class="lane-n">Prod Ready</span><p>Accepted by you and waiting to go out.</p></div>
-      <div class="lane"><span class="lane-n">Prod Deployed</span><p>Released on your explicit instruction, carrying the version.</p></div>
+      <div class="lane you"><span class="lane-n">UAT Complete</span><p>You accepted it. Setting this is the one move on the board that is yours alone.</p></div>
+      <div class="lane"><span class="lane-n">Prod Ready</span><p>Queued for the next release.</p></div>
+      <div class="lane"><span class="lane-n">Prod Deployed</span><p>Released on your explicit instruction, with the build reference on the ticket.</p></div>
       <div class="lane"><span class="lane-n">Done</span><p>Live in production, and only then.</p></div>
     </div>
+    <p class="boardnote">The two highlighted lanes are the ones you are involved in. The <a href="/reference#board">reference page</a> marks a single column instead, because it answers a narrower question: who makes the move INTO each one. Both are true and they are not the same question.</p>
 
     <p style="margin-top:1.8rem">The agents drive the board from the terminal and append what they did, decided and assumed, so the ticket becomes the history of that work. They take it as far as UAT and stop, because testing is yours. Specification and working code are under <code>board/</code>, and every column and status key is on the <a href="/reference#board">reference page</a>.</p>
 

@@ -683,15 +683,17 @@
 
 /* ---- reference: the board, the stack, the glossary ---- */
 
-/* Seven columns that scroll sideways inside their own container rather than making the page
+/* Eight columns that scroll sideways inside their own container rather than making the page
    scroll. A board is the one thing on this site that genuinely cannot reflow to one column
    without stopping being a board, so it keeps its shape and takes a scrollbar on a phone. */
 .boardwrap{overflow-x:auto; border:1px solid var(--rule); background:var(--deep); margin-top:1.6rem}
-/* Sized so all seven columns fit the content column on a desktop, because seeing the whole
-   board at once is the point of showing it. Below that it scrolls INSIDE its own container
-   and the page body never scrolls sideways: a board is the one thing here that cannot
-   reflow to a single column without ceasing to be a board. */
-.board{display:grid; grid-template-columns:repeat(7,minmax(7.9rem,1fr)); gap:1px; background:var(--rule); min-width:56rem}
+/* Sized so all eight columns fit the content column on a desktop, because seeing the whole
+   board at once is the point of showing it. The track was 7.9rem when there were seven; the
+   eighth column arrived with uat_complete, which board.js has always rendered separately, so
+   the track narrows rather than the board overflowing a desktop it used to fit. Below that it
+   scrolls INSIDE its own container and the page body never scrolls sideways: a board is the
+   one thing here that cannot reflow to a single column without ceasing to be a board. */
+.board{display:grid; grid-template-columns:repeat(8,minmax(6.85rem,1fr)); gap:1px; background:var(--rule); min-width:56rem}
 .bcol{background:var(--deep); padding:.8rem .6rem 1rem; display:flex; flex-direction:column; gap:.5rem}
 .bhead{font-family:var(--mono); font-size:.62rem; letter-spacing:.13em; text-transform:uppercase; color:var(--phosphor); margin:0; line-height:1.4}
 .bkey{font-family:var(--mono); font-size:.56rem; letter-spacing:.06em; color:var(--rule); display:block; text-transform:none}
@@ -703,7 +705,7 @@
 .bown{font-family:var(--mono); font-size:.58rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:.1rem 0 0}
 .bown.you{color:var(--amber)}
 .boardnote{font-family:var(--mono); font-size:.76rem; color:var(--muted); margin:.7rem 0 0}
-/* Shown wherever the board actually overflows, which is everything below the width the seven
+/* Shown wherever the board actually overflows, which is everything below the width the eight
    columns need. The first version of this comment claimed exactly that and the rule did not:
    it stopped at 640px while the board still scrolled at 768px, so an iPad got a scrolling
    board and no affordance, under a comment asserting otherwise. */
@@ -759,7 +761,7 @@
 
 /* On a phone the board scrolls sideways inside its own box regardless, so there is no reason to
    keep it dense: the columns get wider and every label goes back up to the size the rest of this
-   site uses for mono labels. Squeezing seven columns into 360px would only produce text nobody
+   site uses for mono labels. Squeezing eight columns into 360px would only produce text nobody
    can read, next to a scrollbar they still have to use. */
 @media (max-width:1023px){
   .boardhint{display:block; font-family:var(--mono); font-size:.7rem; letter-spacing:.06em;
@@ -767,7 +769,7 @@
 }
 
 @media (max-width:640px){
-  .board{grid-template-columns:repeat(7,minmax(11rem,1fr)); min-width:78rem}
+  .board{grid-template-columns:repeat(8,minmax(11rem,1fr)); min-width:88rem}
   .bhead{font-size:.76rem}
   .bkey{font-size:.68rem}
   .bcard{font-size:.88rem}

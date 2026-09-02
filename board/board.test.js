@@ -757,6 +757,83 @@ function runCapture(prog, cwd, args, env) {
   ok('small work still starts without an assessment',
      small.code === 0 || !/has not been assessed/.test(small.out));
 }
+// --- THE CONTRACT IS HELD TO A RENDERED BOARD, NOT TO A READING OF THE SOURCE ---------------
+// BOARD_SPEC.md claimed seven display columns with uat and uat_complete sharing one and a
+// marker on the tested ticket. board.js has never done that: it writes a section per status.
+// The claim survived because it was verified by reading COLUMNS.length, which is the STATUS
+// model, and reporting it as the DISPLAY. Two published pages then agreed with the contract, so
+// three surfaces agreed with each other and none agreed with the program. S48: a property that
+// only exists once something is rendered is proved by rendering it, which is what this does.
+//
+// WHAT IT CANNOT SEE. It compares the contract's fenced section line against BOARD.md, so a
+// second, contradictory description of the columns in prose elsewhere in the contract is
+// invisible to it, and a rename of the fence itself would take the line out of scope rather
+// than turn this red. The vacuity guard catches the second of those and not the first.
+{
+  const specTxt = fs.readFileSync(path.join(__dirname, 'BOARD_SPEC.md'), 'utf8');
+  const specLine = specTxt.split(NLT).filter(l => /^BACKLOG\s/.test(l))[0] || '';
+  const specCols = specLine.split(/\s{2,}/).map(x => x.trim()).filter(Boolean);
+
+  const md = fs.readFileSync(path.join(SANDBOX, 'BOARD.md'), 'utf8');
+  const heads = md.split(NLT).filter(l => l.indexOf('## ') === 0)
+                  .map(l => l.slice(3).replace(/\s+\([0-9]+\)\s*$/, '').trim());
+  const TERM = ['PARKED', 'KILLED'];
+  const rendered = heads.filter(h => TERM.indexOf(h) === -1);
+
+  ok('the contract states its sections, and a real board was rendered to compare against',
+     specCols.length > 5 && rendered.length > 5);
+  ok('every section the board renders is named in the contract',
+     rendered.every(h => specCols.indexOf(h) > -1));
+  ok('and the contract names no section the board does not render',
+     specCols.every(c => rendered.indexOf(c) > -1));
+
+  // Order is compared over the names the two lists SHARE, so it is independent of membership.
+  // Comparing the whole lists would have made the two directions above strict conjuncts of this
+  // one: they could never have gone red alone, which is a count rather than a check (S59).
+  const a = specCols.filter(c => rendered.indexOf(c) > -1);
+  const b = rendered.filter(h => specCols.indexOf(h) > -1);
+  ok('and the sections they agree on are in the same order, because the order is the workflow',
+     a.join(',') === b.join(','));
+
+  // There was an assertion here that a terminal status renders as its own section. It is gone,
+  // deliberately. qa-tester could not make it fail alone in seven attempts: the block above
+  // already asserts the KILLED heading on the same rendered file, so this one could only ever go
+  // red when that one did. An assertion that cannot fail alone is a count, not a check (S59), and
+  // the terminal-rendering behaviour keeps the assertion that does discriminate.
+}
+
+// --- THE COMMAND SURFACE IN THE CONTRACT, COMPARED IN BOTH DIRECTIONS -----------------------
+// The contract documented ten commands from the OTHER board -- rm, title, desc, version --
+// while omitting all nineteen this program has, and it was found by hand, twice. A hand-kept
+// list that must track something else gets a CHECK, never a third correction (S39). The same
+// both-directions shape already guards MUTATORS above and has paid for itself twice.
+//
+// WHAT IT CANNOT SEE. It reads the fenced block that follows the words "The command surface:"
+// and takes the first token of each line, so a command described only in prose is invisible to
+// it, and so is one whose fence line does not start with its own name. It also finds the
+// program's commands by matching "commands.<name> =" in the source, so a command registered any
+// other way is invisible in the other direction. These are the limits of reading text; the
+// honest response is to state them rather than to build a cleverer parser (S61).
+{
+  const src = fs.readFileSync(path.join(__dirname, 'board.js'), 'utf8');
+  const defined = (src.match(/^commands\.[a-z]+\s*=/gm) || [])
+                    .map(m => m.slice('commands.'.length, m.indexOf(' ') > -1 ? m.indexOf(' ') : m.indexOf('=')).trim());
+
+  const specTxt2 = fs.readFileSync(path.join(__dirname, 'BOARD_SPEC.md'), 'utf8');
+  const marker = 'The command surface:';
+  const after = specTxt2.slice(specTxt2.indexOf(marker));
+  const fenced = after.slice(after.indexOf('```') + 3);
+  const block = fenced.slice(0, fenced.indexOf('```'));
+  const documented = block.split(NLT).map(l => l.trim()).filter(Boolean).map(l => l.split(/\s+/)[0]);
+
+  ok('the two command lists are non-empty, so this check cannot pass vacuously',
+     defined.length > 5 && documented.length > 5);
+  ok('every command the program has is documented in the contract',
+     defined.every(c => documented.indexOf(c) > -1));
+  ok('and the contract documents no command the program does not have',
+     documented.every(c => defined.indexOf(c) > -1));
+}
+
 junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 fs.rmSync(SANDBOX, { recursive: true, force: true });
 console.log(pass + ' passed, ' + fail + ' failed');
