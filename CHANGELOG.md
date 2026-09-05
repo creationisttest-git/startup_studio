@@ -9,6 +9,47 @@ Newest first. Dates are when the change went public.
 ## 2026-09-05
 
 **What this gives you.**
+- **A release now refuses while anything says the checks were skipped, failed, or were run against different code.** The checks themselves are not new. What was missing was any record that they had run at all, so a release could be made on code nobody had measured and nothing anywhere would say so.
+- **The record is written by the tools, not by anyone reporting on them.** Each check writes down the result it actually returned. Nothing in the chain summarises a run, because a summary is a description of evidence and the difference only shows up on the day the summary is wrong.
+- **A pass expires when the code changes.** Every result is stamped with a fingerprint of the code it measured. A green result from an hour ago is not evidence about what is in front of you now, and the release says so and stops.
+- **A check your copy does not have is reported as missing, not as passing.** The public copy of this project does not carry the full test suite, so on your machine that line reads absent and the summary says so out loud rather than reporting a clean bill of health over a partial install.
+- **One check is reported as unproved, honestly.** The health report always exits successfully and prints prose, so its result carries no information about what it found. It is named as unproved every time rather than counted as a pass it never earned.
+- **A seventeenth role, the studio director.** It runs the checks and reads the record back. It checks and records; it does not fix, build, or direct the work, and it is given no editing tools.
+- **Every published claim about how many roles there are is now held to the roles on disk.** That number was written by hand in page titles, share cards, headings and the tool's own output, and nothing compared any of them to the directory the roles live in. Adding this role broke twenty-eight of those claims at once and the new check named every one.
+- **The note about running this on a different coding agent now says what is true.** It said the roles are just markdown files and the only thing that needs changing is where they land. The roles are markdown. The tooling is not, and one role does its job by running it.
+
+### A check nobody recorded is a check nobody ran
+
+The rule in this studio has always been that nothing ships without its checks passing. The
+rule was kept by people remembering it. Nothing wrote down that a check had run, which means
+nothing could tell the difference between a check that passed and a check that was skipped,
+and a release could go out either way.
+
+What is new is a single command that runs the checks and writes down what each one returned,
+against a fingerprint of the code it measured, into a file that is committed alongside the
+work. The release reads that file back and refuses while it says a check failed, was never
+run, or was run against different code.
+
+Two properties matter more than the feature. The first is that the tools write their own
+results. Anyone asked to run the checks and report how they went produces a summary, and a
+summary is a description of evidence rather than evidence. The second is that a missing check
+is never a passing one. A copy of this project that does not carry an instrument has not
+passed it, and the summary names what was measured and, just as loudly, what was not.
+
+### The number of roles was written by hand in twenty-eight places
+
+Nothing compared any of them to the roles on disk. Adding the seventeenth role broke all of
+them at once, silently, and the first person to notice would have been a reader counting cards
+on a page. There is now a check that holds every live claim to the directory the roles live
+in, with a recorded reason for each sentence that is deliberately talking about a subset
+rather than the whole roster.
+
+It leaves the dated entries on this page alone, deliberately. A release note saying sixteen
+roles was true on the day it was published, and editing history to satisfy a check is the one
+thing a changelog must never do. After a change like this one, the older notes and the current
+pages disagree, both are correct, and this entry is what reconciles them.
+
+**What this gives you.**
 - **The comments in the code you install explain the code, and no longer name our internal work.** Forty-five comment lines across the published files named a ticket, a role or a review round. That is provenance you cannot look up and do not need. There are now none, across thirty files, and a release refuses to go out if one comes back.
 - **Closing a session now archives the decision table instead of reminding somebody to.** The rule to do it was already written and already specific. The step that had never once happened was a person choosing to run it, so the tool runs it.
 - **Every role now carries the instruction to read that archive**, so a decision moved out of the document loaded on every request is still a decision anybody can find.

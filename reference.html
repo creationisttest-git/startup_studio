@@ -184,7 +184,7 @@
       <dd>One product, with its own repository, board and state. A Project uses the team owned by <a href="#g-studio">The Studio</a>; it does not own that team. Lessons that apply beyond one Project are returned to The Studio.</dd>
 
       <dt id="g-roster">Roster</dt>
-      <dd>The complete set of agents available to a Project. It contains sixteen Roles, each with a written brief defining what it owns and where its boundaries are. Some briefs also state what the Role is judged badly for. A Roster is generated, never written by hand.</dd>
+      <dd>The complete set of agents available to a Project. It contains seventeen Roles, each with a written brief defining what it owns and where its boundaries are. Some briefs also state what the Role is judged badly for. A Roster is generated, never written by hand.</dd>
 
       <dt id="g-role">Role</dt>
       <dd>One agent's brief: product manager, tech lead, designer, QA and security reviewer are examples. A Role is a document, not a program. It tells the agent what its job is before work begins.</dd>
@@ -208,7 +208,7 @@
       <dd>What one Project adds to one shared Role during <a href="#g-compose">Compose</a>. It may hold facts about the Project's stack, extra rules, or a shared rule deliberately waived. A waiver must have an owner, a reason and a review date.</dd>
 
       <dt id="g-fragment">Fragment</dt>
-      <dd>A rule shared by more than one Role, written once and pulled into each Role that needs it during <a href="#g-compose">Compose</a>. Some Fragments reach all sixteen Roles and some reach a handful. Before Fragments, the most widely shared rule sat in eleven Role files and had to be edited in each one by hand. Eleven copies with ten updated look exactly like eleven copies all updated.</dd>
+      <dd>A rule shared by more than one Role, written once and pulled into each Role that needs it during <a href="#g-compose">Compose</a>. Some Fragments reach all seventeen Roles and some reach a handful. Before Fragments, the most widely shared rule sat in eleven Role files and had to be edited in each one by hand. Eleven copies with ten updated look exactly like eleven copies all updated.</dd>
 
       <dt id="g-drift">Drift</dt>
       <dd>A Project's generated copy of the team no longer matching the shared source. Drift is silent unless something checks for it. The health check reports it and shows which direction it went, because syncing over a local improvement would destroy that improvement, while promoting a stale copy would revert every Project.</dd>
@@ -248,7 +248,7 @@
 
       <tr><td><code>-Doctor</code></td><td>Use this when you want the fix as well as the finding. It prints everything <code>-Status</code> prints, and adds the exact command that repairs each finding.</td><td>Read-only. No file is created, modified or deleted.</td></tr>
 
-      <tr><td><code>-Sync</code></td><td>Use this after you change a shared role, a fragment or a skill in the studio, so that every project receives the change.</td><td>Overwrites the sixteen role files in the machine-wide agents directory (<code>%USERPROFILE%\.claude\agents</code>) and the skills directory beside it. Writes the three shared governance files into each project that already holds at least one of them. Rebuilds the agents directory in every tuned project. A file that was edited where it was installed is reported and skipped rather than overwritten.</td></tr>
+      <tr><td><code>-Sync</code></td><td>Use this after you change a shared role, a fragment or a skill in the studio, so that every project receives the change.</td><td>Overwrites the seventeen role files in the machine-wide agents directory (<code>%USERPROFILE%\.claude\agents</code>) and the skills directory beside it. Writes the three shared governance files into each project that already holds at least one of them. Rebuilds the agents directory in every tuned project. A file that was edited where it was installed is reported and skipped rather than overwritten.</td></tr>
 
       <tr><td><code>-Sync -Force</code></td><td>Use this when <code>-Sync</code> reports that a file was edited where it was installed, and you have decided the studio's version should win.</td><td>The same writes, and it overwrites the files <code>-Sync</code> skips. Each governance file is copied into <code>.archive\</code> before it is replaced.</td></tr>
 

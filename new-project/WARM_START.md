@@ -25,7 +25,7 @@ having to fire.*
 
 **At session start, before planning anything:**
 
-1. *Name the roles you can dispatch, and count them. Expect sixteen. Composed on disk and
+1. *Name the roles you can dispatch, and count them. Expect seventeen. Composed on disk and
    loaded in the session are different claims, and confusing the two once hid thirteen
    missing roles for weeks.*
 2. *Read the open gaps below.*

@@ -168,7 +168,7 @@ function Get-Fragment ([string]$Name) {
 # Missing fragment THROWS. It does not warn and it does not leave the marker in place.
 # A role that silently loses a rule is the byte-order-mark failure again in a new costume:
 # composed, current, present on disk, and quietly not doing the thing it says it does. Better
-# to refuse to build than to ship sixteen agents with a hole where a rule should be.
+# to refuse to build than to ship seventeen agents with a hole where a rule should be.
 function Expand-Fragments ([string]$Text, [string]$Where) {
     if (-not $Text) { return $Text }
     $re  = [regex]'\{\{\s*include:\s*([A-Za-z0-9_-]+)\s*\}\}'
@@ -800,9 +800,9 @@ function Sync-Governance ([string]$GovRoot, [string]$Label) {
 
     # base\governance is deliberately outside $PUBLIC_MANIFEST (S8): the method is public, what any
     # project actually knows is not. The consequence nobody had stated is that a public user runs
-    # -Sync, receives sixteen roles, receives NO governance, and is told nothing. The roster is
+    # -Sync, receives seventeen roles, receives NO governance, and is told nothing. The roster is
     # WRITTEN AGAINST that governance: roles refer to the release protocol, the board protocol and
-    # the deploy gates as things that exist. Sixteen agents assuming a rulebook they were never
+    # the deploy gates as things that exist. Seventeen agents assuming a rulebook they were never
     # given is a green signal over half an artefact.
     $govMissing = @($SHARED_GOV | Where-Object { -not (Test-Path (Join-Path $GOV_BASE $_)) })
     if ($govMissing.Count -eq $SHARED_GOV.Count) {
@@ -1098,6 +1098,7 @@ function Publish-Public ([string]$RepoUrl, [switch]$DryRun) {
         throw "publish refused: STUDIO_SAFE is set. Unset it to publish for real."
     }
     if (-not (Test-CommentShape)) { return $false }
+    if (-not (Test-StudioChecks)) { return $false }
     $stage = Join-Path $StudioRoot '.public'
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
@@ -1119,7 +1120,7 @@ function Publish-Public ([string]$RepoUrl, [switch]$DryRun) {
     }
 
     # Resolve fragments in the exported roles. Copy-Item is verbatim, so without this the export
-    # ships sixteen role files each containing a literal {{include: ...}} and the rule it names
+    # ships seventeen role files each containing a literal {{include: ...}} and the rule it names
     # nowhere in the file. Anyone dropping one into .claude\agents gets an agent that is missing a
     # rule and looks deliberate about it. The fragments folder is published too, so the mechanism
     # still travels for anyone editing the roster rather than just consuming it.
@@ -1318,6 +1319,43 @@ function Test-CommentShape {
     return $true
 }
 
+# The checks ledger, read back. This refuses on the RECORD and never on anything said about
+# the record: each row was written by the instrument that produced it, carrying that
+# instrument's own exit code and a fingerprint of the tree it measured, so a green row taken
+# from a different tree refuses as NOT PROVED rather than passing. Stale is a refusal.
+#
+# An instrument missing from this install is reported and does NOT refuse. A gate that refuses
+# on something a legitimate install can never satisfy locks that install out permanently, which
+# is the same trap as the check that once refused six of seven projects on its first run. The
+# summary names what was absent, so nobody reads a partial run as a clean one.
+#
+# It sits beside the comment-shape ratchet for the same reason that one does: a release is the
+# command nobody overrules and the moment a stranger's copy is made, and both run before
+# anything is committed or staged.
+function Test-StudioChecks {
+    if ($script:StudioChecksChecked) { return $true }
+    Write-Host ""
+    Write-Host "STUDIO CHECKS" -ForegroundColor Cyan
+    $tool = Join-Path $StudioRoot 'tools\run-checks.js'
+    if (-not (Test-Path $tool)) {
+        Write-Host "  REFUSED. tools\run-checks.js is missing, so nothing can say whether the checks ran. Nothing was written." -ForegroundColor Red
+        return $false
+    }
+    $out = & node $tool --root $StudioRoot --gate release 2>&1 | Out-String
+    $code = $LASTEXITCODE
+    foreach ($l in ($out.TrimEnd() -split "`r?`n")) {
+        if (-not $l) { continue }
+        $colour = if ($l -cmatch 'NOT PROVED') { 'Red' } elseif ($l -cmatch '(ABSENT|UNPROVED)') { 'Yellow' } else { 'DarkGray' }
+        Write-Host ("  " + $l) -ForegroundColor $colour
+    }
+    if ($code -ne 0) {
+        Write-Host "  REFUSED. Run them on this tree and fix what they name: node tools\run-checks.js --set release" -ForegroundColor Red
+        return $false
+    }
+    $script:StudioChecksChecked = $true
+    return $true
+}
+
 function Invoke-Release {
     # The outward-facing writers. STUDIO_SAFE was added after an automated run wrote where
     # it should not have, and these two write to a PUBLIC remote, which is the one write
@@ -1341,6 +1379,7 @@ function Invoke-ReleaseInner ($note) {
     Write-Host "  $($note.Subject)" -ForegroundColor White
 
     if (-not (Test-CommentShape)) { return $false }
+    if (-not (Test-StudioChecks)) { return $false }
 
     # 1. the private repo, using the same note
     $dirty = @(git -C $StudioRoot status --porcelain 2>$null | Where-Object { $_ })

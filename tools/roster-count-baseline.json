@@ -1,0 +1,59 @@
+{
+  "roster": 17,
+  "exempt": {
+    "METHOD.md": {
+      "1": {
+        "count": 1,
+        "why": "an overlay file holds the delta for one role, which is a statement about a file and not about the size of the roster"
+      },
+      "9": {
+        "count": 1,
+        "why": "nine roles carried one paragraph byte-identical, which is the measurement that produced the shared-fragment mechanism and is a subset"
+      },
+      "16": {
+        "count": 1,
+        "why": "a dated measurement: thirteen of sixteen roles were absent from every session when the byte order mark defect was found, and rewriting the number would falsify the record it exists to keep"
+      }
+    },
+    "base/fragments/advocacy.md": {
+      "9": {
+        "count": 1,
+        "why": "the same measurement, stated where the fragment lives: nine of the roles carry these 246 characters and two carry a differently worded section"
+      }
+    },
+    "base/governance/AGENTS.md": {
+      "1": {
+        "count": 2,
+        "why": "both describe an overlay carrying the delta for one role, which is a statement about a file"
+      }
+    },
+    "reference.html": {
+      "1": {
+        "count": 2,
+        "why": "the glossary defines what one Role and one agent brief are, which is the definition of the unit rather than a count of them"
+      },
+      "11": {
+        "count": 1,
+        "why": "eleven Roles carry the shared advocacy fragment, a subset measured when that fragment was extracted"
+      }
+    },
+    "studio.ps1": {
+      "1": {
+        "count": 3,
+        "why": "an overlay for one role, and two control lines describing a defect that fired the moment one role carried a marker twice"
+      },
+      "2": {
+        "count": 1,
+        "why": "a control line recording that a guard failing open reported two roles composed against a phantom folder"
+      },
+      "13": {
+        "count": 2,
+        "why": "two control lines recording the byte order mark that unregistered thirteen of the roles, which is the defect this check is descended from"
+      },
+      "16": {
+        "count": 7,
+        "why": "seven control lines recording what was measured on the day each defect was found, including thirteen of sixteen roles absent and the advocacy block in eleven of the sixteen; these are dated evidence beside a check and not a claim to a reader about the roster today"
+      }
+    }
+  }
+}

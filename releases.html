@@ -283,12 +283,14 @@
       </summary>
       <div class="rel-copy">
         <ul class="rel-points">
-          <li><strong>The comments in the code you install explain the code, and no longer name our internal work.</strong> Forty-five comment lines across the published files named a ticket, a role or a review round. That is provenance you cannot look up and do not need. There are now none, across thirty files, and a release refuses to go out if one comes back.</li>
-          <li><strong>Closing a session now archives the decision table instead of reminding somebody to.</strong> The rule to do it was already written and already specific. The step that had never once happened was a person choosing to run it, so the tool runs it.</li>
-          <li><strong>Every role now carries the instruction to read that archive</strong>, so a decision moved out of the document loaded on every request is still a decision anybody can find.</li>
-          <li><strong>The limit on how much work can be in flight can now be overridden, and it cannot be overridden quietly.</strong> It refuses once, then asks for a reason, refuses a blank reason as hard as no reason, and writes what it was told into a file that is committed alongside the tickets. Three overrides inside fourteen days and it stops accepting them.</li>
-          <li><strong>The health check reads the session hook log</strong>, which nothing had ever read, and reports when each hook last fired, where, and how it ended.</li>
-          <li><strong>Every test suite states how many assertions it expects.</strong> Before this, a suite that lost half its checks reported a smaller number and stayed green.</li>
+          <li><strong>A release now refuses while anything says the checks were skipped, failed, or were run against different code.</strong> The checks themselves are not new. What was missing was any record that they had run at all, so a release could be made on code nobody had measured and nothing anywhere would say so.</li>
+          <li><strong>The record is written by the tools, not by anyone reporting on them.</strong> Each check writes down the result it actually returned. Nothing in the chain summarises a run, because a summary is a description of evidence and the difference only shows up on the day the summary is wrong.</li>
+          <li><strong>A pass expires when the code changes.</strong> Every result is stamped with a fingerprint of the code it measured. A green result from an hour ago is not evidence about what is in front of you now, and the release says so and stops.</li>
+          <li><strong>A check your copy does not have is reported as missing, not as passing.</strong> The public copy of this project does not carry the full test suite, so on your machine that line reads absent and the summary says so out loud rather than reporting a clean bill of health over a partial install.</li>
+          <li><strong>One check is reported as unproved, honestly.</strong> The health report always exits successfully and prints prose, so its result carries no information about what it found. It is named as unproved every time rather than counted as a pass it never earned.</li>
+          <li><strong>A seventeenth role, the studio director.</strong> It runs the checks and reads the record back. It checks and records; it does not fix, build, or direct the work, and it is given no editing tools.</li>
+          <li><strong>Every published claim about how many roles there are is now held to the roles on disk.</strong> That number was written by hand in page titles, share cards, headings and the tool's own output, and nothing compared any of them to the directory the roles live in. Adding this role broke twenty-eight of those claims at once and the new check named every one.</li>
+          <li><strong>The note about running this on a different coding agent now says what is true.</strong> It said the roles are just markdown files and the only thing that needs changing is where they land. The roles are markdown. The tooling is not, and one role does its job by running it.</li>
         </ul>
       </div>
     </details>

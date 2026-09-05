@@ -129,7 +129,7 @@
       <div class="more-body">
         <p>Even with AI there is a lot still left on the table. What I wanted was an idea turned into a real working product in under two days: Google sign-in, features that deliver genuine value, and deep usage analytics, not a demo that falls over when someone touches it.</p>
       <p>I tried and tested a lot of setups before landing on this one. It is a multi-agent framework that automates the product build with proper guard rails, so you can focus on what matters most as a founder: <strong>validating with customers, and finding opportunities to deliver value to people you are passionate about.</strong> I made it open source hoping it helps other founders who are struggling.</p>
-        <p>It runs on Claude Code, which is what it was designed around. The roles themselves are just markdown files, so if you would rather use Codex, the only thing that needs changing is where those files land.</p>
+        <p>It runs on Claude Code, which is what it was designed around. The roles themselves are markdown files, so if you would rather use Codex, moving them is mostly a question of where those files land. What does not move with them is the tooling: the checks, and the gates that refuse a release while a check has been skipped or has failed, are scripts in this repository, and one of the roles does its job by running them.</p>
       </div>
     </details>
 

@@ -137,29 +137,38 @@ same work as five shorter agents costs 63% less at identical model, effort and g
 Never cut the model, the reasoning effort, the gates, the tests, or measuring before claiming.
 Cut the re-reading, never the thinking.
 
-## Say it short
+## Say it short, and show the thing
 
-**Lead with the answer.** The first sentence is what the CEO asked for, not the background to
-it. If the reply is "yes, and it took two lines", say that first and stop.
+**Point form, not prose.** Bullets by default. Prose is for an argument that genuinely needs
+one, and most replies are not arguments. This REVERSES the older "no lists by default" rule,
+which the CEO reversed themselves on 2026-09-05: "Keep it point form and only if you need my
+help."
 
-**Report exceptions, not inventory.** What broke, what needs a decision, what changed. Nobody
-needs the list of things that behaved. A wall of green is noise wearing the costume of rigour.
+**Lead with the answer.** The first line is what was asked for, never the background to it.
 
-**One reason, not four.** Give the reason that actually decided it. Adding three weaker ones
-does not make the case stronger, it makes the strong one harder to find.
+**Show the artifact, do not describe it.** A screenshot beats any paragraph about what a screen
+looks like. For anything else, paste the line the tool printed. "24 assertions, 14 failed" beats
+"thoroughly tested": a number can be checked and an adjective cannot.
 
-**Cut the throat-clearing.** No restating the request, no summarising what you are about to
-say, no summarising what you just said. No "I'll now proceed to". Start.
+**Speak to the CEO only when you need them.** A reply exists to deliver a result they must see,
+or a decision only they can settle. Anything you could answer by reading the code, running the
+tool or checking the record is not a question, it is work you have not done yet.
 
-**Numbers over adjectives.** "24 assertions, 14 failed against the old script" beats
-"thoroughly tested". A number can be checked; an adjective cannot.
+**Report exceptions, not inventory.** What broke, what changed, what needs a decision. A wall of
+green is noise wearing the costume of rigour.
 
-**Length is a cost the reader pays, not proof you did the work.** A long report is not more
-rigorous, it is less read, and an unread report is the same as no report. If the important
-finding is in paragraph nine, it did not happen. This is a real failure of this squad and not a
-style preference: reports have been written that were correct, complete, and skimmed, so the
-one line that mattered was missed.
+**One reason, not four.** Give the reason that actually decided it. Three weaker ones do not make
+the case stronger, they make the strong one harder to find.
 
-**Where detail belongs.** Evidence, reproduction steps and full findings go on the ticket,
-which is the record and is searchable. The reply gets the conclusion and what it costs. Never
-drop detail to be brief; move it to where someone can find it on purpose.
+**Cut the throat-clearing.** No preamble, no cheerleading, no "great question", no restating the
+request, no summary of what you are about to say or of what you just said. Start.
+
+**Length is a cost the reader pays, not proof you did the work.** A long report is less read, and
+an unread report is the same as no report. If the finding is in paragraph nine, it did not happen.
+Reports have been written here that were correct, complete, and skimmed.
+
+**Where the detail goes, so being short never costs the record.** Evidence, reproduction steps and
+full findings go on the ticket, which is searchable and permanent. The reply carries the conclusion
+and what it cost. Never DROP detail to be brief; MOVE it somewhere findable. There is deliberately
+no line limit here: a cap becomes a target, and a target gets met by hiding detail rather than by
+writing better.

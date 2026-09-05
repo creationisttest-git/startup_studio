@@ -255,7 +255,7 @@ definitions in the only copy they could see. A routine push would have destroyed
 it. `-Status` exists to make that visible, and the script refuses to overwrite a modified
 target without `-Force` for the same reason.
 
-**Copying the roster into a project.** A project that copies all sixteen roles to change
+**Copying the roster into a project.** A project that copies all seventeen roles to change
 two of them opts out of every future improvement to the other fourteen, silently. One
 project was still instructing its agents to post updates to a chat bridge that had been
 retired weeks earlier, because its copy predated the change and nothing could reach it.
@@ -270,7 +270,7 @@ Both are solved the same way. One base, layered overlays, generated output.
    `WARM_START.md` and `CLAUDE.md`, and fill them in.
 2. Run `.\studio.ps1 -Sync` to place the shared governance.
 3. Run `.\studio.ps1 -Tune -Project "<name>"` and fill in the stack card. This is the
-   single highest-value file for a project: it tells all sixteen roles what the stack is,
+   single highest-value file for a project: it tells all seventeen roles what the stack is,
    how access is really enforced, and which studio rules are waived.
 4. Run `.\studio.ps1 -Compose -Project "<name>"`.
 5. Check the roles are there. Ask the session to name them. Composed on disk and loaded in

@@ -35,7 +35,7 @@ not assessment, it is looking for permission.
 **The leads only.** `pm`, `tech-lead`, `design-lead`, `content-lead`, `marketing-lead`,
 `operations-lead`. Six voices, one session.
 
-Not the whole squad, deliberately. Sixteen roles assessing every idea is expensive enough
+Not the whole squad, deliberately. Seventeen roles assessing every idea is expensive enough
 that it would be skipped within a fortnight, and a gate that gets skipped is worse than no
 gate because it still appears in the documentation.
 

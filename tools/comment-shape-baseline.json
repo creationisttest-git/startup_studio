@@ -114,6 +114,38 @@
       "from": 4.6,
       "to": 4.8,
       "reason": "ST-111 majors 1 and 2. Two section dividers, matching the convention every other group in this suite uses, heading the two blocks that prove a deleted baseline value and an unfindable published path are now refused. Their evidence paragraphs are controls; only the dividers are counted."
+    },
+    {
+      "date": "2026-09-05",
+      "file": "tools/check-roster-count.js",
+      "field": "ratio",
+      "from": 2.8,
+      "to": 5.2,
+      "reason": "A gate found five majors in this build and every fix carries the measurement that proved it: the record read an unrecognised status as a pass, a recorded failure could be cleared by deleting the instrument, and a fingerprint comparison that looked obviously right could never fire because removing a file is itself a change to the tree. Those are traps a reader cannot get from the code, which is the shape the control exemption exists for, and deleting them to hold a ratio is the cheapest and worst way to meet it."
+    },
+    {
+      "date": "2026-09-05",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 4.3,
+      "to": 5.4,
+      "reason": "A gate found five majors in this build and every fix carries the measurement that proved it: the record read an unrecognised status as a pass, a recorded failure could be cleared by deleting the instrument, and a fingerprint comparison that looked obviously right could never fire because removing a file is itself a change to the tree. Those are traps a reader cannot get from the code, which is the shape the control exemption exists for, and deleting them to hold a ratio is the cheapest and worst way to meet it."
+    },
+    {
+      "date": "2026-09-05",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 3.4,
+      "to": 4.2,
+      "reason": "A gate found five majors in this build and every fix carries the measurement that proved it: the record read an unrecognised status as a pass, a recorded failure could be cleared by deleting the instrument, and a fingerprint comparison that looked obviously right could never fire because removing a file is itself a change to the tree. Those are traps a reader cannot get from the code, which is the shape the control exemption exists for, and deleting them to hold a ratio is the cheapest and worst way to meet it."
+    },
+    {
+      "date": "2026-09-05",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 4.2,
+      "to": 6,
+      "reason": "The block that proves the gate refuses a hand-edited record now carries the reason it was rebuilt: it was pointed at a tree where one file backs two checks, so the exit code was not attributable to the branch under test and three assertions could not fail for the reason they named. A reader has no way to see that from the code, and it is the exact trap the next person writing a gate assertion here will walk into."
     }
   ],
   "files": {
@@ -235,10 +267,10 @@
       "ratio_all": 21.4
     },
     "studio.ps1": {
-      "nonblank": 2469,
-      "comment": 821,
+      "nonblank": 2507,
+      "comment": 834,
       "header": 36,
-      "controls": 88,
+      "controls": 90,
       "named": 0,
       "ratio": 28.2,
       "ratio_all": 33.3
@@ -351,6 +383,24 @@
       "ratio": 17.4,
       "ratio_all": 23.4
     },
+    "tools/check-roster-count.js": {
+      "nonblank": 267,
+      "comment": 62,
+      "header": 46,
+      "controls": 2,
+      "named": 0,
+      "ratio": 5.2,
+      "ratio_all": 23.2
+    },
+    "tools/check-roster-count.test.js": {
+      "nonblank": 204,
+      "comment": 30,
+      "header": 11,
+      "controls": 15,
+      "named": 0,
+      "ratio": 2,
+      "ratio_all": 14.7
+    },
     "tools/check-session-brief.js": {
       "nonblank": 442,
       "comment": 201,
@@ -368,6 +418,24 @@
       "named": 0,
       "ratio": 18.8,
       "ratio_all": 25.4
+    },
+    "tools/run-checks.js": {
+      "nonblank": 466,
+      "comment": 94,
+      "header": 64,
+      "controls": 5,
+      "named": 0,
+      "ratio": 5.4,
+      "ratio_all": 20.2
+    },
+    "tools/run-checks.test.js": {
+      "nonblank": 318,
+      "comment": 63,
+      "header": 14,
+      "controls": 30,
+      "named": 0,
+      "ratio": 6,
+      "ratio_all": 19.8
     },
     "tools/session-budget.js": {
       "nonblank": 149,
