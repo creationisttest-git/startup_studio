@@ -60,6 +60,50 @@ const FENCED = [
   ok('but still finds the section itself', /ok\s+a resume section exists/.test(r.out));
 }
 
+// --- a prose line that begins with the words is not the section, when a real heading exists ---
+// A paragraph elsewhere in the document wrapped onto a line starting "resume prompt". With the
+// loose matcher alone that line became the section start, the section held no fence, and a
+// wind-down was refused for a document whose real prompt was fine. Safe direction, wrong answer.
+{
+  const r = run(write([
+    '# WARM_START.md', '', '## Current state', '',
+    'The pointer check refused once, on a wrapped line beginning with the words',
+    'resume prompt, which it took as the section heading.', '',
+    '## Prompt to resume this session', '', '```', 'You are the session for this project.', '```', ''
+  ].join('\n')));
+  ok('a wrapped prose line beginning "resume prompt" is not taken as the section', r.code === 0);
+  ok('and the section reported is the real heading', /a resume section exists\s+--\s+line 8\b/.test(r.out));
+}
+
+// --- the same looseness in the unsafe direction -------------------------------------------
+// Prose beginning with the words, then a fenced code sample, then the real heading further down
+// with NO fence under it. The loose matcher alone found the sample's fence and passed a document
+// whose actual prompt was unextractable.
+{
+  const r = run(write([
+    '# WARM_START.md', '', '## Current state', '',
+    'resume prompt handling is shown below as a sample.', '',
+    '```', 'a code sample that is not the prompt', '```', '',
+    '## Prompt to resume this session', '',
+    'Written as prose, so the warm-start skill has nothing to extract.', ''
+  ].join('\n')));
+  ok('a fence under prose that begins "resume prompt" does not satisfy the check', r.code === 1);
+  ok('and the finding is reported against the real heading', /fence line\(s\)/.test(r.out) && /line 11\b/.test(r.out));
+}
+
+// --- and the loose form still finds a document whose only heading is unhashed prose ---------
+// One warm start on this machine writes its resume heading with no hash at all. Requiring the
+// hash would report it as having no resume section: a false FAIL at the moment a wind-down is
+// trying to commit state, on a document that is in fact fine.
+{
+  const r = run(write([
+    '# WARM_START.md', '', '## Current state', 'Things are fine.', '',
+    'Prompt to resume this session', '', '```', 'You are the session for this project.', '```', ''
+  ].join('\n')));
+  ok('an unhashed resume heading is still found when no hashed one exists', r.code === 0);
+  ok('at its own line', /a resume section exists\s+--\s+line 6\b/.test(r.out));
+}
+
 // --- the defect this file was written for --------------------------------------------------
 {
   const r = run(write([
@@ -142,6 +186,17 @@ const FENCED = [
   ok('an unreadable file is exit 2, not a silent pass', r.code === 2);
   ok('and says which file it could not read', /cannot read/.test(r.out));
 }
+
+/* Measured: a fatal guard firing part way through the studio suite reported 0 failed
+   and exit 0, having run 22 of 214, so a count of failures cannot see an assertion that
+   never ran. The total is pinned here, and the number is written down rather than measured
+   from the run it checks, because a self-updating total agrees with any run. S35 is the same
+   rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
+const EXPECTED_ASSERTIONS = 25;
+const ranBefore = pass + fail;
+ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
+  + '. A block was skipped or deleted. Find out which before you change the number.',
+  ranBefore === EXPECTED_ASSERTIONS - 1);
 
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

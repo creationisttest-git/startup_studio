@@ -6,6 +6,56 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-05
+
+**What this gives you.**
+- **The comments in the code you install explain the code, and no longer name our internal work.** Forty-five comment lines across the published files named a ticket, a role or a review round. That is provenance you cannot look up and do not need. There are now none, across thirty files, and a release refuses to go out if one comes back.
+- **Closing a session now archives the decision table instead of reminding somebody to.** The rule to do it was already written and already specific. The step that had never once happened was a person choosing to run it, so the tool runs it.
+- **Every role now carries the instruction to read that archive**, so a decision moved out of the document loaded on every request is still a decision anybody can find.
+- **The limit on how much work can be in flight can now be overridden, and it cannot be overridden quietly.** It refuses once, then asks for a reason, refuses a blank reason as hard as no reason, and writes what it was told into a file that is committed alongside the tickets. Three overrides inside fourteen days and it stops accepting them.
+- **The health check reads the session hook log**, which nothing had ever read, and reports when each hook last fired, where, and how it ended.
+- **Every test suite states how many assertions it expects.** Before this, a suite that lost half its checks reported a smaller number and stayed green.
+
+### A comment should be useful to a stranger holding only the code
+
+A comment naming a ticket number sends the reader somewhere they cannot go. Ours did that forty-five times in the files that ship to you, because the person writing the comment had the ticket open and it felt like context.
+
+Every one of those lines was rewritten rather than deleted, and the reason the code is the way it is survived the rewrite. That distinction is the whole change. A rule that simply capped comments would have been met most cheaply by deleting the longest ones, and the longest ones here are the paragraphs that sit beside a check and explain what breaks if you remove it.
+
+Fifteen references remain, deliberately, inside those explanatory paragraphs, because a paragraph recording that a specific check was added after a specific failure is evidence rather than decoration.
+
+A tool now counts the offending shape per file and holds each file to a recorded figure, exactly, in both directions. A file that gets worse is refused. A file that gets better is also refused until the improvement is recorded, so a number that has been loosened by hand cannot hide as slack.
+
+### The archiving rule now executes
+
+A project's state document is re-read by the assistant on every single request. An append-only decision table inside it therefore charges you for the entire history of the project on every call, for as long as the session runs.
+
+The rule to move older decisions into a separate file that is not loaded had been written down for some time. It did not run, in five projects, because running it depended on a person remembering at the end of a long session.
+
+The wind-down does it now. On this project's own document the first real run took ninety-six decisions, kept the twenty most recent in the loaded document, and moved seventy-six into an archive beside it. The document fell from 140,779 characters to 108,758. Nothing was lost, nothing was altered, and the order was preserved on both sides, which was checked by rebuilding the original from the previous commit and comparing.
+
+Moving a decision out of the loaded document has an obvious cost: it also moves it out of sight. Every role file, and the project instructions themselves, now carry a short rule saying the visible table is not all of them and where the rest are. Sixteen of sixteen installed roles carry it, and so do the composed roles in every project on this machine.
+
+### A limit that could not be overridden was a limit people worked around
+
+The cap on how many things can be in progress at once was a constant with no way past it. When it refused something its owner had explicitly authorised, the only two ways forward were to edit a ticket file by hand or to do the work off the board entirely. Both destroy the record the board exists to keep.
+
+It now refuses the first time, and takes an override only with a reason attached. The reason is held back until every other refusal that could still fire has passed, and is only written once the move has actually happened, so the ledger records what was done rather than what was attempted. The next refusal quotes the history back. At three overrides inside fourteen days it hardens and stops accepting them at all, on the argument that a limit overridden that often is not being applied.
+
+The health check reads that ledger, which was the one file it could not see.
+
+### Smaller things
+
+The session hook log now records where it ran and how it ended, and it no longer starts with a byte order mark. The health check gained a section that reports it.
+
+Each of the ten test suites that run inside the main suite now pins its own expected total, and each pin was read from that suite's own output rather than typed beside it. A suite run on its own is protected too, which matters because one of them usually is.
+
+A new check reads the two measures this project's process work was accepted on, from the commit log and the committed ticket history rather than from anything specific to one machine. Where a measure cannot honestly be produced, it reports that it is not proved and exits accordingly, rather than passing.
+
+The resume-prompt check now prefers a properly marked heading and falls back to looser matching only where no marked heading exists, which was measured against every such document on this machine before it was written.
+
+---
+
 ## 2026-09-02
 
 **What this gives you.**

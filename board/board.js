@@ -49,8 +49,8 @@ const path = require('path');
 //
 // This program used to root itself at its own directory, so the PROGRAM and a project's
 // TICKETS were the same folder by construction. That is what blocked publishing it at all.
-// tech-lead's objection 5 at ST-065's front door: promoting board.js turns the studio's own
-// working queue into a published artefact, and with ST-064 staging the whole tree, a project's
+// An objection raised when this file was first assessed: promoting board.js turns the studio's own
+// working queue into a published artefact, and with the publish step staging the whole tree, a project's
 // private tickets are one command from a public export. No exclusion rule could fix it, because
 // there was nothing to exclude -- publishing the program meant publishing the folder the
 // tickets sat in.
@@ -76,7 +76,7 @@ function resolveRoot() {
   for (;;) {
     if (fs.existsSync(path.join(dir, '.board', 'project.json'))) return path.join(dir, '.board');
     // THE WALK STOPS AT A REPOSITORY BOUNDARY. Without one it climbed to the filesystem
-    // root, and qa-tester showed the consequence: board.test.js runs init with BOARD_HOME
+    // root, and a reviewer showed the consequence: board.test.js runs init with BOARD_HOME
     // deleted from inside a temp directory, so on a machine with a .board above that
     // directory a clean TEST RUN would resolve and write to a real board. A board belongs
     // to a repository, so that is where looking for one ends.
@@ -101,6 +101,58 @@ const VERDICTS = ['build', 'kill', 'park'];
 
 // S27's ceiling. Large is more than one session or more than one discipline.
 const CEILING = { large: 2, small: 3 };
+
+// S69. A gate that cannot count its own overrules cannot tell working from ignored, and this one
+// could not record a single one: the ceiling was a constant with no override path, so the only
+// ways past it were to hand-edit a ticket file or to work off the board, neither of which leaves
+// a trace. The ledger is COMMITTED beside the tickets because a machine-local file would be
+// appended to by every session, conflict on every push, and differ on every machine.
+const OVERRIDES = path.join(ROOT, 'overrides.json');
+
+// ABSENT and CORRUPT are different answers and must never be the same one. Swallowed, the parse
+// error made a damaged ledger read as no history, so the refusal reported nothing had ever been
+// waved through and the next override REPLACED the file. A record of overrides cannot survive that.
+function readOverrides(gate) {
+  if (!fs.existsSync(OVERRIDES)) return [];
+  let all;
+  try { all = JSON.parse(fs.readFileSync(OVERRIDES, 'utf8')); }
+  catch (e) {
+    die('the override ledger is unreadable: ' + OVERRIDES + '\n' +
+        '       ' + e.message + '\n' +
+        '       Refusing rather than treating it as empty. Reading it as empty would report no\n' +
+        '       history and the next override would overwrite the file. Restore it from git.');
+  }
+  if (!Array.isArray(all))
+    die('the override ledger is not a JSON array: ' + OVERRIDES + '\n' +
+        '       Restore it from git rather than letting the next override replace it.');
+  return gate ? all.filter(o => o && o.gate === gate) : all;
+}
+
+// S69's escalation, on the CEO's ruling that the unit is OVERRIDES and not sessions: this program
+// has no session identity, and a proxy for one would be a different rule wearing the CEO's name.
+// Three inside the window is habitual rather than exceptional. The window is a number to tune.
+//
+// It was written as "three of the LAST FIVE" and the qualifier was removed after a mutation
+// replacing the last five with the whole ledger changed nothing at all. Entries are appended in
+// time order, so any three inside the window are necessarily among the last five; the clause could
+// only ever bite on out-of-order data, which made it a count rather than a check.
+const ESCALATE = { after: 3, withinDays: 14 };
+
+// Measured against the BOARD's clock rather than the wall clock, so a board driven by a supplied
+// time behaves the same way. An unparseable stamp counts as RECENT on purpose: the permissive
+// reading would let a damaged ledger quietly disarm the one control that reads it.
+function daysBefore(stamp) {
+  const then = Date.parse(String(stamp).replace(' ', 'T'));
+  const ref = Date.parse(String(now()).replace(' ', 'T'));
+  if (isNaN(then) || isNaN(ref)) return 0;
+  return (ref - then) / 86400000;
+}
+
+function recordOverride(gate, ref, by, reason) {
+  const all = readOverrides();
+  all.push({ at: now(), gate: gate, ref: ref, by: by, reason: reason });
+  writeJson(OVERRIDES, all);
+}
 
 // ---- plumbing ---------------------------------------------------------------------------
 const args = process.argv.slice(2);
@@ -129,7 +181,7 @@ const ok = m => { console.log(m); };
 //
 // `answer` used to resolve to open[open.length - 1], the most recently asked open decision,
 // with no way for the caller to name a different one. On 2026-08-26 three decisions were open
-// on ST-065, the CEO answered the first, and the tool filed that answer against the third and
+// on one ticket, the CEO answered the first, and the tool filed that answer against the third and
 // carried the explanatory note across with it. The false entry happened to match the option
 // that had been recommended, so the record read as agreement rather than as an error, and
 // nothing in the tool flagged it. That is S52: a command that resolves an ambiguous target
@@ -164,7 +216,7 @@ function writeJson(p, o) { fs.writeFileSync(p, JSON.stringify(o, null, 2) + '\n'
 // Everything on disk, deleted included. Numbering MUST come from this and not from the
 // filtered view below.
 //
-// This board reused a number within its first hour: ST-008 was soft-deleted, the next `add`
+// This board reused a number within its first hour: a ticket was soft-deleted, the next `add`
 // took max(num) over the visible tickets only, got the same number back, and overwrote the
 // deleted ticket's file. Soft delete is supposed to mean recoverable, and it destroyed the
 // record instead, silently.
@@ -209,7 +261,7 @@ function allOnDisk() {
   // An empty board and NO BOARD are different answers, and list, wip and audit gave the
   // same one for both: a healthy-looking empty board wherever resolution had landed. That
   // made a wrong resolved root invisible in the three most used commands, which is half of
-  // what ST-072 set out to fix.
+  // what the resolution change set out to fix.
   if (!fs.existsSync(PROJECT)) {
     die('no board here (looked in ' + ROOT + '). Run: node board.js init <slug>');
   }
@@ -224,7 +276,7 @@ function allOnDisk() {
 // field and sorted a column by ticket NUMBER, so -- take the top ticket in To Do -- named
 // the OLDEST item in the column rather than the most important one. A real instruction on
 // one board and an accident on the other, with nothing comparing the two. S40 in program
-// form, raised by tech-lead at the ST-065 front door.
+// form, raised at the front door when this was assessed.
 //
 // A ticket with NO position sorts at its own NUMBER rather than at zero, and that single
 // choice is what makes this migration-free. Every existing ticket keeps exactly the order it
@@ -268,7 +320,7 @@ const commands = {};
 commands.init = () => {
   const slug = positionals()[0] || die('init needs a slug');
   // INIT NEVER WALKS UP, and that is not a detail. resolveRoot climbs to find an EXISTING board,
-  // which is correct for every other command and destructive here. qa-tester reproduced it at the
+  // which is correct for every other command and destructive here. a reviewer reproduced it at the
   // gate: running init from a subdirectory of a project resolved THAT project's board and rewrote
   // its identity in place while printing success -- slug, prefix and the S18 assignee list all
   // replaced, every existing ticket orphaned from its prefix, and the next add issuing a number
@@ -374,13 +426,49 @@ commands.move = () => {
   }
 
   // S27's ceiling, enforced on the way in rather than reported after the fact.
+  let pendingOverride = null;
   if (to === 'in_progress') {
     const live = allTickets().filter(x => x.status === 'in_progress' && x.ref !== t.ref);
     const n = live.filter(x => x.size === t.size).length;
-    if (n >= CEILING[t.size])
-      die(t.size + ' work in progress is already at the ceiling (' + n + '/' + CEILING[t.size] + ').\n' +
+    if (n >= CEILING[t.size]) {
+      const why = flag('override', null);
+      const prior = readOverrides('ceiling');
+      // THE ESCALATION, AND IT REFUSES THE OVERRIDE ITSELF. A gate that can always be waved
+      // through is a gate that eventually always is, which is what the budget guard became at
+      // 0 for 36. The way out is deliberately NOT another override: finish or park something, or
+      // let the entries age out of the window. It says both, because a refusal a reader cannot
+      // clear is one they route around, and then the whole record stops meaning anything.
+      const habitual = prior.filter(o => daysBefore(o.at) <= ESCALATE.withinDays);
+      if (habitual.length >= ESCALATE.after) {
+        die(t.size + ' work is at the ceiling and this gate has HARDENED. It will not take an override.\n' +
+            '       ' + habitual.length + ' override(s) inside ' + ESCALATE.withinDays +
+            ' days, so overriding is now the habit\n' +
+            '       rather than the exception, which is the point at which the count stops meaning anything.\n' +
+            '       Most recent: ' + String(habitual[habitual.length - 1].at).slice(0, 10) + ', ' +
+            habitual[habitual.length - 1].ref + ': ' + habitual[habitual.length - 1].reason + '\n' +
+            '       No --override passes this one. Finish or park something, or wait for the window.');
+      }
+      // Refuse ONCE, then take a reason. An override with no reason is refused as hard as none at
+      // all: a reason nobody had to write is a box ticked, and the ledger would count clicks.
+      if (!why || why === true || !String(why).trim()) {
+        let msg = t.size + ' work in progress is already at the ceiling (' + n + '/' + CEILING[t.size] + ').\n' +
           '       In progress: ' + live.filter(x => x.size === t.size).map(x => x.ref).join(', ') + '\n' +
-          '       Finish or park one before starting another. Four things at sixty per cent ship nothing.');
+          '       Finish or park one before starting another. Four things at sixty per cent ship nothing.\n' +
+          '       To override, say why: --override "<reason>". The reason is required and is recorded.';
+        // The refusal reports its own history, so whoever decides sees how often this was waved
+        // through before. Told at the moment of the decision, not in a report nobody opens.
+        if (prior.length) {
+          const last = prior[prior.length - 1];
+          msg += '\n       Overridden ' + prior.length + ' time(s) before, most recently ' +
+                 String(last.at).slice(0, 10) + ': ' + last.reason;
+        }
+        die(msg);
+      }
+      // HELD, NOT WRITTEN YET. S97: the ledger records the act that succeeded, never the attempt.
+      // Written here it fired before the front door below, so an override on an unassessed ticket
+      // left an entry with the ticket unmoved, and a count of attempts cannot carry escalation.
+      pendingOverride = { reason: String(why).trim(), at: n, prior: prior.length };
+    }
   }
 
   // THE FRONT DOOR IS A PRECONDITION, NOT A SUGGESTION. Large work cannot start until it has
@@ -396,8 +484,18 @@ commands.move = () => {
   const from = t.status;
   t.status = to;
   if (notes && notes !== true) t.test_notes = notes;
+  // Every refusal that could still fire has passed, so this describes a move that is happening.
+  // BEFORE the save deliberately: a crash between them leaves an override with no move, which the
+  // next refusal counts, rather than a move with no override, which is invisible and undercounts.
+  if (pendingOverride) {
+    recordOverride('ceiling', t.ref, by, pendingOverride.reason);
+    log(t, by, 'CEILING OVERRIDDEN at ' + pendingOverride.at + '/' + CEILING[t.size] + ' ' +
+        t.size + ': ' + pendingOverride.reason);
+  }
   log(t, by, 'moved ' + from + ' -> ' + to + (notes && notes !== true ? ' | notes: ' + notes : ''));
   save(t);
+  if (pendingOverride)
+    console.log('  ceiling OVERRIDDEN, ' + (pendingOverride.prior + 1) + ' on record: ' + pendingOverride.reason);
   ok(t.ref + '  ' + from + ' -> ' + to + '  (' + by + ')');
 };
 
@@ -720,7 +818,7 @@ commands.audit = () => {
 commands.doctor = () => {
   const problems = [];
   // An empty board and no board at all are different answers. doctor used to give the same one
-  // for both, and so did list, wip and audit, which is half of what ST-072 set out to fix.
+  // for both, and so did list, wip and audit, which is half of what the resolution change set out to fix.
   if (!fs.existsSync(PROJECT)) {
     console.log('\nDOCTOR  no board resolved at ' + ROOT);
     console.log('  FAULT  there is no project.json here, so this is not a board.');
@@ -733,7 +831,11 @@ commands.doctor = () => {
   const files = fs.existsSync(TICKETS) ? fs.readdirSync(TICKETS).filter(f => f.endsWith('.json')) : [];
   const byNum = {};
 
-  for (const entry of [{ f: 'project.json', p: PROJECT }].concat(files.map(f => ({ f: f, p: path.join(TICKETS, f) })))) {
+  // The override ledger was the one file doctor could not see, exactly where project.json was
+  // before the comment above. A record of gates waved through is the last thing to rot unwatched.
+  const ledger = fs.existsSync(OVERRIDES) ? [{ f: 'overrides.json', p: OVERRIDES }] : [];
+
+  for (const entry of [{ f: 'project.json', p: PROJECT }].concat(ledger, files.map(f => ({ f: f, p: path.join(TICKETS, f) })))) {
     const f = entry.f;
     const raw = fs.readFileSync(entry.p, 'utf8');
     const marker = raw.split('\n').findIndex(l => /^(<{7}|={7}|>{7})/.test(l));
@@ -741,6 +843,21 @@ commands.doctor = () => {
     let t;
     try { t = JSON.parse(raw); } catch (e) { problems.push(f + ': not valid JSON (' + e.message + ')'); continue; }
     if (f === 'project.json') continue;
+    if (f === 'overrides.json') {
+      if (!Array.isArray(t)) { problems.push(f + ': the override ledger is not a JSON array'); continue; }
+      // An entry with no reason is what the gate refuses at write time, so one on disk arrived
+      // another way, and a ledger of gates passed for no reason is a count with nothing behind it.
+      t.forEach((o, i) => {
+        if (!o || !o.gate || !o.ref || !o.reason || !String(o.reason).trim())
+          problems.push(f + ': entry ' + (i + 1) + ' has no gate, ticket or stated reason');
+        // The one field the escalation actually reads, and the only one this check skipped. An
+        // unreadable stamp is treated as recent so it cannot disarm the gate, but silently
+        // hardening for ever is not a fault anyone should have to deduce from a refusal.
+        else if (isNaN(Date.parse(String(o.at).replace(' ', 'T'))))
+          problems.push(f + ': entry ' + (i + 1) + ' has an unreadable timestamp, so it can never age out');
+      });
+      continue;
+    }
     // The filename IS the address every command resolves through, so a ref that disagrees with
     // the file holding it means show and move reach a different record from the one list drew.
     if (t.ref && t.ref + '.json' !== f) problems.push(f + ': holds ref ' + t.ref + ', so the file and the ref disagree');
@@ -791,7 +908,7 @@ if (MUTATORS.indexOf(cmd) !== -1 && !process.env.BOARD_NO_GIT_WARN) {
 // mutation and committed alongside the tickets, so the board renders on a phone in any git
 // host without a server, an account or a deploy.
 //
-// design-lead raised this at the front door as objection 7: the site says UAT is the one point
+// Raised at the front door as an objection: the site says UAT is the one point
 // on the board that waits for YOU, and a board only readable through a CLI would make that the
 // one thing you cannot look at. The answer is a rendered file rather than a new concept.
 //

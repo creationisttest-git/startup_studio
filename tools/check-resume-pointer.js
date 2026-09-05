@@ -33,7 +33,23 @@
 
 const fs = require('fs');
 
-var RESUME_LINE = /^\s*#{0,6}\s*(prompt to resume|resume prompt|prompt to restart|prompt for a fresh session)/i;
+// Two matchers, tried in order, and the order is the control. A hashed heading is preferred; the
+// loose form is a fallback used only when the document has no hashed resume heading at all.
+//
+// Why not simply require the hash. Measured across the eight warm starts on this machine: six
+// carry a hashed resume heading, one carries none, and one carries the heading as bare prose with
+// no hashed equivalent anywhere in the file. Requiring the hash would silently stop finding that
+// last document and report it as having no resume section, a false FAIL at the moment a
+// wind-down is trying to commit state.
+//
+// Why not keep the loose form alone. It matched any line BEGINNING with the words, so a paragraph
+// wrapped onto a line starting "resume prompt" was taken as the section start. In the safe
+// direction that reported zero fences under a section that was really prose, and refused a commit
+// it should have allowed. In the unsafe direction the same looseness lets prose that happens to
+// carry a fence satisfy the check while the real prompt sits unread further down. Both directions
+// are in check-resume-pointer.test.js.
+var RESUME_HEADING_HASHED = /^#{1,6}\s+[^\n]*(prompt to resume|resume prompt|prompt to restart|prompt for a fresh session)/i;
+var RESUME_LINE_LOOSE = /^\s*#{0,6}\s*(prompt to resume|resume prompt|prompt to restart|prompt for a fresh session)/i;
 var HEADING = /^#{1,6}\s+\S/;
 var DATED_BLOCK = /(WAS\s+)?CURRENT\s+AS\s+OF\s+(\d{4}-\d{2}-\d{2})/gi;
 
@@ -47,11 +63,16 @@ function readLines (file) {
 // The resume section runs from its heading to the next markdown heading, or to end of file.
 // Not to end of file unconditionally: some documents carry sections after the prompt, and
 // sweeping those in makes every date in them look like part of the prompt.
-function findResume (lines) {
-  var start = -1;
+function firstMatching (lines, pattern) {
   for (var i = 0; i < lines.length; i++) {
-    if (RESUME_LINE.test(lines[i])) { start = i; break; }
+    if (pattern.test(lines[i])) return i;
   }
+  return -1;
+}
+
+function findResume (lines) {
+  var start = firstMatching(lines, RESUME_HEADING_HASHED);
+  if (start === -1) start = firstMatching(lines, RESUME_LINE_LOOSE);
   if (start === -1) return null;
   var end = lines.length;
   for (var j = start + 1; j < lines.length; j++) {

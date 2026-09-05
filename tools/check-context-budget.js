@@ -63,7 +63,7 @@ const DISPOSABLE_LIMIT = 12000;
 // Matched case-insensitively against `##` heading text. These are the sections the wind-down
 // protocol says are rewritten every session rather than added to.
 //
-// `founder brief` joined this list when ST-069 created it, because the wind-down now says to
+// `founder brief` joined this list when that section was created, because the wind-down now says to
 // rewrite it every session, which is the definition this list uses. A hand-kept list that must
 // track something else needs the thing it tracks to be added when it appears (S39); this one had
 // already gone stale by one entry on the day the section was invented.
@@ -151,7 +151,7 @@ ok('every section that should be replaced each session is within budget',
    offenders.join('; ') + (offenders.length ? '  --  these are rewritten every wind-down, so they cannot grow honestly; they are being appended to' : ''));
 
 // --- an archive must stay findable -----------------------------------------------------------
-// CEO constraint, ST-088: archiving is only safe while the trail can still be followed from the
+// CEO constraint: archiving is only safe while the trail can still be followed from the
 // document that IS loaded. An archive nothing points at is a decision nobody will find.
 const archives = fs.readdirSync(target).filter(n => /ARCHIVE.*\.md$/i.test(n));
 const loadedText = loaded.filter(f => !f.missing).map(f => read(f.full)).join('\n');

@@ -273,7 +273,7 @@ function warm (opts) {
   ok('and names only the one that is missing', /does not name ST-088/.test(r.out) && !/does not name ST-062/.test(r.out));
 }
 {
-  // The exemption, and it is deliberate. content-lead's argument on ST-069: small tickets churn,
+  // The exemption, and it is deliberate. The argument for it: small tickets churn,
   // and a brief that must list every small item in flight is a second board rather than a brief.
   const r = run(project({
     warm: warm({ brief: 'We are working on ST-062.' }),
@@ -355,7 +355,7 @@ function warm (opts) {
 }
 
 // --- a rule ends the section, not only a heading -----------------------------------------------
-// ROUND TWO'S MAJOR, and it is the SECOND time the 42-line paste came back through the code that
+// A LATER MAJOR, and it is the SECOND time the 42-line paste came back through the code that
 // removed it. The first fix bounded the section at the next heading and stopped there. Markdown
 // also ends a section with a horizontal rule or a setext underline, and WARM_START.md puts a
 // '---' immediately after the founder brief, so this is the real document's shape rather than a
@@ -504,7 +504,7 @@ function warm (opts) {
 // Measured across the 8 real WARM_START.md files before choosing this shape: 7 carry a hashed
 // resume heading, and one carries ONLY the unhashed prose form with no hashed equivalent
 // anywhere in the file. So requiring a hash would have silently stopped finding one document's
-// prompt, which is exactly the hazard ST-105 raises from the other direction. Hashed first,
+// prompt, which is exactly the hazard raised from the other direction. Hashed first,
 // loose as a fallback: the 7 get the protection and the 1 keeps working.
 {
   const doc = ['# WARM_START.md', '', '## Founder brief', '', '```', 'The brief.', '```', '',
@@ -547,7 +547,7 @@ function warm (opts) {
   ok('the skill documents exit 2 as a read failure rather than a pass',
      codeLine(2).length > 0 && !/pass/i.test(codeLine(2).replace(/as a pass/i, '')));
   // THE TABLE CAN BE LEFT INTACT AND CONTRADICTED BY A SENTENCE UNDERNEATH IT, which is how the
-  // round-one lockout instruction got back in past the first version of this guard: all four
+  // the lockout instruction got back in past the first version of this guard: all four
   // bullets untouched, plus "In practice, treat every non-clean exit as a blocker and do not
   // commit until it is 0." The suite stayed green. So this looks for the SHAPE of a generalising
   // blocker rule rather than one literal phrase.
@@ -578,6 +578,17 @@ function warm (opts) {
        returned[c] === true && codeLine(c).length > 0);
   });
 }
+
+/* Measured: a fatal guard firing part way through the studio suite reported 0 failed
+   and exit 0, having run 22 of 214, so a count of failures cannot see an assertion that
+   never ran. The total is pinned here, and the number is written down rather than measured
+   from the run it checks, because a self-updating total agrees with any run. S35 is the same
+   rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
+const EXPECTED_ASSERTIONS = 86;
+const ranBefore = pass + fail;
+ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
+  + '. A block was skipped or deleted. Find out which before you change the number.',
+  ranBefore === EXPECTED_ASSERTIONS - 1);
 
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

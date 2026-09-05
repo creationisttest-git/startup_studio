@@ -126,7 +126,7 @@ var BRIEF_HEADING = /^#{1,6}\s+[^\n]*founder brief/i;
 // THE RESUME MATCHER STAYS PERMISSIVE, and this asymmetry is measured rather than sloppy.
 // Requiring a hash here would be correct for 7 of the 8 real documents and would SILENTLY stop
 // finding the eighth, whose resume heading is genuinely unhashed prose with no hashed equivalent
-// anywhere in the file. That is the hazard ST-105 raised from the other direction. So: prefer a
+// anywhere in the file. That is the hazard raised from the other direction. So: prefer a
 // hashed heading when one exists, which is what gives every other project the protection, and
 // fall back to the loose form only when there is no hashed heading to find.
 var RESUME_HEADING_HASHED = /^#{1,6}\s+[^\n]*(prompt to resume|resume prompt|prompt to restart|prompt for a fresh session)/i;
@@ -140,10 +140,10 @@ var RULE = /^\s{0,3}(-{3,}|\*{3,}|_{3,}|={3,})\s*$/;
 
 // A SETEXT UNDERLINE IS NOT A RULE, AND IT IS SHORTER THAN ONE. CommonMark allows an underline of
 // ANY length from a single character, so '-' and '==' under a paragraph both end that paragraph's
-// section while matching nothing in RULE, which needs three. Round two widened the bound to rules
-// and the round-two report CLAIMED setext was covered; it was not, and a section titled by a
+// section while matching nothing in RULE, which needs three. A later revision widened the bound to rules
+// and the report CLAIMED setext was covered; it was not, and a section titled by a
 // two-dash underline still handed the next block to the founder labelled FOUNDER BRIEF. Measured
-// at the round-three gate, which is the third round in which this bound was incomplete while the
+// at a later gate, which is the third time this bound was incomplete while the
 // record said it was complete.
 //
 // It only counts DIRECTLY under a non-blank line. That is what makes it an underline rather than
@@ -447,7 +447,7 @@ function main (argv) {
     }
 
     // THE VACUITY GUARD THAT IS NOT HERE, and the reasoning is kept because it will be asked for
-    // again. content-lead required one on ST-069: "two empty sets satisfy both directions, so if
+    // again. A reviewer required one: "two empty sets satisfy both directions, so if
     // any large ticket is in progress at least one ref must appear". It was written, and the
     // mutation proving it went GREEN.
     //

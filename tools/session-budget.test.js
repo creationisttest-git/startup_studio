@@ -146,5 +146,16 @@ function drive (id, n, extra) {
   fs.unlinkSync(s.file);
 }
 
+/* Measured: a fatal guard firing part way through the studio suite reported 0 failed
+   and exit 0, having run 22 of 214, so a count of failures cannot see an assertion that
+   never ran. The total is pinned here, and the number is written down rather than measured
+   from the run it checks, because a self-updating total agrees with any run. S35 is the same
+   rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
+const EXPECTED_ASSERTIONS = 25;
+const ranBefore = pass + fail;
+ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
+  + '. A block was skipped or deleted. Find out which before you change the number.',
+  ranBefore === EXPECTED_ASSERTIONS - 1);
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

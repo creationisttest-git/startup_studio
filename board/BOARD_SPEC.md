@@ -127,7 +127,7 @@ init <slug> [--assignees a,b,c]        create a board here
 add "<title>" --desc "..." [--size large|small] [--assignee X]
 list [column]                          the board, or one column
 show <ref>                             the whole ticket, including its history
-move <ref> <column> --by <role> [--notes "..."]
+move <ref> <column> --by <role> [--notes "..."] [--override "<reason>"]
 assign <ref> <name>|none --by <role>
 rank <ref> --top|--bottom|--before <ref>|--after <ref> --by <role>
 assess <ref> --verdict build|kill|park --measure "..." --by <role>
@@ -165,6 +165,20 @@ the program, not paragraphs somebody is trusted to remember:
 - Work in progress has a ceiling of **two large and three small**, and a move that would exceed
   it is refused with the count. The numbers are part of the contract: two implementations that
   refuse at different counts are not the same board.
+- That ceiling can be overridden, and cannot be overridden quietly. The refusal comes first;
+  `--override "<reason>"` passes it, and an override whose reason is blank is refused as hard as
+  none at all. The reason is written to `overrides.json` beside the tickets, which git commits,
+  and to the ticket's own history, and the next refusal reports how often the gate has been waved
+  through before. **The record is written only if the move actually happens**, so an override
+  stopped by a later refusal leaves nothing behind: a count that includes attempts cannot support
+  a rule about how often a gate was really passed. A gate with no override gets hand-edited around
+  instead, and then it has no record at all.
+- **The override hardens.** When three or more overrides on a gate fall inside fourteen days,
+  that gate stops accepting overrides at all and says so. There is no flag for it: the way
+  out is to finish or park something, or to let the entries age out of the window. Overriding is
+  meant to be the exception, and a gate that can always be waved through is one that eventually
+  always is. The unit is deliberately OVERRIDES rather than sessions, because this program has no
+  session identity and a proxy for one would be a different rule under the same name.
 - A question put to the founder must carry at least two options and a recommendation.
 - With more than one decision open, answering without naming which one is refused, and the
   open ones are listed rather than guessed between.

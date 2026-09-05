@@ -100,7 +100,7 @@ const filler = k => 'x'.repeat(k);
 }
 
 // --- an archive must stay findable ------------------------------------------------------------
-// CEO constraint, ST-088: archiving is only safe while the trail can still be followed from the
+// CEO constraint: archiving is only safe while the trail can still be followed from the
 // document that IS loaded. A decision nobody can find gets re-litigated.
 {
   const d = project({
@@ -134,5 +134,16 @@ const filler = k => 'x'.repeat(k);
 }
 
 junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
+/* Measured: a fatal guard firing part way through the studio suite reported 0 failed
+   and exit 0, having run 22 of 214, so a count of failures cannot see an assertion that
+   never ran. The total is pinned here, and the number is written down rather than measured
+   from the run it checks, because a self-updating total agrees with any run. S35 is the same
+   rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
+const EXPECTED_ASSERTIONS = 15;
+const ranBefore = pass + fail;
+ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
+  + '. A block was skipped or deleted. Find out which before you change the number.',
+  ranBefore === EXPECTED_ASSERTIONS - 1);
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

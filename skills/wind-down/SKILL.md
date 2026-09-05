@@ -73,6 +73,14 @@ This is session state. It answers "where are we right now".
   must be able to continue with zero additional context. It is the most valuable thing in
   the file and the most often left stale.
 
+  **THE PREVIOUS BLOCK LEAVES THE FILE. It is deleted, not kept under a "superseded" heading.**
+  Git holds its history and the session log holds its record, so nothing is lost by removing it.
+  This paragraph used to say a correct wind-down "demotes" the previous block and stopped there,
+  which reads as though the demoted block stays. One project did exactly what it read: 24 dated
+  blocks and 16 stacked resume prompts, 147,092 characters of 225,665 self-labelled superseded,
+  in a document re-sent on EVERY request. A section that is rewritten every wind-down is
+  REPLACED, never demoted and kept.
+
   **If the document marks blocks of state with a date, the prompt must name the newest one.**
   A wind-down that adds a new current block, correctly demotes the previous one, and leaves
   the prompt saying "work from the block headed <the old date>" has written a document that
@@ -269,6 +277,32 @@ is the offender, and commit anyway.
 If the studio is not reachable from this project, say so and check by reading instead: find the
 newest dated block, then confirm the prompt names that date and no other. Say which way you
 checked. An unrun check reported as run is worse than no check.
+
+**Fourth, archive the decisions table, and this one WRITES rather than reports.**
+
+```
+node <studio>/tools/archive-decisions.js --file <path-to-the-state-document>
+node <studio>/tools/archive-decisions.js --file <path-to-the-state-document> --write
+```
+
+Run it without `--write` first: that is a dry run and touches nothing. It keeps the most recent
+twenty decisions in the loaded document and moves the rest to `DECISIONS-ARCHIVE.md` beside it,
+leaving a line in the live table naming which numbers moved and where they went.
+
+**Why this executes the policy instead of restating it.** The archive rule already existed, was
+already specific, and five projects sailed past it. An instruction that is 0 for 5 is not a
+control. The step that had never happened was a human choosing to run it.
+
+**What makes it safe to run unsupervised**, because it rewrites the one artefact that holds the
+decision trail. It refuses rather than guessing the row order, and both directions exist in real
+projects here, so archiving the wrong twenty would discard exactly the rows somebody needs. It
+proves kept plus archived equals the original count, and that no row appears on both sides,
+BEFORE it writes a byte. It writes the archive and reads it back before rewriting the source, so
+a crash leaves duplication rather than a truncated trail.
+
+**It does not block the commit.** Like the context budget above it, this reports and continues.
+A guard that refuses the commit leaves state unwritten, which costs more than the bloat.
+
 
 ---
 

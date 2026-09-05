@@ -1,0 +1,391 @@
+{
+  "what": "Per published code file: named comment lines, counted comment ratio and control lines, as tools/check-comment-shape.js defines them. Written only by that tool. The check refuses when any value differs from this record: the wrong way outright, the right way until this record is rewritten, so the record is never slack.",
+  "written": "2026-09-05",
+  "new_file_cap": 5,
+  "overrides": [
+    {
+      "date": "2026-09-03",
+      "file": "site.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 17.5,
+      "reason": "site.js publishes through the manifest and was outside every tree the first baseline read; recorded at its true value on the day the tool started reading the manifest, not as new code"
+    },
+    {
+      "date": "2026-09-04",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 27.9,
+      "to": 28,
+      "reason": "shared governance gained fragment expansion: the counted ratio moves 27.9 to 28.0 for nine comment lines, five saying why these files expand at all and four naming the hash trap that made the same mechanism regress at its second consumer. Tightened from seventeen lines first; the remainder is the reason a reader cannot get from the code."
+    },
+    {
+      "date": "2026-09-04",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 28,
+      "to": 28.1,
+      "reason": "two defects a gate found in the health check: it died on a governance marker it could not resolve, and it counted only roles as fragment users, so it told a reader to delete a rule every project session depends on. The counted ratio moves 28.0 to 28.1 for six lines saying why a report must not throw where a writer must, and why the user count includes the shared documents."
+    },
+    {
+      "date": "2026-09-04",
+      "file": "tools/check-comment-shape.test.js",
+      "field": "ratio",
+      "from": 3.9,
+      "to": 4.7,
+      "reason": "the instrument's own fixtures were named from the process id and never removed, so a reused id landed on a directory holding a baseline and three assertions passed or failed for a reason unrelated to the code. Three lines record the count found and what it did, because the next reader will otherwise delete the freshness check as belt and braces."
+    },
+    {
+      "date": "2026-09-04",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 28.1,
+      "to": 28.2,
+      "reason": "The pre-flight guard gained a governance pass and the standalone governance command gained a call to it. Six comment lines say why: the writer resolves markers inside the per-project loop, so without the pre-flight a file that composes is written and a later one that cannot takes the run down, leaving the first project half updated with its archive taken while the guard's own message still says nothing was touched. Cut from nine lines to six; the rest is the trap, which is not derivable from the code."
+    },
+    {
+      "date": "2026-09-04",
+      "file": "base/board/board.test.js",
+      "field": "ratio",
+      "from": 25.3,
+      "to": 25.4,
+      "reason": "The ceiling override block reads the ledger and two ticket files defensively rather than with a bare JSON.parse, and three comment lines say why: written the direct way, a mutation that stopped the ledger being written CRASHED the whole suite, and a run that dies prints no count at all, which reads as a pass to anything grepping the summary line. That is the trap, and it is not derivable from the code."
+    },
+    {
+      "date": "2026-09-04",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 28,
+      "to": 28.1,
+      "reason": "The hook-observability comment carried two claims this session falsified: that the state document says the hook has never been observed firing, corrected on 2026-08-30, and that the log is never read by the tool itself, which the new health-check reader makes false. studio.ps1 publishes, so both were false claims shipping to readers. The replacement is one line SHORTER; the ratio rose 0.1 only because one line stopped classifying as a control."
+    },
+    {
+      "date": "2026-09-04",
+      "file": "studio.ps1",
+      "field": "controls",
+      "from": 86,
+      "to": 85,
+      "reason": "The hook-observability comment carried two claims this session falsified: that the state document says the hook has never been observed firing, corrected on 2026-08-30, and that the log is never read by the tool itself, which the new health-check reader makes false. studio.ps1 publishes, so both were false claims shipping to readers. The replacement is one line SHORTER; the ratio rose 0.1 only because one line stopped classifying as a control."
+    },
+    {
+      "date": "2026-09-04",
+      "file": "base/board/board.js",
+      "field": "ratio",
+      "from": 25.1,
+      "to": 25.3,
+      "reason": "board.js gained the deferred override record, the absent-versus-corrupt ledger read and the doctor scan of it, and five comment paragraphs say why. Each is a trap not derivable from the code: recording before the front door left the ledger counting attempts that never took effect; swallowing a parse error made a damaged ledger read as no history and the next override replaced it; and the ledger was the one file doctor could not see. Cut from eighteen comment lines to thirteen; the rest is the reason. board.test.js FELL."
+    },
+    {
+      "date": "2026-09-04",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 28.1,
+      "to": 28.2,
+      "reason": "The autoload catch that reports a failed session brief now sets its own outcome, and four comment lines say why: left at ok, a run whose brief failed logged identically to a healthy one, so the log was wrong on exactly the runs where half the hook did not work. Named apart from a failed rebuild because the two send a reader to different places. That is the trap and it is not derivable from the code."
+    },
+    {
+      "date": "2026-09-04",
+      "file": "base/board/board.js",
+      "field": "ratio",
+      "from": 25.3,
+      "to": 25.8,
+      "reason": "board.js gained the escalation: three overrides on a gate inside fourteen days and it stops taking overrides at all. Eight comment lines carry two things not derivable from the code: why the unit is overrides rather than the sessions the ruling named, which is that this program has no session identity and a proxy would be a different rule under the same name; and why the of-the-last-five qualifier was REMOVED, which is that a mutation replacing it with the whole ledger changed nothing, so it was a count and not a check."
+    },
+    {
+      "date": "2026-09-04",
+      "file": "base/board/board.js",
+      "field": "ratio",
+      "from": 25.8,
+      "to": 25.9,
+      "reason": "board.js doctor now validates the one ledger field the escalation actually reads, the timestamp, which it had skipped while checking gate, ticket and reason. Three comment lines say why an unreadable stamp is treated as recent and yet still reported: it cannot be allowed to disarm the gate, and silently hardening for ever is not a fault anyone should have to deduce from a refusal."
+    },
+    {
+      "date": "2026-09-04",
+      "file": "base/board/board.test.js",
+      "field": "ratio",
+      "from": 24.7,
+      "to": 24.9,
+      "reason": "board.test.js gained the escalation timestamp assertions and the corrected refusal wording. Three comment lines say why the refusal no longer claims there is no flag for it: that sentence was false, because anyone who can set the board clock can clear the window and anyone who can do that can edit the ledger anyway. The mechanism is sound and the sentence was not, which is the distinction worth keeping."
+    },
+    {
+      "date": "2026-09-05",
+      "file": "tools/check-comment-shape.test.js",
+      "field": "ratio",
+      "from": 4.6,
+      "to": 4.8,
+      "reason": "ST-111 majors 1 and 2. Two section dividers, matching the convention every other group in this suite uses, heading the two blocks that prove a deleted baseline value and an unfindable published path are now refused. Their evidence paragraphs are controls; only the dividers are counted."
+    }
+  ],
+  "files": {
+    "base/board/board.js": {
+      "nonblank": 900,
+      "comment": 306,
+      "header": 41,
+      "controls": 33,
+      "named": 0,
+      "ratio": 25.8,
+      "ratio_all": 34
+    },
+    "base/board/board.test.js": {
+      "nonblank": 948,
+      "comment": 300,
+      "header": 17,
+      "controls": 49,
+      "named": 0,
+      "ratio": 24.7,
+      "ratio_all": 31.6
+    },
+    "base/board/reference/board-cli.js": {
+      "nonblank": 279,
+      "comment": 73,
+      "header": 39,
+      "controls": 1,
+      "named": 0,
+      "ratio": 11.8,
+      "ratio_all": 26.2
+    },
+    "base/board/reference/board-refusals.js": {
+      "nonblank": 80,
+      "comment": 19,
+      "header": 8,
+      "controls": 2,
+      "named": 0,
+      "ratio": 11.3,
+      "ratio_all": 23.8
+    },
+    "base/board/reference/board-refusals.test.js": {
+      "nonblank": 130,
+      "comment": 25,
+      "header": 15,
+      "controls": 5,
+      "named": 0,
+      "ratio": 3.8,
+      "ratio_all": 19.2
+    },
+    "base/board/reference/board.ps1": {
+      "nonblank": 33,
+      "comment": 10,
+      "header": 9,
+      "controls": 0,
+      "named": 0,
+      "ratio": 3,
+      "ratio_all": 30.3
+    },
+    "base/board/reference/deploy.js": {
+      "nonblank": 113,
+      "comment": 35,
+      "header": 21,
+      "controls": 0,
+      "named": 0,
+      "ratio": 12.4,
+      "ratio_all": 31
+    },
+    "base/board/reference/hygiene-check.js": {
+      "nonblank": 195,
+      "comment": 58,
+      "header": 20,
+      "controls": 1,
+      "named": 0,
+      "ratio": 19,
+      "ratio_all": 29.7
+    },
+    "base/board/reference/isolation-checks.sql": {
+      "nonblank": 65,
+      "comment": 46,
+      "header": 17,
+      "controls": 5,
+      "named": 0,
+      "ratio": 36.9,
+      "ratio_all": 70.8
+    },
+    "base/board/reference/register-project.sql": {
+      "nonblank": 37,
+      "comment": 22,
+      "header": 5,
+      "controls": 1,
+      "named": 0,
+      "ratio": 43.2,
+      "ratio_all": 59.5
+    },
+    "base/board/reference/tickets-schema.sql": {
+      "nonblank": 367,
+      "comment": 171,
+      "header": 33,
+      "controls": 8,
+      "named": 0,
+      "ratio": 35.4,
+      "ratio_all": 46.6
+    },
+    "base/infra/reference/rls-starter.sql": {
+      "nonblank": 94,
+      "comment": 55,
+      "header": 15,
+      "controls": 0,
+      "named": 0,
+      "ratio": 42.6,
+      "ratio_all": 58.5
+    },
+    "site.js": {
+      "nonblank": 103,
+      "comment": 22,
+      "header": 3,
+      "controls": 1,
+      "named": 0,
+      "ratio": 17.5,
+      "ratio_all": 21.4
+    },
+    "studio.ps1": {
+      "nonblank": 2469,
+      "comment": 821,
+      "header": 36,
+      "controls": 88,
+      "named": 0,
+      "ratio": 28.2,
+      "ratio_all": 33.3
+    },
+    "tools/archive-decisions.js": {
+      "nonblank": 152,
+      "comment": 50,
+      "header": 42,
+      "controls": 0,
+      "named": 0,
+      "ratio": 5.3,
+      "ratio_all": 32.9
+    },
+    "tools/archive-decisions.test.js": {
+      "nonblank": 138,
+      "comment": 27,
+      "header": 13,
+      "controls": 5,
+      "named": 0,
+      "ratio": 6.5,
+      "ratio_all": 19.6
+    },
+    "tools/build-releases.js": {
+      "nonblank": 521,
+      "comment": 76,
+      "header": 23,
+      "controls": 2,
+      "named": 0,
+      "ratio": 9.8,
+      "ratio_all": 14.6
+    },
+    "tools/build-releases.test.js": {
+      "nonblank": 461,
+      "comment": 52,
+      "header": 14,
+      "controls": 9,
+      "named": 0,
+      "ratio": 6.3,
+      "ratio_all": 11.3
+    },
+    "tools/check-comment-shape.js": {
+      "nonblank": 526,
+      "comment": 98,
+      "header": 88,
+      "controls": 10,
+      "named": 0,
+      "ratio": 0,
+      "ratio_all": 18.6
+    },
+    "tools/check-comment-shape.test.js": {
+      "nonblank": 406,
+      "comment": 50,
+      "header": 10,
+      "controls": 21,
+      "named": 0,
+      "ratio": 4.7,
+      "ratio_all": 12.3
+    },
+    "tools/check-context-budget.js": {
+      "nonblank": 148,
+      "comment": 69,
+      "header": 47,
+      "controls": 2,
+      "named": 0,
+      "ratio": 13.5,
+      "ratio_all": 46.6
+    },
+    "tools/check-context-budget.test.js": {
+      "nonblank": 139,
+      "comment": 29,
+      "header": 10,
+      "controls": 6,
+      "named": 0,
+      "ratio": 9.4,
+      "ratio_all": 20.9
+    },
+    "tools/check-measures.js": {
+      "nonblank": 235,
+      "comment": 64,
+      "header": 52,
+      "controls": 3,
+      "named": 0,
+      "ratio": 3.8,
+      "ratio_all": 27.2
+    },
+    "tools/check-measures.test.js": {
+      "nonblank": 231,
+      "comment": 42,
+      "header": 12,
+      "controls": 20,
+      "named": 0,
+      "ratio": 4.3,
+      "ratio_all": 18.2
+    },
+    "tools/check-resume-pointer.js": {
+      "nonblank": 167,
+      "comment": 52,
+      "header": 30,
+      "controls": 1,
+      "named": 0,
+      "ratio": 12.6,
+      "ratio_all": 31.1
+    },
+    "tools/check-resume-pointer.test.js": {
+      "nonblank": 184,
+      "comment": 43,
+      "header": 5,
+      "controls": 6,
+      "named": 0,
+      "ratio": 17.4,
+      "ratio_all": 23.4
+    },
+    "tools/check-session-brief.js": {
+      "nonblank": 442,
+      "comment": 201,
+      "header": 71,
+      "controls": 19,
+      "named": 0,
+      "ratio": 25.1,
+      "ratio_all": 45.5
+    },
+    "tools/check-session-brief.test.js": {
+      "nonblank": 564,
+      "comment": 143,
+      "header": 8,
+      "controls": 29,
+      "named": 0,
+      "ratio": 18.8,
+      "ratio_all": 25.4
+    },
+    "tools/session-budget.js": {
+      "nonblank": 149,
+      "comment": 52,
+      "header": 26,
+      "controls": 4,
+      "named": 0,
+      "ratio": 14.8,
+      "ratio_all": 34.9
+    },
+    "tools/session-budget.test.js": {
+      "nonblank": 148,
+      "comment": 26,
+      "header": 4,
+      "controls": 7,
+      "named": 0,
+      "ratio": 10.1,
+      "ratio_all": 17.6
+    }
+  }
+}

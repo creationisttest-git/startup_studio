@@ -41,7 +41,7 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-/* The marker the content lead writes under each dated heading. A trailing full stop and a
+/* The marker written under each dated heading. A trailing full stop and a
    colon are both accepted: a value block dropped because someone left the stop off would be
    a silent loss of the exact content this page exists to show. */
 const MARKER = /^\*\*What this gives you[.:]?\*\*\s*/;

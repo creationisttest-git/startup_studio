@@ -70,7 +70,7 @@ function ticket (ref) {
 run(['init', 'sandbox']);
 run(['add', 'A ticket carrying several open questions', '--desc', 'fixture', '--size', 'small']);
 
-// Three questions, asked in order, exactly as ST-065 carried them.
+// Three questions, asked in order, exactly as the ticket carried them.
 run(['ask', 'SA-001', 'FIRST question, asked earliest', '--options', 'alpha|beta', '--recommend', '1', '--by', 'pm']);
 run(['ask', 'SA-001', 'SECOND question', '--options', 'gamma|delta', '--recommend', '1', '--by', 'tech-lead']);
 const asked = run(['ask', 'SA-001', 'THIRD question, asked most recently', '--options', 'epsilon|zeta', '--recommend', '2', '--by', 'content-lead']);
@@ -83,7 +83,7 @@ const asked = run(['ask', 'SA-001', 'THIRD question, asked most recently', '--op
 }
 
 // --- the clock is asserted, because the byte comparison is only as good as the clock ---------
-// qa-tester's finding on the re-gate, and it is the same shape as the finding above it one level
+// A reviewer's finding on the re-gate, and it is the same shape as the finding above it one level
 // up: the strongest assertion in this file depends on a precondition that nothing checked.
 //
 // Two mutations proved it. Freezing the counter, and dropping BOARD_NOW from run()'s env, which
@@ -140,7 +140,7 @@ const asked = run(['ask', 'SA-001', 'THIRD question, asked most recently', '--op
 {
   const r = run(['answer', 'SA-001', '1', '--decision', 'd9']);
   // On the exit code alone this assertion passed over the very defect it names: deleting the
-  // refusal throws a TypeError, which also exits 1. qa-tester caught it. An exit code is exactly
+  // refusal throws a TypeError, which also exits 1. A reviewer caught it. An exit code is exactly
   // what lied when a crashed run still printed a healthy summary (S35), and it lied again here.
   ok('an unknown decision key is refused', r.code === 1 && /no decision d9 on SA-001/.test(r.out));
   ok('and the refusal is a refusal rather than a crash', !/TypeError|Error:|at Object\./.test(r.out));
@@ -380,7 +380,7 @@ const NL = String.fromCharCode(10);
 
 // ---- what the gate found -------------------------------------------------------------------
 //
-// Every assertion below exists because qa-tester broke something these tests could not see.
+// Every assertion below exists because a reviewer broke something these tests could not see.
 
 // spawnSync, because the durable-store warning goes to STDERR and execFileSync discards stderr on
 // success. The original test could not have seen the warning even if it had looked for it.
@@ -393,7 +393,7 @@ function runCapture(prog, cwd, args, env) {
   return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
 }
 
-// CRITICAL, and it was reachable only because ST-072 made resolution depend on the working
+// CRITICAL, and it was reachable only because the resolution change made it depend on the working
 // directory. init used resolveRoot, which WALKS UP, and had no existence check, so running it
 // anywhere inside a project resolved that project's board and rewrote its identity in place
 // while printing success. init now resolves an explicit location only, and refuses.
@@ -416,7 +416,7 @@ function runCapture(prog, cwd, args, env) {
   ok('and says what would have been destroyed', /slug, prefix and permitted assignees/.test(again.out));
   const forced = runAt(prog, proj, ['init', 'replacement', '--force']);
   // Asserting only that --force did not REFUSE is an assertion on the absence of an effect,
-  // and qa-tester proved it hollow: --force reduced to a no-op that exits 0 and writes
+  // and a reviewer proved it hollow: --force reduced to a no-op that exits 0 and writes
   // nothing left this green. Same shape as the git control one round earlier, and the second
   // time that shape reached a gate in one session. Read the record back instead.
   const forcedSlug = JSON.parse(fs.readFileSync(path.join(proj, '.board', 'project.json'), 'utf8')).slug;
@@ -468,7 +468,7 @@ function runCapture(prog, cwd, args, env) {
 
 // THE DURABLE-STORE WARNING, ASSERTED POSITIVELY. The first version asserted only that a mutation
 // outside a repository still SUCCEEDS, which is the absence of an effect and passes just as well
-// when the feature has been deleted. qa-tester deleted the whole control and the suite stayed
+// when the feature has been deleted. A reviewer deleted the whole control and the suite stayed
 // green. A guard nobody has watched fire is not a guard.
 {
   const prog = freshProgram();
@@ -488,9 +488,9 @@ function runCapture(prog, cwd, args, env) {
 }
 
 // --- ORDERING: a column has an explicit order, and a ticket can be dropped between two -------
-// tech-lead objection 4 at the ST-065 front door. The web board orders a column by an explicit
+// An objection at the front door. The web board orders a column by an explicit
 // position; this board sorted by ticket number, so the top of a column named the OLDEST item
-// rather than the most important. ST-080.
+// rather than the most important.
 //
 // Every assertion here reads the record back and requires it to have CHANGED. S55: the two
 // controls that shipped broken in the previous session were both asserted by the ABSENCE of an
@@ -554,14 +554,14 @@ function runCapture(prog, cwd, args, env) {
 }
 
 // --- THE MUTATOR LIST IS HAND-KEPT AND LOAD-BEARING, SO IT IS CHECKED AGAINST THE CODE ------
-// qa-tester found rank missing from MUTATORS at the ST-080 gate, so ST-073's durable-store
+// A reviewer found rank missing from MUTATORS at a gate, so the durable-store
 // warning did not fire for the one command that ticket added. That is the THIRD time this list
 // has gone stale: delete and restore were both missing from it one session earlier. A hand-kept
 // list that must track something else gets a CHECK, never a third correction. S39.
 //
 // WHAT THIS CHECK CANNOT SEE, stated because a blind spot nobody has written down reads as
 // completeness. It finds writers by searching each command body for save( or writeJson( BY
-// NAME, so a command that writes through fs directly is invisible to it: qa-tester added a
+// NAME, so a command that writes through fs directly is invisible to it: a reviewer added a
 // guarded fs.writeFileSync to commands.show and this suite stayed GREEN. That is not
 // hypothetical -- board.js already calls fs.mkdirSync inside commands.init today, and init
 // passes only because it ALSO calls writeJson. The body parse has one further hole: a command
@@ -611,7 +611,7 @@ function runCapture(prog, cwd, args, env) {
   ok('--before places the ticket immediately ahead of its target', at2(lb, D) < at2(lb, G) && at2(lb, G) < at2(lb, E));
   ok('and --before writes a position strictly between the target and the one above it',
      eff2(G) > eff2(D) && eff2(G) < eff2(E));
-  // An assertion that could not fail independently was DELETED here (ST-087). It read
+  // An assertion that could not fail independently was DELETED here. It read
   // ok('and --before is not --after', eff2(G) < eff2(E)) and that is a strict conjunct of the
   // assertion directly above, so it went red only when that one did. It added no discrimination
   // and inflated the count by one. An assertion that cannot fail alone is a count, not a check.
@@ -623,7 +623,7 @@ function runCapture(prog, cwd, args, env) {
 }
 
 // --- THE RANKING CONTROLS THAT NOTHING HELD IN PLACE ----------------------------------------
-// qa-tester's round-one minors. Every one of these works today and was held in place by
+// A reviewer's early minors. Every one of these works today and was held in place by
 // nothing, so an ordinary refactor could have removed it with the suite green. That is the S55
 // shape one level down: not a break, an unguarded correctness.
 {
@@ -653,7 +653,7 @@ function runCapture(prog, cwd, args, env) {
 
   // 3. THE FINITE-POSITION GUARD. Two neighbours at the top of the double range make their own
   // midpoint overflow to Infinity, which sorts unpredictably and cannot be diagnosed by reading
-  // the file. qa-tester proved the guard reachable by hand; nothing asserted it. This is last
+  // the file. A reviewer proved the guard reachable by hand; nothing asserted it. This is last
   // because it deliberately poisons two fixtures.
   const P = mk3('GUARD low'), Q = mk3('GUARD high'), R = mk3('GUARD mover');
   const huge = 1.7976931348623157e308;
@@ -670,7 +670,7 @@ function runCapture(prog, cwd, args, env) {
 }
 
 // --- THE READABLE SURFACE: BOARD.md is rendered on every mutation ---------------------------
-// design-lead raised this at the front door as objection 7: the site says UAT is the one point
+// Raised at the front door as an objection: the site says UAT is the one point
 // on the board that waits for a PERSON, and a board readable only through a CLI would make that
 // the one thing they cannot look at. Asserted by reading the rendered file back, never by the
 // command not refusing (S55).
@@ -832,9 +832,211 @@ function runCapture(prog, cwd, args, env) {
      defined.every(c => documented.indexOf(c) > -1));
   ok('and the contract documents no command the program does not have',
      documented.every(c => defined.indexOf(c) > -1));
+
+  // DRIFT NOTICE, not a control, and named as one (S77): this matches SOURCE TEXT, so it proves
+  // the contract MENTIONS the flag and never that either side behaves as described. The
+  // behavioural proof is the ceiling fixture above. What it adds is that the contract cannot
+  // silently keep saying the ceiling has no way past it while the program takes an override,
+  // which is what it said for a whole session in a file that publishes.
+  const progSrc = fs.readFileSync(path.join(__dirname, 'board.js'), 'utf8');
+  ok('drift notice: a program that accepts --override has a contract that mentions it',
+     !/'override'/.test(progSrc) || /--override/.test(specTxt2));
+}
+
+// THE CEILING, AND ITS OVERRIDE. The ceiling had no test of any kind, and no override path
+// either: it was a constant that refused, so the only ways past it were to hand-edit a ticket
+// file or to work off the board. Both are worse than the thing it prevents, because neither
+// leaves a trace. Asserted in BOTH directions, because a gate that refuses everything passes
+// half of this and is useless, and only the second failure mode announces itself.
+{
+  const CH = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-ceiling-'));
+  junk.push(CH);
+  const chRun = a => {
+    const env = Object.assign({}, process.env, { BOARD_NOW: stamp(), BOARD_HOME: CH });
+    try { return { code: 0, out: execFileSync('node', [TOOL].concat(a), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() }; }
+    catch (e) { return { code: e.status, out: ((e.stdout || '') + (e.stderr || '')).toString() }; }
+  };
+  const ledger = path.join(CH, 'overrides.json');
+  chRun(['init', 'ceiling']);
+  for (let i = 1; i <= 4; i++) chRun(['add', 'small ticket ' + i, '--desc', 'fixture', '--size', 'small']);
+  for (let i = 1; i <= 3; i++) chRun(['move', 'CE-00' + i, 'in_progress', '--by', 'studio']);
+
+  ok('three small tickets reach in_progress, so the ceiling test is not passing vacuously',
+     ['CE-001', 'CE-002', 'CE-003'].every(r =>
+       JSON.parse(fs.readFileSync(path.join(CH, 'tickets', r + '.json'), 'utf8')).status === 'in_progress'));
+
+  const blocked = chRun(['move', 'CE-004', 'in_progress', '--by', 'studio']);
+  ok('a fourth small ticket is refused at the ceiling', blocked.code !== 0);
+  ok('and the refusal says how to override it', /--override/.test(blocked.out));
+  ok('a refused move writes no ledger', !fs.existsSync(ledger));
+
+  // A reason nobody had to write is a box ticked, and the ledger would then count clicks.
+  const blank = chRun(['move', 'CE-004', 'in_progress', '--by', 'studio', '--override', '   ']);
+  ok('an override with a blank reason is refused as hard as no override', blank.code !== 0);
+  ok('and still writes no ledger', !fs.existsSync(ledger));
+
+  const forced = chRun(['move', 'CE-004', 'in_progress', '--by', 'studio', '--override', 'shipping a hotfix tonight']);
+  ok('an override carrying a reason lets the move through', forced.code === 0);
+  let moved = {};
+  try { moved = JSON.parse(fs.readFileSync(path.join(CH, 'tickets', 'CE-004.json'), 'utf8')); } catch (e) { moved = {}; }
+  ok('and the ticket actually moved', moved.status === 'in_progress');
+
+  // READ DEFENSIVELY. A bare JSON.parse here crashed the whole suite the moment a mutation stopped
+  // the ledger being written, and a run that dies prints no count, which reads as a pass to
+  // anything grepping the summary. A missing ledger must go RED, not take the run down.
+  let led = [];
+  try { led = JSON.parse(fs.readFileSync(ledger, 'utf8')); } catch (e) { led = []; }
+  ok('the override is written to a ledger beside the tickets, which git commits', led.length === 1);
+  ok('and the entry carries the reason, the ticket and who overrode it',
+     led.length === 1 && led[0].reason === 'shipping a hotfix tonight' && led[0].ref === 'CE-004' &&
+     led[0].by === 'studio' && led[0].gate === 'ceiling');
+  let ce4 = {};
+  try { ce4 = JSON.parse(fs.readFileSync(path.join(CH, 'tickets', 'CE-004.json'), 'utf8')); } catch (e) { ce4 = {}; }
+  ok('and the ticket history records it too, so the ledger is not the only copy',
+     (ce4.history || []).some(h => /CEILING OVERRIDDEN/.test(h.what) && /hotfix tonight/.test(h.what)));
+
+  // Told at the moment of the decision rather than in a report somebody has to go and open.
+  chRun(['add', 'small ticket 5', '--desc', 'fixture', '--size', 'small']);
+  const again = chRun(['move', 'CE-005', 'in_progress', '--by', 'studio']);
+  ok('the next refusal reports how often this gate has been waved through',
+     /Overridden 1 time\(s\) before/.test(again.out) && /hotfix tonight/.test(again.out));
+
+  // THE OVERRIDE MUST DESCRIBE A MOVE THAT ACTUALLY HAPPENED. Recorded where it first was, before
+  // the front door below it, this wrote an entry and THEN refused the move, leaving the ticket in
+  // backlog with an empty history and the ledger counting an attempt that never took effect. A
+  // count that includes attempts cannot carry an escalation rule.
+  chRun(['add', 'large one', '--desc', 'fixture', '--size', 'large']);
+  chRun(['add', 'large two', '--desc', 'fixture', '--size', 'large']);
+  chRun(['add', 'large three, never assessed', '--desc', 'fixture', '--size', 'large']);
+  chRun(['assess', 'CE-006', '--verdict', 'build', '--measure', 'a measure', '--by', 'pm']);
+  chRun(['assess', 'CE-007', '--verdict', 'build', '--measure', 'a measure', '--by', 'pm']);
+  chRun(['move', 'CE-006', 'in_progress', '--by', 'studio']);
+  chRun(['move', 'CE-007', 'in_progress', '--by', 'studio']);
+  const ledgerBefore = fs.readFileSync(ledger, 'utf8');
+  const refusedLater = chRun(['move', 'CE-008', 'in_progress', '--by', 'studio', '--override', 'a stated reason']);
+  ok('an override does not carry a ticket past the front door', refusedLater.code !== 0);
+  ok('and no override is recorded for a move that never happened',
+     fs.readFileSync(ledger, 'utf8') === ledgerBefore);
+  let ce8 = {};
+  try { ce8 = JSON.parse(fs.readFileSync(path.join(CH, 'tickets', 'CE-008.json'), 'utf8')); } catch (e) { ce8 = {}; }
+  ok('and the refused ticket records no override in its history',
+     ce8.status === 'backlog' && !(ce8.history || []).some(h => /CEILING OVERRIDDEN/.test(h.what)));
+
+  // ABSENT and CORRUPT are different answers. Swallowed, a damaged ledger reported no history and
+  // the next override replaced the file, which is the one failure a record of overrides cannot
+  // survive.
+  const goodLedger = fs.readFileSync(ledger, 'utf8');
+  fs.writeFileSync(ledger, '{ this is not json');
+  const corrupt = chRun(['move', 'CE-005', 'in_progress', '--by', 'studio', '--override', 'a reason']);
+  ok('a corrupt override ledger is refused rather than read as empty',
+     corrupt.code !== 0 && /unreadable/.test(corrupt.out));
+  ok('and the corrupt ledger is left on disk rather than overwritten',
+     fs.readFileSync(ledger, 'utf8') === '{ this is not json');
+  const docCorrupt = chRun(['doctor']);
+  ok('doctor sees the override ledger, which was the one file it could not',
+     docCorrupt.code !== 0 && /overrides\.json/.test(docCorrupt.out));
+
+  fs.writeFileSync(ledger, JSON.stringify(
+    [{ at: '2026-01-01 00:00:00', gate: 'ceiling', ref: 'CE-004', by: 'studio', reason: '   ' }], null, 2));
+  const docBlank = chRun(['doctor']);
+  ok('doctor names a ledger entry that records a gate passed for no stated reason',
+     docBlank.code !== 0 && /no gate, ticket or stated reason/.test(docBlank.out));
+  fs.writeFileSync(ledger, goodLedger);
+
+  // The negative control. A gate that fires when it is not at the ceiling would be routed around
+  // within a week, and then it protects nothing.
+  const CL = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-ceiling-ok-'));
+  junk.push(CL);
+  const clRun = a => {
+    const env = Object.assign({}, process.env, { BOARD_NOW: stamp(), BOARD_HOME: CL });
+    try { return { code: 0, out: execFileSync('node', [TOOL].concat(a), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() }; }
+    catch (e) { return { code: e.status, out: ((e.stdout || '') + (e.stderr || '')).toString() }; }
+  };
+  clRun(['init', 'under']);
+  clRun(['add', 'one small ticket', '--desc', 'fixture', '--size', 'small']);
+  const under = clRun(['move', 'UN-001', 'in_progress', '--by', 'studio']);
+  ok('a move below the ceiling needs no override', under.code === 0);
+  ok('and writes no ledger entry, so the ledger counts decisions rather than moves',
+     !fs.existsSync(path.join(CL, 'overrides.json')));
+}
+
+// THE ESCALATION. Once overriding is the habit rather than the exception the gate stops taking
+// overrides at all, which is the half that makes a ledger a control instead of a description.
+// Asserted in BOTH directions: it must harden, and it must NOT harden on entries that have aged
+// out, or the window is decoration and the gate is simply permanent after three uses.
+{
+  const ES = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-escalate-'));
+  junk.push(ES);
+  const esRun = a => {
+    const env = Object.assign({}, process.env, { BOARD_NOW: stamp(), BOARD_HOME: ES });
+    try { return { code: 0, out: execFileSync('node', [TOOL].concat(a), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() }; }
+    catch (e) { return { code: e.status, out: ((e.stdout || '') + (e.stderr || '')).toString() }; }
+  };
+  const esLedger = path.join(ES, 'overrides.json');
+  esRun(['init', 'escalate']);
+  for (let i = 1; i <= 9; i++) esRun(['add', 'small ' + i, '--desc', 'fixture', '--size', 'small']);
+  for (let i = 1; i <= 3; i++) esRun(['move', 'ES-00' + i, 'in_progress', '--by', 'studio']);
+
+  const o1 = esRun(['move', 'ES-004', 'in_progress', '--by', 'studio', '--override', 'first reason']);
+  const o2 = esRun(['move', 'ES-005', 'in_progress', '--by', 'studio', '--override', 'second reason']);
+  const o3 = esRun(['move', 'ES-006', 'in_progress', '--by', 'studio', '--override', 'third reason']);
+  ok('overriding stays possible while it is still the exception',
+     o1.code === 0 && o2.code === 0 && o3.code === 0);
+
+  const hardened = esRun(['move', 'ES-007', 'in_progress', '--by', 'studio', '--override', 'a fourth reason']);
+  ok('once three overrides sit inside the window the gate stops taking them', hardened.code !== 0);
+  // Says what is TRUE rather than what sounds strongest. It read "there is no flag for this",
+  // which is false: anyone who can set the board's clock can clear the window, and anyone who can
+  // do that can edit the ledger anyway. A control that overstates itself is what we keep recording.
+  ok('and the refusal says no override passes it, which is true, rather than that no flag exists',
+     /No --override passes this one/.test(hardened.out));
+  ok('and it names finishing or parking as the way out rather than another override',
+     /Finish or park something/.test(hardened.out));
+  let esLed = [];
+  try { esLed = JSON.parse(fs.readFileSync(esLedger, 'utf8')); } catch (e) { esLed = []; }
+  ok('and a hardened refusal records nothing, because nothing was passed', esLed.length === 3);
+  let es7 = {};
+  try { es7 = JSON.parse(fs.readFileSync(path.join(ES, 'tickets', 'ES-007.json'), 'utf8')); } catch (e) { es7 = {}; }
+  ok('and the ticket it refused did not move', es7.status === 'backlog');
+
+  // THE WINDOW, which is the difference between escalation and a gate that is simply permanent
+  // after its third use. Same three overrides, aged out.
+  fs.writeFileSync(esLedger, JSON.stringify(esLed.map(o =>
+    Object.assign({}, o, { at: '2025-01-01 00:00:00' })), null, 2));
+  const aged = esRun(['move', 'ES-008', 'in_progress', '--by', 'studio', '--override', 'after they aged out']);
+  ok('overrides that have aged out of the window do not harden the gate', aged.code === 0);
+
+  // THE UNPARSEABLE-STAMP BRANCH, which is the one thing stopping a hand-edited ledger from
+  // silently disarming the escalation, and it was asserted by NOTHING: a mutation making an
+  // unreadable stamp count as ancient left the suite green at 160. The safe direction had been
+  // chosen and never held, which is a control resting on nobody having changed their mind.
+  let esLed2 = [];
+  try { esLed2 = JSON.parse(fs.readFileSync(esLedger, 'utf8')); } catch (e) { esLed2 = []; }
+  fs.writeFileSync(esLedger, JSON.stringify(
+    esLed2.map(o => Object.assign({}, o, { at: 'not a timestamp' })), null, 2));
+  const unreadable = esRun(['move', 'ES-009', 'in_progress', '--by', 'studio', '--override', 'stamps unreadable']);
+  ok('a stamp that cannot be read counts as RECENT, so editing the dates cannot disarm the gate',
+     unreadable.code !== 0 && /HARDENED/.test(unreadable.out));
+
+  // And the fault is visible rather than only defended against. doctor validated the gate, the
+  // ticket and the reason, and never the one field the escalation actually reads.
+  const docStamp = esRun(['doctor']);
+  ok('doctor names a ledger entry whose timestamp cannot be read',
+     docStamp.code !== 0 && /timestamp/.test(docStamp.out));
 }
 
 junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 fs.rmSync(SANDBOX, { recursive: true, force: true });
+/* Measured: a fatal guard firing part way through the studio suite reported 0 failed
+   and exit 0, having run 22 of 214, so a count of failures cannot see an assertion that
+   never ran. The total is pinned here, and the number is written down rather than measured
+   from the run it checks, because a self-updating total agrees with any run. S35 is the same
+   rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
+const EXPECTED_ASSERTIONS = 163;
+const ranBefore = pass + fail;
+ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
+  + '. A block was skipped or deleted. Find out which before you change the number.',
+  ranBefore === EXPECTED_ASSERTIONS - 1);
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

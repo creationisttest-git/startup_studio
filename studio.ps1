@@ -271,6 +271,21 @@ function Get-AgentTextOrNull ([string]$Path) {
     try { Get-AgentText $Path } catch { $null }
 }
 
+# Shared governance resolves fragments too. Roles had that mechanism and these files did not, so
+# a rule could be enforced on every dispatched agent in a project and absent from the only
+# documents the session a founder talks to actually loads. The EXPANDED text is what gets written
+# and what gets hashed: hashing the source would compare a marker against the rule it resolves to
+# and report every destination drifted forever.
+function Get-GovernanceText ([string]$Path) {
+    Expand-Fragments (Read-TextUtf8 $Path) ("base\governance\" + (Split-Path $Path -Leaf))
+}
+
+# A writer refuses an unresolvable marker, which is right. A REPORT that throws on one takes the
+# rest of itself down, so the instrument that names this class of breakage is what dies.
+function Get-GovernanceTextOrNull ([string]$Path) {
+    try { Get-GovernanceText $Path } catch { $null }
+}
+
 # Which fragments each role asks for. Used by -Doctor to report a fragment nobody includes,
 # which is a rule that has quietly stopped applying to anyone.
 function Get-FragmentRefs ([string]$Path) {
@@ -516,7 +531,7 @@ function Get-ControlByteHits ([string[]]$Dirs, [string]$Trim) {
 # compose refusal and exited 1. The operator was left with a half-applied sync: the roster every
 # untuned project loads had moved, no project had been composed, and the exit code said the whole
 # command failed. The exit code and the disk disagreed, which is the same shape as every defect
-# that cost a gate round: a signal reporting one state while the artefact holds another.
+# that cost a whole review: a signal reporting one state while the artefact holds another.
 #
 # Validating first costs one pass over sixteen small files and converts a half-applied write into
 # a refusal with nothing written.
@@ -527,11 +542,20 @@ function Assert-BaseComposable {
             [void](Split-Doc $f.FullName -RequireBody)
             [void](Get-AgentText $f.FullName)
         } catch {
-            $bad += ("  " + $f.BaseName + ": " + $_.Exception.Message)
+            $bad += ("  role " + $f.BaseName + ": " + $_.Exception.Message)
         }
     }
+    # Governance resolves markers too, and throws as a role does. It is validated here because
+    # the governance writer resolves INSIDE the per-project loop: a file that composes is written,
+    # a later one that cannot takes the run down, and the first project keeps half an update with
+    # its archive already taken. Without this pass the message below is false.
+    foreach ($g in $SHARED_GOV) {
+        $src = Join-Path $GOV_BASE $g
+        if (-not (Test-Path $src)) { continue }
+        try { [void](Get-GovernanceText $src) } catch { $bad += ("  governance " + $g + ": " + $_.Exception.Message) }
+    }
     if ($bad.Count) {
-        throw ("refused before writing anything. " + $bad.Count + " of the base roles cannot be composed:`r`n" + ($bad -join "`r`n") + "`r`nNothing was installed machine-wide and no project was touched. Fix the base and run again.")
+        throw ("refused before writing anything. " + $bad.Count + " base file(s) cannot be composed:`r`n" + ($bad -join "`r`n") + "`r`nNothing was installed machine-wide and no project was touched. Fix the base and run again.")
     }
 }
 
@@ -666,7 +690,7 @@ function Read-InstallManifest ([string]$Target) {
 # and it does not exist as far as the session is concerned.
 #
 # That shipped for weeks. Thirteen of sixteen roles were silently absent in every project,
-# which is why work ran with no PM, no tech lead and no content writer while the roster
+# which is why work ran with none of those roles filled while the roster
 # looked healthy. The same call also wrote the STUDIO block into project CLAUDE.md files and
 # corrupted them the same way.
 #
@@ -796,10 +820,13 @@ function Sync-Governance ([string]$GovRoot, [string]$Label) {
         $src = Join-Path $GOV_BASE $f
         $dst = Join-Path $GovRoot $f
         if (-not (Test-Path $src)) { continue }
-        $dh = Get-Sha $dst
-        if ($null -eq $dh)                      { if(-not $WhatIf){Copy-Item $src $dst -Force}; $upd+=$f }
-        elseif ($dh -eq (Get-Sha $src))         { $same+=$f }
-        elseif ($Force)                         { if(-not $WhatIf){ Save-Archive $dst "gov-$Label"; Copy-Item $src $dst -Force }; $upd+=$f }
+        # Text hashes both sides, source expanded first: a file hash compares marker with rule.
+        $text = Get-GovernanceText $src
+        $bh = Get-TextSha $text
+        $dh = Get-FileTextSha $dst
+        if ($null -eq $dh)                      { if(-not $WhatIf){Write-Utf8NoBom $dst $text}; $upd+=$f }
+        elseif ($dh -eq $bh)                    { $same+=$f }
+        elseif ($Force)                         { if(-not $WhatIf){ Save-Archive $dst "gov-$Label"; Write-Utf8NoBom $dst $text }; $upd+=$f }
         else                                    { $drift+=$f }
     }
     if ($upd.Count)   { Write-Host "  governance updated: $($upd -join ', ')" -ForegroundColor Green }
@@ -1070,6 +1097,7 @@ function Publish-Public ([string]$RepoUrl, [switch]$DryRun) {
     if ($env:STUDIO_SAFE) {
         throw "publish refused: STUDIO_SAFE is set. Unset it to publish for real."
     }
+    if (-not (Test-CommentShape)) { return $false }
     $stage = Join-Path $StudioRoot '.public'
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
@@ -1259,6 +1287,37 @@ function Invoke-SiteDeploy {
 
 # One action, one note, both repos. Splitting these was how the QA change ended up
 # committed privately and never published, with nothing reporting the gap.
+# A comment in published code says why to a stranger holding only the code. What it must never
+# name, and every definition, is the header of tools\check-comment-shape.js; provenance belongs
+# on the ticket. The count of comment lines breaking the rule is held per file in
+# tools\comment-shape-baseline.json and only moves down. The gate sits here because a release is
+# the one command that is never overruled and the one moment a stranger's copy is made, and it
+# runs before anything is committed or staged. An absent instrument refuses, because a gate that
+# skips what it cannot find has been deleted.
+function Test-CommentShape {
+    if ($script:CommentShapeChecked) { return $true }
+    Write-Host ""
+    Write-Host "COMMENT SHAPE" -ForegroundColor Cyan
+    $tool = Join-Path $StudioRoot 'tools\check-comment-shape.js'
+    if (-not (Test-Path $tool)) {
+        Write-Host "  REFUSED. tools\check-comment-shape.js is missing, so the comment-shape ratchet cannot run. Nothing was written." -ForegroundColor Red
+        return $false
+    }
+    $out = & node $tool --root $StudioRoot --quiet 2>&1 | Out-String
+    $code = $LASTEXITCODE
+    foreach ($l in ($out.TrimEnd() -split "`r?`n")) {
+        if (-not $l) { continue }
+        $colour = if ($l -cmatch '^FAIL') { 'Red' } elseif ($l -cmatch '^(note|n/a)') { 'Yellow' } else { 'DarkGray' }
+        Write-Host ("  " + $l) -ForegroundColor $colour
+    }
+    if ($code -ne 0) {
+        Write-Host "  REFUSED. Say why in the comment instead, or record a deliberate change with --write-baseline, then release again. Nothing was written." -ForegroundColor Red
+        return $false
+    }
+    $script:CommentShapeChecked = $true
+    return $true
+}
+
 function Invoke-Release {
     # The outward-facing writers. STUDIO_SAFE was added after an automated run wrote where
     # it should not have, and these two write to a PUBLIC remote, which is the one write
@@ -1280,6 +1339,8 @@ function Invoke-ReleaseInner ($note) {
     Write-Host ""
     Write-Host "RELEASE  $($note.Date)" -ForegroundColor Cyan
     Write-Host "  $($note.Subject)" -ForegroundColor White
+
+    if (-not (Test-CommentShape)) { return $false }
 
     # 1. the private repo, using the same note
     $dirty = @(git -C $StudioRoot status --porcelain 2>$null | Where-Object { $_ })
@@ -1339,10 +1400,51 @@ $($files.Count) file(s) changed: $(($files | Select-Object -First 10) -join ', '
 # of the first ten project sessions, it must say nothing on the healthy ones and name a real
 # fixable problem on at least one. Never firing means it is decoration and gets deleted; firing
 # on healthy projects means it is noise and gets tightened.
+# The four ways an agent file can be composed, current, and still absent from the session. Factored
+# out because the health check and the session-start brief have to answer this the SAME way: two
+# copies of a rule drift, and the failure that made this check necessary was thirteen roles being
+# unloadable for weeks while everything else reported the project healthy.
+function Get-AgentLoadFault ([string]$Path) {
+    $b = [System.IO.File]::ReadAllBytes($Path) | Select-Object -First 3
+    if ($b.Count -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF) { return 'byte order mark' }
+    $ls = (Read-TextUtf8 $Path) -split "`r?`n"
+    if ($ls.Count -lt 2 -or $ls[0].Trim() -ne '---') { return 'no frontmatter block' }
+    for ($n = 1; $n -lt $ls.Count; $n++) {
+        if ($ls[$n].Trim() -eq '---') { return $null }
+        if ($ls[$n] -match '(?i)\{\{\s*include') { return 'unresolved fragment marker in the header' }
+    }
+    return 'frontmatter never closes'
+}
+
 function Get-ProjectBrief ([string]$ProjectPath) {
     $findings = @()
     if (-not $ProjectPath -or -not (Test-Path $ProjectPath)) { return $findings }
     $name = Split-Path $ProjectPath -Leaf
+
+    # THE PRECONDITION UNDER EVERY OTHER RULE, and the one this studio learned at the highest
+    # price: thirteen of sixteen roles were composed, current and absent from the session for
+    # weeks while every check reported the project healthy. A session that believes it is running
+    # the team while running alone cannot usefully be told anything about process, so this is
+    # reported where the session actually reads rather than in a health check it never runs.
+    # LOADABLE and never LOADED (S70): presence, parseability and currency are provable from a
+    # filesystem, and only a dispatch round-trip proves the rest. Say the weaker thing.
+    $adir = Join-Path $ProjectPath $AGENT_DIR
+    if (Test-Path $adir) {
+        $roles = @(Get-ChildItem $adir -Filter *.md -File -ErrorAction SilentlyContinue)
+        $bad = @()
+        foreach ($f in $roles) {
+            $fault = Get-AgentLoadFault $f.FullName
+            if ($fault) { $bad += ($f.BaseName + ' (' + $fault + ')') }
+        }
+        if ($bad.Count) {
+            $findings += @{
+                Rule = 'a role you would dispatch cannot load'
+                What = ("" + $bad.Count + " of " + $roles.Count + " composed roles will not parse: " +
+                        (($bad | Select-Object -First 3) -join ', ') + ".")
+                Fix  = 'Run studio.ps1 -Doctor for the cause per file, then -Sync -Force. Until then this session is running alone.'
+            }
+        }
+    }
 
     # An import that resolves to nothing loads nothing, silently, and every check upstream of this
     # one reported the project healthy while it happened. Cheapest and highest-value check here.
@@ -1426,21 +1528,27 @@ function Get-ProjectBrief ([string]$ProjectPath) {
 
 # --------------------------------------------------------------- hook observability
 
-# WARM_START has carried this line for weeks: "The autoload hook has never been observed firing.
-# It is registered and exits silently when nothing has changed, which is indistinguishable from
-# not running at all." That is a check nobody has watched fail, one level up: the MECHANISM every
-# other guard here depends on has never been proved to run.
+# The hooks are the only control here that runs without anyone asking, and for months nothing
+# proved they ran. The state document carried "the autoload hook has never been observed firing"
+# until 2026-08-30, when the log was finally opened and found to hold 48 entries going back to
+# 08-22. That false claim had already been used as an argument in a live design discussion.
 #
-# So every hook entry point records that it fired. One line, appended, never read by the tool
-# itself. It is the only way to answer "did it run" without changing what the hook does, and it is
-# what makes the measure on the slip check countable rather than a matter of impression.
+# So every entry point records that it fired, WHERE, and how it ended, and the health check reads
+# it back: a log nothing reads cannot be told apart from one that was never written.
 #
-# Deliberately in the studio root and gitignored. It is machine-local evidence, not project state,
-# and it must never become a file anyone feels obliged to tidy.
-function Write-HookLog ([string]$Event, [string]$Detail) {
+# Deliberately in the studio root and gitignored. It is machine-local evidence, not project state.
+# The COMMITTED record of a gate being overridden is a different artefact and lives with the board.
+function Write-HookLog ([string]$Event, [string]$Detail, [string]$Outcome = 'ok') {
     try {
-        $line = ((Get-Date).ToString('s') + "  " + $Event + "  " + $Detail)
-        Add-Content -Path (Join-Path $StudioRoot '.studio-hooks.log') -Value $line -Encoding UTF8 -ErrorAction SilentlyContinue
+        # WHERE, and HOW IT ENDED, not just THAT it ran. The detail was blank on every one of the
+        # first forty-eight lines because the registration passes no path, so the only instrument
+        # proving these hooks fire could not say which project fired them or whether the run
+        # succeeded. Appended without a byte order mark for the same reason every other writer
+        # here is: the mark in front of a delimiter is what once unregistered thirteen roles.
+        if (-not $Detail) { $Detail = (Get-Location).Path }
+        if (-not $Outcome) { $Outcome = 'ok' }
+        $line = ((Get-Date).ToString('s') + "  " + $Event + "  " + $Outcome + "  " + $Detail + "`r`n")
+        [IO.File]::AppendAllText((Join-Path $StudioRoot '.studio-hooks.log'), $line, (New-Object System.Text.UTF8Encoding $false))
     } catch { }
 }
 
@@ -1459,7 +1567,7 @@ function Write-HookLog ([string]$Event, [string]$Detail) {
 # Verbatim is deliberate. This does not rewrite the prompt or correct it in passing: the founder
 # should see what the record actually says. A wind-down is what updates that record, written from
 # a reading of the whole session, and a session start that quietly amends it has done no work yet.
-# THE AUDIENCE SPLIT, ruled by the CEO on ST-069. This used to be Get-ResumePrompt, and the hook
+# THE AUDIENCE SPLIT, ruled by the CEO. This used to be Get-ResumePrompt, and the hook
 # read the whole resume prompt out loud at every session start. Measured 2026-08-30 that was 74
 # lines and 754 words; measured 2026-08-31, after ONE wind-down, it was 96 lines and 977 words. It
 # grew 22 lines in a day, because every wind-down has a reason to add to the handover and none has
@@ -1493,7 +1601,7 @@ function Get-FounderBrief ([string]$ProjectPath) {
     # healthy silent one, which is the same shape as the studio's own rule about empty test output.
     # ANY heading level, not '##' alone. The checker blessed a '### Founder brief' that this
     # function could not read, so a project could pass its wind-down and still emit nothing at
-    # session start. Two instruments disagreeing about the same document is the ST-055 shape:
+    # session start. Two instruments disagreeing about the same document is a shape this studio has seen before:
     # a claim true where it was measured and false where the reader lives.
     $lines = $text -split "`r?`n"
     $start = -1
@@ -1507,7 +1615,7 @@ function Get-FounderBrief ([string]$ProjectPath) {
     # end of file, so a "## Founder brief" heading followed by PROSE picks up the next section's
     # fence, which is the resume prompt, and the hook hands over 42 lines of session manual under
     # the label FOUNDER BRIEF. That is the 96-line defect this ticket exists to fix, returning
-    # through its own new code path with a new name. Found by qa-tester at the ST-069 gate, and it
+    # through its own new code path with a new name. Found at the gate, and it
     # was reachable precisely because six other projects are about to be told to add this section.
     #
     # A HEADING IS NOT THE ONLY THING THAT ENDS A SECTION, and the first fix here assumed it was.
@@ -1557,7 +1665,7 @@ function Get-FounderBrief ([string]$ProjectPath) {
 # reads it, so nothing unproven ships to the export while the mechanism is still being tried.
 function Invoke-Recall {
     $doc = Join-Path $GOV_BASE 'SESSION_RECALL.md'
-    Write-HookLog 'recall' $(if (Test-Path $doc) { 'ok' } else { 'no governance' })
+    Write-HookLog 'recall' (Get-Location).Path $(if (Test-Path $doc) { 'ok' } else { 'no-governance' })
     if (-not (Test-Path $doc)) {
         # The public-export case, and it says so rather than printing nothing. A user whose install
         # carries no governance would otherwise see a hook that runs and does nothing, which is the
@@ -1653,7 +1761,7 @@ function Invoke-Autoload ([string]$Path) {
 # knows the roster is generated and where the real source is. Idempotent: the markers let
 # it be rewritten in place rather than accumulating copies.
 function Connect-Project ([string]$ProjectPath) {
-    # Reported as a residual on ST-007 and again by the reviewer as a published false claim:
+    # Reported as a residual and again as a published false claim:
     # -Connect -Project aimed at the studio resolved and wrote a self-referential pointer block
     # into the studio's own CLAUDE.md, instructing the reader to run -Compose on it, which
     # refuses. Guidance that contradicts the tool is worse than none.
@@ -1731,7 +1839,7 @@ function Get-SessionFolders {
 # NOTHING MEASURED THIS. Two projects were already over the limit when it was first checked, and
 # the second one had been over for an unknown length of time with nobody aware, because the only
 # thing that reports it is Claude Code itself and only to a session that happens to open there.
-# That is the ST-016 shape once more: the thing that knows is not the thing that could act.
+# That is the same shape once more: the thing that knows is not the thing that could act.
 #
 # It is the studio's problem rather than each project's. The scaffold creates these documents, the
 # wind-down skill appends to them every session, and the append-only rule is ours, so every
@@ -1887,33 +1995,12 @@ function Show-Status ([switch]$Fix) {
     # the studio was previously the one place this check could not see.
     foreach ($dir in @($g) + @((Join-Path $self.Path $AGENT_DIR)) + @(Find-Projects | ForEach-Object { Join-Path $_ $AGENT_DIR })) {
         if (-not (Test-Path $dir)) { continue }
+        # Actually PARSES, through the same helper the session-start brief uses. This once reported
+        # "every composed agent opens with parseable frontmatter" while looking at three bytes, so
+        # a header that never closed was called parseable by a check that had not parsed anything.
         foreach ($f in (Get-ChildItem $dir -Filter *.md -File -ErrorAction SilentlyContinue)) {
-            $b = [System.IO.File]::ReadAllBytes($f.FullName) | Select-Object -First 3
-            if ($b.Count -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF) {
-                $unloadable += "$($f.BaseName)  ($dir)  byte order mark"
-                continue
-            }
-            # Actually PARSE it. This check reported "every composed agent opens with parseable
-            # frontmatter" while only ever looking at three bytes, so an agent whose header never
-            # closed, or that carried an unresolved marker inside the header, was called parseable
-            # by a check that had not parsed anything. A claim from a check that never performed
-            # the thing it claims is the defect this whole section exists to catch.
-            $txt = Read-TextUtf8 $f.FullName
-            $ls  = $txt -split "`r?`n"
-            if ($ls.Count -lt 2 -or $ls[0].Trim() -ne '---') {
-                $unloadable += "$($f.BaseName)  ($dir)  no frontmatter block"
-                continue
-            }
-            $closed = $false
-            for ($n = 1; $n -lt $ls.Count; $n++) {
-                if ($ls[$n].Trim() -eq '---') { $closed = $true; break }
-                if ($ls[$n] -match '(?i)\{\{\s*include') {
-                    $unloadable += "$($f.BaseName)  ($dir)  unresolved fragment marker in the header"
-                    $closed = $true
-                    break
-                }
-            }
-            if (-not $closed) { $unloadable += "$($f.BaseName)  ($dir)  frontmatter never closes" }
+            $fault = Get-AgentLoadFault $f.FullName
+            if ($fault) { $unloadable += "$($f.BaseName)  ($dir)  $fault" }
         }
     }
     if ($unloadable.Count) {
@@ -1960,17 +2047,25 @@ function Show-Status ([switch]$Fix) {
         $used  = @{}
         $broken = @()
         $malformed = @()
-        foreach ($a in $agents) {
-            foreach ($r in (Get-FragmentRefs $a.FullName)) {
+        # Shared governance asks for fragments too. Counting only roles made this report tell a
+        # reader to delete a rule every project session depends on, and acting on that sentence
+        # would make the next sync refuse and distribute nothing at all.
+        $fragUsers = @($agents | ForEach-Object { [pscustomobject]@{ Name = $_.BaseName; Path = $_.FullName } })
+        foreach ($g in $SHARED_GOV) {
+            $gp = Join-Path $GOV_BASE $g
+            if (Test-Path $gp) { $fragUsers += [pscustomobject]@{ Name = "governance:$g"; Path = $gp } }
+        }
+        foreach ($a in $fragUsers) {
+            foreach ($r in (Get-FragmentRefs $a.Path)) {
                 if (-not $used.ContainsKey($r)) { $used[$r] = @() }
-                $used[$r] += $a.BaseName
+                $used[$r] += $a.Name
                 # A name the EXPANDER would reject is a typo, not a reference to a fragment that
                 # is missing. Reported separately because the two read completely differently to
                 # someone fixing it, and because the fragment the author MEANT then appears in the
                 # list above as UNUSED, which says "this rule applies to nobody" when the truth is
                 # a stray '.md'.
-                if ($r -notmatch '^[A-Za-z0-9_-]+$') { $malformed += "$($a.BaseName) -> $r" }
-                elseif (-not (Test-Path (Get-FragmentPath $r))) { $broken += "$($a.BaseName) -> $r" }
+                if ($r -notmatch '^[A-Za-z0-9_-]+$') { $malformed += "$($a.Name) -> $r" }
+                elseif (-not (Test-Path (Get-FragmentPath $r))) { $broken += "$($a.Name) -> $r" }
             }
         }
         if (-not $frags.Count) {
@@ -1983,13 +2078,13 @@ function Show-Status ([switch]$Fix) {
             # be true and was reported without comment.
             $c = if ($used.ContainsKey($n)) { @($used[$n] | Sort-Object -Unique).Count } else { 0 }
             if ($c -eq 0) {
-                Write-Host ("  UNUSED   {0}   no role includes it, so this rule applies to nobody" -f $n) -ForegroundColor Yellow
+                Write-Host ("  UNUSED   {0}   nothing includes it, so this rule applies to nobody" -f $n) -ForegroundColor Yellow
             } else {
-                Write-Host ("  ok       {0}   included by {1} of {2} roles" -f $n, $c, $agents.Count) -ForegroundColor Gray
+                Write-Host ("  ok       {0}   included by {1} of {2} role(s) and shared document(s)" -f $n, $c, $fragUsers.Count) -ForegroundColor Gray
             }
         }
         foreach ($b in ($broken | Sort-Object -Unique)) {
-            Write-Host ("  MISSING  {0}   the role asks for a fragment that is not there; -Sync will refuse" -f $b) -ForegroundColor Red
+            Write-Host ("  MISSING  {0}   asks for a fragment that is not there; -Sync will refuse" -f $b) -ForegroundColor Red
         }
         foreach ($m in ($malformed | Sort-Object -Unique)) {
             Write-Host ("  MALFORMED {0}   not a fragment name. Letters, digits, hyphen, underscore, no extension." -f $m) -ForegroundColor Red
@@ -2047,9 +2142,55 @@ function Show-Status ([switch]$Fix) {
             $gd = @()
             foreach ($f in $SHARED_GOV) {
                 $src = Join-Path $GOV_BASE $f; $dst = Join-Path $govRoot $f
-                if ((Test-Path $src) -and (Get-Sha $src) -ne (Get-Sha $dst)) { $gd += $f }
+                # Expanded on both sides, as the sync writes it. An unresolvable marker is named
+                # here rather than thrown, so the rest of the report still reaches the reader.
+                if (Test-Path $src) {
+                    $gt = Get-GovernanceTextOrNull $src
+                    if ($null -eq $gt)                              { $gd += ($f + ' (base copy asks for a fragment that cannot be resolved, so -Sync would refuse)') }
+                    elseif ((Get-TextSha $gt) -ne (Get-FileTextSha $dst)) { $gd += $f }
+                }
             }
             if ($gd.Count) { Write-Host ("      governance drifted: {0}" -f ($gd -join ', ')) -ForegroundColor Yellow }
+        }
+    }
+
+    # The session-level hooks are the studio's only control that runs without anyone asking, and
+    # for months nothing anywhere read the log proving they fire: a search of the whole tree
+    # returned only the line that writes it. An instrument no check reads cannot be told apart
+    # from one that was never built, which is a proof file no run executes wearing another hat.
+    Write-Host ""
+    Write-Host "HOOKS" -ForegroundColor Cyan
+    $hookLog = Join-Path $StudioRoot '.studio-hooks.log'
+    if (-not (Test-Path $hookLog)) {
+        Write-Host "  no log yet, so nothing here has been observed running." -ForegroundColor Yellow
+        Write-Host "  Registration is by hand in ~\.claude\settings.json and nothing installs it." -ForegroundColor DarkGray
+    } else {
+        $hookLines = @(Get-Content $hookLog -ErrorAction SilentlyContinue | Where-Object { $_.Trim() })
+        $blank = 0
+        $latest = @{}
+        $counts = @{}
+        foreach ($hl in $hookLines) {
+            # Two formats on purpose. Lines written before the place and the outcome existed carry
+            # neither, and they are COUNTED rather than dropped: a reader seeing 48 lines that name
+            # nothing learns exactly why this section had to be built.
+            $parts = @($hl -split '\s{2,}')
+            if ($parts.Count -lt 4) { $blank++; continue }
+            $latest[($parts[1] + '  ' + $parts[3])] = $parts[0]
+            $key = $parts[1] + ' ' + $parts[2]
+            if (-not $counts.ContainsKey($key)) { $counts[$key] = 0 }
+            $counts[$key]++
+        }
+        if (-not $hookLines.Count) { Write-Host "  the log exists and is empty." -ForegroundColor Yellow }
+        foreach ($k in ($latest.Keys | Sort-Object)) {
+            Write-Host ("  last     {0}   {1}" -f $k, $latest[$k]) -ForegroundColor Gray
+        }
+        foreach ($k in ($counts.Keys | Sort-Object)) {
+            $col = 'Yellow'
+            if ($k -match ' ok$') { $col = 'Gray' }
+            Write-Host ("  count    {0}   {1}" -f $k, $counts[$k]) -ForegroundColor $col
+        }
+        if ($blank) {
+            Write-Host ("  {0} older line(s) name no place and no outcome, so they prove a hook ran and nothing more." -f $blank) -ForegroundColor DarkGray
         }
     }
 
@@ -2282,14 +2423,18 @@ if ($Autoload) {
     # unattended, so a swallowed throw means the roster is not rebuilt, nothing is printed, and
     # the first symptom is a role behaving as though a rule does not exist. Measured on one tree
     # with a fragment missing: -Compose exited 1 and named the fragment, -Autoload exited 0 and
-    # printed nothing at all. WARM_START already records that this hook has never been observed
-    # firing, which is the same blindness from the other side. Silent success and silent failure
+    # printed nothing at all. The log this writes is the only evidence these hooks run at all,
+    # which is the same blindness from the other side. Silent success and silent failure
     # were indistinguishable, and now only one of them is silent.
     #
     # It still returns 0. A SessionStart hook that fails the session over a stale roster trades a
     # missing rule for no session, which is the worse of the two.
     $lines = @()
-    Write-HookLog 'autoload' $Path
+    # Resolved before anything can throw and written AFTER, so the line records where the hook ran
+    # and how it ended rather than only that it ran at all.
+    $hookFrom = $Path
+    if (-not $hookFrom) { $hookFrom = (Get-Location).Path }
+    $hookOutcome = 'ok'
     try {
         $rebuilt = Invoke-Autoload $Path
         if ($rebuilt) { $lines += $rebuilt }
@@ -2305,8 +2450,7 @@ if ($Autoload) {
         # in an argument position: the file parsed cleanly and threw "the term 'if' is not
         # recognized" at runtime, on every session start, and the bare catch below hid it. Parsing
         # and running are separate questions and only the first was being asked.
-        $from = $Path
-        if (-not $from) { $from = (Get-Location).Path }
+        $from = $hookFrom
         try {
             $proj = Resolve-OwningProject $from
             if ($proj) {
@@ -2330,6 +2474,12 @@ if ($Autoload) {
             # NOT a bare catch. This swallowed a live defect for the whole of its first test run,
             # which is the failure a reviewer flagged in the test harness the same day. The brief
             # must never fail the session, and it must never fail SILENTLY either.
+            #
+            # Its own outcome, not the rebuild's. Left at ok, a session that got no brief logged
+            # identically to a healthy one, so the log said the hook worked on exactly the runs
+            # where half of it did not. Named apart from a failed rebuild because the two send a
+            # reader to different places.
+            $hookOutcome = 'brief-failed'
             $lines += ("Studio could not read the session brief: " + $_.Exception.Message)
         }
     }
@@ -2337,9 +2487,11 @@ if ($Autoload) {
         # The SAME shape the success path returns, because the consumer parses this as JSON and a
         # Write-Host line is a different channel it does not read. suppressOutput is deliberately
         # false: a rebuild that quietly did not happen is exactly what must not be suppressed.
+        $hookOutcome = 'failed'
         $lines += ("Studio could not rebuild the roster: " + $_.Exception.Message +
                    " Agents in this session may be missing a rule. Run studio.ps1 -Doctor.")
     }
+    Write-HookLog 'autoload' $hookFrom $hookOutcome
     # ONE write, or nothing. Two ConvertTo-Json documents on the same stream is not valid JSON and
     # the consumer reads whichever it can, which is a worse failure than saying nothing.
     if ($lines.Count) {
@@ -2453,6 +2605,9 @@ if ($Compose) {
 
 if ($Governance) {
     Write-Host ""; Write-Host "GOVERNANCE" -ForegroundColor Cyan
+    # Before the first writer, as on every path that distributes. This one had none, so a marker
+    # that cannot resolve threw part-way down the project list with no record of how far it got.
+    Assert-BaseComposable
     foreach ($p in Find-Projects) {
         $gr = Get-GovRoot $p
         if ($gr) { Write-Host "  $($gr.Replace("$ProjectsRoot\",''))"; Sync-Governance $gr (Split-Path $gr -Leaf) }
