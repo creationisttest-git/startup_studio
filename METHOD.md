@@ -152,8 +152,8 @@ founder does not personally hold is not a gate.
 **Phase 2. Build, in parallel.** Product and go-to-market at once, not one after the other, so
 the launch is ready when the feature is rather than starting when the feature lands.
 
-**Phase 3. Review.** The build is checked against the approved design, then code review,
-security review and a real browser. Any critical finding bounces the work back. The reviewer
+**Phase 3. Review.** Before anything ships, the build is checked against the approved design,
+then code review, security review and a real browser. Any critical finding bounces the work back. The reviewer
 never wrote the thing they are reviewing.
 
 **Phase 4. Ship.** The work, the launch, the operational plan and the open questions are

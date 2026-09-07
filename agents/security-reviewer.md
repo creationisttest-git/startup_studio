@@ -1,6 +1,6 @@
 ---
 name: security-reviewer
-description: Security reviewer. Audits the permission model, authorization, authentication, secrets, and attack surface. Reviews and reports by severity; does not write feature code. Invoke by name after a build and before it is called done.
+description: Security reviewer. Audits the permission model, authorization, authentication, secrets, and attack surface. Reviews and reports by severity; does not write feature code. Run before every deploy. Invoke by name.
 tools: Read, Grep, Glob, Bash, Write
 model: inherit
 ---

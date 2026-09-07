@@ -59,6 +59,7 @@ function greenTree (code) {
   stub(root, 'base/board/board.js', code === undefined ? 0 : code);
   stub(root, 'tools/check-comment-shape.js', 0);
   stub(root, 'tools/check-roster-count.js', 0);
+  stub(root, 'tools/check-hook-registration.js', 0);
   stub(root, 'tools/build-releases.js', 0);
   return root;
 }
@@ -75,15 +76,17 @@ function ledgerOf (root) {
   const led = ledgerOf(root);
   ok('a clean run exits 0', r.code === 0);
   ok('every check in the set gets a row', led.checks['board-audit'] && led.checks['board-doctor'] &&
-    led.checks['comment-shape'] && led.checks['roster-count']);
+    led.checks['comment-shape'] && led.checks['roster-count'] && led.checks['hook-wiring']);
   ok('the row carries the instrument own exit code and not a verdict about it',
     led.checks['board-audit'].exit === 0 && led.checks['board-audit'].status === 'ok');
   ok('the row carries the command line it was actually run as, so a reader can run it again',
     /board\.js audit$/.test(led.checks['board-audit'].cmd || ''));
   ok('an instrument this install does not carry is recorded absent and never ok',
     led.checks['health-report'].status === 'absent');
+  // Counted from the ledger, never typed: a literal goes stale the next time a check joins the set.
+  const absent = Object.keys(led.checks).filter(k => led.checks[k].status === 'absent').length;
   ok('and the summary says how many were absent rather than reporting a clean run',
-    /1 absent/.test(r.out));
+    absent > 0 && new RegExp('\\b' + absent + ' absent\\b').test(r.out));
 }
 
 /* Mutation: treat a non-zero exit as ok and both of these go red. */
@@ -178,11 +181,28 @@ function ledgerOf (root) {
     const a = T.treeState(root, rel);
     put(root, rel, '{"version":1,"checks":{}}');
     const b = T.treeState(root, rel);
-    ok('inside a git repository the fingerprint is taken from the commit', a.by === 'git' && a.head);
+    ok('inside a git repository the git path runs, and the commit is recorded beside the '
+     + 'fingerprint rather than inside it', a.by === 'git' && a.head);
     ok('and it still ignores the record file', T.treeKey(a) === T.treeKey(b));
     put(root, 'other.txt', 'x');
     ok('while any other untracked file does move it',
       T.treeKey(T.treeState(root, rel)) !== T.treeKey(b));
+
+    /* -Release commits and pushes the work BEFORE it publishes, and the publish reads this
+       record back. While rev-parse HEAD was inside the hash, committing invalidated the record
+       one step before the only thing that reads it, so every release refused with every row NOT
+       PROVED and nothing shipped for five sittings. Mutation: put the commit back into the hash
+       and the first of these two goes red while the second stays green. */
+    put(root, 'shipped.txt', 'work');
+    const beforeCommit = T.treeKey(T.treeState(root, rel));
+    spawnSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'add', '-A'], { cwd: root });
+    spawnSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'release'], { cwd: root });
+    ok('COMMITTING THE TREE DOES NOT MOVE THE FINGERPRINT, because the content is what was '
+     + 'measured and committing does not change the content',
+      T.treeKey(T.treeState(root, rel)) === beforeCommit);
+    put(root, 'shipped.txt', 'work and one byte more');
+    ok('and one byte of that same file still moves it, so it is content and not a constant',
+      T.treeKey(T.treeState(root, rel)) !== beforeCommit);
   }
 }
 
@@ -331,7 +351,86 @@ function ledgerOf (root) {
    pinned here and the number is written down rather than measured from the run it checks,
    because a self-updating total agrees with any run. Mutation: delete an assertion above and
    this goes red alone. */
-const EXPECTED_ASSERTIONS = 55;
+/* An instrument that has something to say and nothing to refuse. Reporting that as a pass writes
+   it into the record and shows it to nobody, because this runner captures each instrument's
+   output rather than letting it through, and prints it only for a row that failed. Mutation: drop
+   the advisory list from the hook-wiring definition and the first two go red; drop the tail from
+   the advisory reason and the third does. */
+{
+  const root = greenTree();
+  put(root, 'tools/check-hook-registration.js',
+      'process.stdout.write("note  two hooks of ours are registered nowhere\\n");\n' +
+      'process.exit(3);\n');
+  const r = run(['--root', root, '--set', 'session-start']);
+  ok('AN INSTRUMENT WITH A NOTICE AND NO REFUSAL IS REPORTED AS ADVISORY, not as a pass',
+    /ADVISORY\s+hook-wiring/.test(r.out));
+  ok('and it does not refuse, so a notice can never lock anybody out',
+    r.code === 0 && /0 failed/.test(r.out));
+  ok('AND THE ROW CARRIES WHAT THE INSTRUMENT ACTUALLY SAID. A runner that swallows the message '
+   + 'and prints only its own word for it leaves the reader knowing something is advisory and not '
+   + 'what', /registered nowhere/.test(r.out));
+}
+
+/* The gate side of the same row, which nothing bound. Recording a result the gate does not
+   recognise is worse than recording a failure: the advisory row fell into the catch-all for a
+   record edited by hand, so one hook not registered refused a RELEASE and blamed a file nobody
+   had touched. Mutation: delete the advisory branch in doGate and all three go red. */
+{
+  const root = greenTree();
+  put(root, 'tools/check-hook-registration.js',
+      'process.stdout.write("note  two hooks of ours are registered nowhere\\n");\n' +
+      'process.exit(3);\n');
+  run(['--root', root, '--set', 'session-start']);
+  const g = run(['--root', root, '--gate', 'session-start']);
+  ok('AN ADVISORY ROW DOES NOT REFUSE THE GATE. This check is in the release set, so refusing on '
+   + 'one would mean a single unregistered hook stopped a release', g.code === 0);
+  ok('and it is not reported as a record that was edited by hand, which sends the reader to the '
+   + 'wrong file entirely', !/edited by hand/.test(g.out));
+  ok('and it is COUNTED as advisory in the summary and named with what it said, so it is not '
+   + 'silently taken for a pass. The count is asserted as well as the listing, because the listing '
+   + 'is kept alive by any absent row and stayed green while the counter was gone',
+    /1 advisory/.test(g.out) && /ADVISORY\s+hook-wiring/.test(g.out) &&
+    /registered nowhere/.test(g.out));
+}
+
+/* A row gets ONE verdict. The listing used to work the answer out a second time, so a row refused
+   as recorded against a different tree was labelled advisory in the same output, leaving a reader
+   two verdicts and no way to tell which the gate acted on. Mutation: list by re-deriving the
+   status instead of from what the loop counted, and this goes red. */
+{
+  const root = greenTree();
+  put(root, 'tools/check-hook-registration.js',
+      'process.stdout.write("note  two hooks of ours are registered nowhere\\n");\n' +
+      'process.exit(3);\n');
+  run(['--root', root, '--set', 'session-start']);
+  const led = ledgerOf(root);
+  led.checks['hook-wiring'].tree = 'git:deadbeefdeadbeef';
+  put(root, '.board/checks.json', JSON.stringify(led, null, 2) + '\n');
+  const g = run(['--root', root, '--gate', 'session-start']);
+  ok('A ROW REFUSED AS STALE IS NOT ALSO LISTED AS ADVISORY. One row, one verdict: the refusal is '
+   + 'what the gate acted on and a second label beside it is not a detail, it is a contradiction',
+    /recorded against a different tree/.test(g.out) && !/ADVISORY\s+hook-wiring/.test(g.out));
+}
+
+/* The word alone must not be a way through. A status is only honoured when the definition says
+   that exit code is advisory for that check, because a record that can be loosened by hand is not
+   a record, and this one is read by every gate rather than by one check. Mutation: drop the
+   advisory list test in doGate and both go red. */
+{
+  const root = greenTree();
+  run(['--root', root, '--set', 'session-start']);
+  const led = ledgerOf(root);
+  led.checks['comment-shape'].status = 'advisory';
+  led.checks['comment-shape'].exit = 1;
+  put(root, '.board/checks.json', JSON.stringify(led, null, 2) + '\n');
+  const g = run(['--root', root, '--gate', 'session-start']);
+  ok('A CHECK WITH NO ADVISORY RESULT OF ITS OWN CANNOT BE MADE ADVISORY BY WRITING THE WORD INTO '
+   + 'THE RECORD. It carried a real refusal and the gate would have waved it through', g.code === 1);
+  ok('and it is reported as a record that does not hold up rather than as an advisory result',
+    /NOT PROVED\s+comment-shape/.test(g.out) && !/ADVISORY\s+comment-shape/.test(g.out));
+}
+
+const EXPECTED_ASSERTIONS = 66;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

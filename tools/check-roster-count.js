@@ -33,6 +33,15 @@
  * documents and the decision and session archives are excluded for the same reason: they are
  * a dated record of what was true, not a claim being made to a reader today.
  *
+ * AND THAT EXCLUSION IS BY SHAPE AND NOT ONLY BY NAME, WHICH IT WAS NOT FOR ONE DAY. The list of
+ * names could only ever hold archives that already existed. WARM_START-ARCHIVE.md was created by
+ * a wind-down commit, carried six historical claims about a sixteen-role roster into a file
+ * nobody had listed, and turned this check red at the next session start on a roster that had not
+ * changed. The wind-down had run its checks BEFORE that commit, which is the only order available
+ * to it, so nothing could have caught it. Any file whose name ends -ARCHIVE is a dated record by
+ * construction, so it is excluded by that shape, and the named entries stay for the files that
+ * are not archives. The shape is what covers the archive nobody has created yet. ST-168.
+ *
  *   node tools/check-roster-count.js                     check every surface
  *   node tools/check-roster-count.js --report            every claim found, with file and line
  *   node tools/check-roster-count.js --write-baseline    record the exemptions as they stand
@@ -95,6 +104,12 @@ const NOT_A_CLAIM_TO_A_READER = new Set([
   'SESSION-LOG-ARCHIVE.md', 'REPOS.md', 'LICENCE-NOTES.md', 'CLAUDE.md'
 ])
 
+// A dated record rather than a claim to a reader today, asked by SHAPE as well as by name. See
+// the header for why the name list alone could never have been enough.
+function datedRecord (rel) {
+  return NOT_A_CLAIM_TO_A_READER.has(rel) || /-ARCHIVE\.md$/i.test(rel)
+}
+
 function say (quiet, line) { if (!quiet) process.stdout.write(line + '\n') }
 
 function flagOf (argv, name, fallback) {
@@ -142,7 +157,7 @@ function collect (root) {
         if (!e.isFile()) continue
         if (!spec.ext.some(x => e.name.toLowerCase().endsWith(x))) continue
         const rel = path.relative(root, abs).split(path.sep).join('/')
-        if (NOT_A_CLAIM_TO_A_READER.has(rel) && !EXPECT_ONLY.has(rel)) continue
+        if (datedRecord(rel) && !EXPECT_ONLY.has(rel)) continue
         if (files.indexOf(rel) === -1) files.push(rel)
       }
     }

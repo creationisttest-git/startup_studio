@@ -108,6 +108,22 @@ function check (root, extra) {
   ok('and the summary says how many claims were checked', /3 role|claim/.test(r.out));
 }
 
+/* An archive is a dated record, and the exclusion is by SHAPE because a list of names can only
+   ever hold the archives that already exist. Mutation: drop the -ARCHIVE test and the first of
+   these goes red; make it exclude every .md and the second does. */
+{
+  const root = roster(fixture(), 3);
+  put(root, 'SOMETHING-ARCHIVE.md', 'in 2026 there were nine roles, and that was true then\n');
+  baseline(root, { roster: 3, exempt: {} });
+  ok('a stale claim inside an archive nobody added to the list is not a claim to a reader today',
+    check(root).code === 0);
+  put(root, 'notes.md', 'in 2026 there were nine roles, and that was true then\n');
+  const r = check(root);
+  ok('and the same sentence in a file that is not an archive still refuses, so the exclusion is a '
+    + 'shape and not a blanket', r.code === 1);
+  ok('and it names the file that is not the archive', /notes\.md/.test(r.out) && !/SOMETHING-ARCHIVE/.test(r.out));
+}
+
 /* Mutation: treat an unrecorded number as exempt and both go red. */
 {
   const root = roster(fixture(), 3);
@@ -213,7 +229,7 @@ function check (root, extra) {
    run 22 of 214, so a count of failures cannot see an assertion that never ran. The total is
    pinned here and the number is written down rather than measured from the run it checks.
    Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 34;
+const EXPECTED_ASSERTIONS = 37;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

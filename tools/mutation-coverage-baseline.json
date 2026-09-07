@@ -1,0 +1,31 @@
+{
+  "tools/check-gate-dispatch.js": [
+    {
+      "text": "'use strict'",
+      "count": 1,
+      "reason": "Strict mode changes nothing any assertion in this suite can observe, because the file is written to behave identically under both. It is kept for the same reason every other file here keeps it, and no test could earn its place."
+    },
+    {
+      "text": "if (!line || line.indexOf('subagent_type') === -1) continue",
+      "count": 1,
+      "reason": "Half of a pair, and the pair is proved together rather than apart. This prefilter is what makes the record-is-truthy test below it unreachable: a line must carry the dispatch key to reach the parser, and no line carrying it parses to null. Remove this alone and the truthiness test catches what gets through; remove that alone and this never lets anything reach it. Remove BOTH and the null-line fixture crashes the check at exit 1, measured at 63 passed 2 failed. So it is silent under single deletion and load bearing in fact."
+    },
+    {
+      "text": "return 0",
+      "count": 1,
+      "reason": "The last statement of main. With it gone main returns undefined, and process.exit(undefined) exits 0, so the mutation substitutes one way of saying zero for another. There is no input that tells them apart and an assertion claiming to would be asserting nothing."
+    }
+  ],
+  "tools/check-reply-shape.js": [
+    {
+      "text": "'use strict'",
+      "count": 1,
+      "reason": "Strict mode changes nothing any assertion in this suite can observe, because the file is written to behave identically under both. Measured rather than assumed: deleted, the suite is 60 passed, 0 failed. It is kept for the same reason every other file here keeps it, and no test could earn its place."
+    },
+    {
+      "text": "if (!line || line.indexOf('assistant') === -1) continue",
+      "count": 1,
+      "reason": "Masked by the role test below it, and the masking runs ONE WAY here rather than both, which is where this differs from its counterpart in check-gate-dispatch.js and why the reason was measured instead of copied. Deleting this prefilter alone is 60 passed, 0 failed, because every line it would have skipped is skipped again by the record-and-role test. Deleting that test alone is NOT silent, at 59 passed 1 failed on the founder-message fixture, so the two are not a mutual pair and only this half needs an exemption. It is load bearing in fact: with BOTH gone the suite is 56 passed, 4 failed, and one of the four is the bare-null fixture, which is the input the check cannot survive without one of the two."
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "what": "Per published code file: named comment lines, counted comment ratio and control lines, as tools/check-comment-shape.js defines them. Written only by that tool. The check refuses when any value differs from this record: the wrong way outright, the right way until this record is rewritten, so the record is never slack.",
-  "written": "2026-09-05",
+  "written": "2026-09-07",
   "new_file_cap": 5,
   "overrides": [
     {
@@ -146,6 +146,374 @@
       "from": 4.2,
       "to": 6,
       "reason": "The block that proves the gate refuses a hand-edited record now carries the reason it was rebuilt: it was pointed at a tree where one file backs two checks, so the exit code was not attributable to the branch under test and three assertions could not fail for the reason they named. A reader has no way to see that from the code, and it is the exact trap the next person writing a gate assertion here will walk into."
+    },
+    {
+      "date": "2026-09-05",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 28.2,
+      "to": 28.5,
+      "reason": "The recall hook moved to the event that can actually deliver it. The added lines record WHY the previous registration produced nothing on all nine of its firings, which is a runtime contract a reader cannot recover from the code: one event discards the field, and the field itself addresses the user rather than the session. Trimmed once from 28.6 before recording."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/session-guard.js",
+      "field": "ratio",
+      "from": 4,
+      "to": 7.4,
+      "reason": "The gate found six faults in this work and the fixes carry their reasons: why the log stamp is local rather than UTC, when the compaction refusal reaches nobody, why a boolean is compared rather than taken as truthy, and why an absent session id no longer collapses onto one file. Each is a runtime contract a reader cannot recover from the code. The two new files were tightened under the cap rather than recorded."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/session-guard.test.js",
+      "field": "ratio",
+      "from": 0.9,
+      "to": 3,
+      "reason": "The gate found six faults in this work and the fixes carry their reasons: why the log stamp is local rather than UTC, when the compaction refusal reaches nobody, why a boolean is compared rather than taken as truthy, and why an absent session id no longer collapses onto one file. Each is a runtime contract a reader cannot recover from the code. The two new files were tightened under the cap rather than recorded."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.js",
+      "field": "ratio",
+      "from": 2.1,
+      "to": 2.6,
+      "reason": "Two rises, both for new mechanism a reader cannot get from the code: how a matcher narrows a hook to some of its triggers and why an empty one covers all of them, and why a control byte must be looked for in the raw field because splitting on whitespace consumes a tab. The falls are real: duplication of the file headers was cut first."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/session-guard.test.js",
+      "field": "ratio",
+      "from": 2.8,
+      "to": 4.2,
+      "reason": "Two rises, both for new mechanism a reader cannot get from the code: how a matcher narrows a hook to some of its triggers and why an empty one covers all of them, and why a control byte must be looked for in the raw field because splitting on whitespace consumes a tab. The falls are real: duplication of the file headers was cut first."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.js",
+      "field": "ratio",
+      "from": 2.6,
+      "to": 3.1,
+      "reason": "Three rises after tightening duplication first. The new mechanism a reader cannot get from the code is the three readings a matcher gets from the runtime, why a hook of ours that cannot work must be named rather than left unrecognised, why a path the runtime substitutes must not be tested as literal text, and why an empty arguments array is the single-string form. Each sits beside the block it explains."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.test.js",
+      "field": "ratio",
+      "from": 1.2,
+      "to": 2.9,
+      "reason": "Three rises after tightening duplication first. The new mechanism a reader cannot get from the code is the three readings a matcher gets from the runtime, why a hook of ours that cannot work must be named rather than left unrecognised, why a path the runtime substitutes must not be tested as literal text, and why an empty arguments array is the single-string form. Each sits beside the block it explains."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 6,
+      "to": 6.8,
+      "reason": "Three rises after tightening duplication first. The new mechanism a reader cannot get from the code is the three readings a matcher gets from the runtime, why a hook of ours that cannot work must be named rather than left unrecognised, why a path the runtime substitutes must not be tested as literal text, and why an empty arguments array is the single-string form. Each sits beside the block it explains."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.js",
+      "field": "ratio",
+      "from": 3.1,
+      "to": 6.6,
+      "reason": "Four rises, all for mechanism a reader cannot get from the code and all sitting beside the branch they explain: why the looser recognition test claims as little as it can, since everything it claims it also refuses and this file publishes; why notices are printed before a refusal rather than after it; why an advisory row must not reach the gate catch-all; and why a switch written as false is refused rather than read as wired."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.test.js",
+      "field": "ratio",
+      "from": 2.9,
+      "to": 4.3,
+      "reason": "Four rises, all for mechanism a reader cannot get from the code and all sitting beside the branch they explain: why the looser recognition test claims as little as it can, since everything it claims it also refuses and this file publishes; why notices are printed before a refusal rather than after it; why an advisory row must not reach the gate catch-all; and why a switch written as false is refused rather than read as wired."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 5.3,
+      "to": 5.8,
+      "reason": "Four rises, all for mechanism a reader cannot get from the code and all sitting beside the branch they explain: why the looser recognition test claims as little as it can, since everything it claims it also refuses and this file publishes; why notices are printed before a refusal rather than after it; why an advisory row must not reach the gate catch-all; and why a switch written as false is refused rather than read as wired."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 6.8,
+      "to": 7.3,
+      "reason": "Four rises, all for mechanism a reader cannot get from the code and all sitting beside the branch they explain: why the looser recognition test claims as little as it can, since everything it claims it also refuses and this file publishes; why notices are printed before a refusal rather than after it; why an advisory row must not reach the gate catch-all; and why a switch written as false is refused rather than read as wired."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.js",
+      "field": "ratio",
+      "from": 6.6,
+      "to": 7.8,
+      "reason": "Four rises after tightening the longest new blocks into the headers that already carry the reasoning. The mechanism a reader cannot get from the code: why an advisory result is re-checked against its own definition rather than taken on the word, since the word alone was a way through the gate for every check; and why the looser recognition test takes a bare filename only in the first position."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.test.js",
+      "field": "ratio",
+      "from": 4.3,
+      "to": 4.8,
+      "reason": "Four rises after tightening the longest new blocks into the headers that already carry the reasoning. The mechanism a reader cannot get from the code: why an advisory result is re-checked against its own definition rather than taken on the word, since the word alone was a way through the gate for every check; and why the looser recognition test takes a bare filename only in the first position."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 5.8,
+      "to": 6.4,
+      "reason": "Four rises after tightening the longest new blocks into the headers that already carry the reasoning. The mechanism a reader cannot get from the code: why an advisory result is re-checked against its own definition rather than taken on the word, since the word alone was a way through the gate for every check; and why the looser recognition test takes a bare filename only in the first position."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 7.3,
+      "to": 7.7,
+      "reason": "Four rises after tightening the longest new blocks into the headers that already carry the reasoning. The mechanism a reader cannot get from the code: why an advisory result is re-checked against its own definition rather than taken on the word, since the word alone was a way through the gate for every check; and why the looser recognition test takes a bare filename only in the first position."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.js",
+      "field": "ratio",
+      "from": 7.8,
+      "to": 8.8,
+      "reason": "Three rises and one fall. The new lines say why a filename only counts as a whole path segment, since matching it anywhere read somebody else's file as ours and refused it, and why the gate lists what it counted rather than working the verdict out a second time, which gave one row two verdicts in one run. Both sit beside the branch they explain."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 6.4,
+      "to": 7.2,
+      "reason": "Three rises and one fall. The new lines say why a filename only counts as a whole path segment, since matching it anywhere read somebody else's file as ours and refused it, and why the gate lists what it counted rather than working the verdict out a second time, which gave one row two verdicts in one run. Both sit beside the branch they explain."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 7.7,
+      "to": 7.9,
+      "reason": "Three rises and one fall. The new lines say why a filename only counts as a whole path segment, since matching it anywhere read somebody else's file as ours and refused it, and why the gate lists what it counted rather than working the verdict out a second time, which gave one row two verdicts in one run. Both sit beside the branch they explain."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.js",
+      "field": "ratio",
+      "from": 8.8,
+      "to": 9.9,
+      "reason": "ST-145: the segment map gained an end anchor and two separator characters, and the reason a stranger needs is why each boundary is there and why the trailing test is a negative list. The test file gained one control paragraph for the three assertions that hold it. Tightened from 13 comment lines to 7 before recording."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.test.js",
+      "field": "ratio",
+      "from": 4.7,
+      "to": 5.4,
+      "reason": "ST-145: the segment map gained an end anchor and two separator characters, and the reason a stranger needs is why each boundary is there and why the trailing test is a negative list. The test file gained one control paragraph for the three assertions that hold it. Tightened from 13 comment lines to 7 before recording."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.js",
+      "field": "ratio",
+      "from": 9.9,
+      "to": 11.5,
+      "reason": "ST-145 re-gate round two: the segment map now derives what opens a filename in ONE place shared with the dead-guard fallback, and the reason a stranger needs is why each boundary is there, why the trailing test is a negative list, and what that trade still claims. The test file's three fixtures became a loop over all three names plus the fallback case. Tightened twice before recording."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.test.js",
+      "field": "ratio",
+      "from": 5.4,
+      "to": 6.8,
+      "reason": "ST-145 re-gate round two: the segment map now derives what opens a filename in ONE place shared with the dead-guard fallback, and the reason a stranger needs is why each boundary is there, why the trailing test is a negative list, and what that trade still claims. The test file's three fixtures became a loop over all three names plus the fallback case. Tightened twice before recording."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-hook-registration.js",
+      "field": "ratio",
+      "from": 11.5,
+      "to": 11.8,
+      "reason": "ST-145 d2, CEO ruling: the comment said over-claiming costs one noisy line when it costs a REFUSAL, and this check is in the release set, so somebody else's backup blocks their release. Corrected against line 54, which already said it. The openers list also undercounted itself by one. Comment-only, no code changed. Tightened from 15 lines to 8 before recording."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 7.2,
+      "to": 7.4,
+      "reason": "a new release check needs two lines beside its definition saying why its advisory exit and its refusing exit must stay different verdicts; the reason was cut from four lines to two first, and losing it entirely is how the two get collapsed later"
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 7.9,
+      "to": 8.1,
+      "reason": "One line explaining why the absent count is derived from the ledger rather than typed. The literal it replaces went stale the moment decision-keys joined the session-start set, and the obvious repair is to type the new number, which goes stale again. The line is what stops that repair."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "ratio",
+      "from": 1.9,
+      "to": 2.3,
+      "reason": "ST-141 round five sweeps the whole file rather than the findings: six new fixtures, each needing one line naming the error shape it holds. Every explanation was moved into the exempt file headers first, which took the rise from 4.6 and 5.1 per cent down to 2.3 and 2.8."
+    },
+    {
+      "date": "2026-09-06",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 2.3,
+      "to": 2.8,
+      "reason": "ST-141 round five sweeps the whole file rather than the findings: six new fixtures, each needing one line naming the error shape it holds. Every explanation was moved into the exempt file headers first, which took the rise from 4.6 and 5.1 per cent down to 2.3 and 2.8."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 2.8,
+      "to": 3.5,
+      "reason": "ST-141 round six. check-gate-dispatch.test.js 2.8 to 3.5: six new assertions for guards that had been published as impossible to fixture, each carrying a one-line pointer to the header rather than repeating it. run-checks.js 7.3 to 7.4: one line on the new mutation-coverage registration saying why it sits in the release set and not at session start. Both new files enter at 3.2 and 3 per cent with 0 named lines."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 7.3,
+      "to": 7.4,
+      "reason": "ST-141 round six. check-gate-dispatch.test.js 2.8 to 3.5: six new assertions for guards that had been published as impossible to fixture, each carrying a one-line pointer to the header rather than repeating it. run-checks.js 7.3 to 7.4: one line on the new mutation-coverage registration saying why it sits in the release set and not at session start. Both new files enter at 3.2 and 3 per cent with 0 named lines."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-roster-count.js",
+      "field": "ratio",
+      "from": 5.2,
+      "to": 5.7,
+      "reason": "ST-168. check-roster-count.js 5.2 to 5.7: two lines on the datedRecord helper pointing at the header, where the reason a name list could never have covered an archive created after it now sits. Its suite 2 to 2.3 and 15 to 17 control lines: three new assertions proving the exclusion is a shape and not a blanket, each naming the mutation that reddens it."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-roster-count.test.js",
+      "field": "ratio",
+      "from": 2,
+      "to": 2.3,
+      "reason": "ST-168. check-roster-count.js 5.2 to 5.7: two lines on the datedRecord helper pointing at the header, where the reason a name list could never have covered an archive created after it now sits. Its suite 2 to 2.3 and 15 to 17 control lines: three new assertions proving the exclusion is a shape and not a blanket, each naming the mutation that reddens it."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 28.5,
+      "to": 28.6,
+      "reason": "ST-119 registered the governance-core check in run-checks.js and added the SHARED_GOV note in studio.ps1. Both are two-line comments stating why the split has two roots and why the reference is not imported; the explanation itself lives in the tool header, which is exempt. The rise is 0.1 and 0.2 points."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 7.3,
+      "to": 7.5,
+      "reason": "ST-119 registered the governance-core check in run-checks.js and added the SHARED_GOV note in studio.ps1. Both are two-line comments stating why the split has two roots and why the reference is not imported; the explanation itself lives in the tool header, which is exempt. The rise is 0.1 and 0.2 points."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 3.5,
+      "to": 4.4,
+      "reason": "ST-141 round seven M1 separated a suite CRASH from a PARSER refusal in check-mutation-coverage.js, and fixed the cause rather than exempting it. The three rises are all control lines carrying the reason a wrap exists: the coverage tool gained two short notes on the accountable map and on pre-split baseline entries, and both suites gained the S127 explanation for wrapping an in-process call. Control lines rose 6 to 9 and 3 to 5, which is the direction this check wants. The long form is in the file headers, which are exempt, and the provenance is on ST-141."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-mutation-coverage.js",
+      "field": "ratio",
+      "from": 3.2,
+      "to": 4.2,
+      "reason": "ST-141 round seven M1 separated a suite CRASH from a PARSER refusal in check-mutation-coverage.js, and fixed the cause rather than exempting it. The three rises are all control lines carrying the reason a wrap exists: the coverage tool gained two short notes on the accountable map and on pre-split baseline entries, and both suites gained the S127 explanation for wrapping an in-process call. Control lines rose 6 to 9 and 3 to 5, which is the direction this check wants. The long form is in the file headers, which are exempt, and the provenance is on ST-141."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-mutation-coverage.test.js",
+      "field": "ratio",
+      "from": 3,
+      "to": 4.2,
+      "reason": "ST-141 round seven M1 separated a suite CRASH from a PARSER refusal in check-mutation-coverage.js, and fixed the cause rather than exempting it. The three rises are all control lines carrying the reason a wrap exists: the coverage tool gained two short notes on the accountable map and on pre-split baseline entries, and both suites gained the S127 explanation for wrapping an in-process call. Control lines rose 6 to 9 and 3 to 5, which is the direction this check wants. The long form is in the file headers, which are exempt, and the provenance is on ST-141."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-decision-keys.js",
+      "field": "ratio",
+      "from": 1.1,
+      "to": 3.2,
+      "reason": "The release gate found five majors in tools that publish, and each fix carries the defect it closes: a check that could never be cleared on a public install, three flag guards where a usage error was reaching a verdict, and a fingerprint that hashed the commit rather than the content. Every one of those is a line a reader deletes as noise unless the reason is beside it, and the test blocks state the measured mutation rather than a claim about it."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-decision-keys.test.js",
+      "field": "ratio",
+      "from": 2.9,
+      "to": 4.1,
+      "reason": "The release gate found five majors in tools that publish, and each fix carries the defect it closes: a check that could never be cleared on a public install, three flag guards where a usage error was reaching a verdict, and a fingerprint that hashed the commit rather than the content. Every one of those is a line a reader deletes as noise unless the reason is beside it, and the test blocks state the measured mutation rather than a claim about it."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-governance-core.test.js",
+      "field": "ratio",
+      "from": 2.1,
+      "to": 3.5,
+      "reason": "The release gate found five majors in tools that publish, and each fix carries the defect it closes: a check that could never be cleared on a public install, three flag guards where a usage error was reaching a verdict, and a fingerprint that hashed the commit rather than the content. Every one of those is a line a reader deletes as noise unless the reason is beside it, and the test blocks state the measured mutation rather than a claim about it."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-hook-registration.js",
+      "field": "ratio",
+      "from": 11.8,
+      "to": 12.7,
+      "reason": "The release gate found five majors in tools that publish, and each fix carries the defect it closes: a check that could never be cleared on a public install, three flag guards where a usage error was reaching a verdict, and a fingerprint that hashed the commit rather than the content. Every one of those is a line a reader deletes as noise unless the reason is beside it, and the test blocks state the measured mutation rather than a claim about it."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-hook-registration.test.js",
+      "field": "ratio",
+      "from": 6.8,
+      "to": 7.7,
+      "reason": "The release gate found five majors in tools that publish, and each fix carries the defect it closes: a check that could never be cleared on a public install, three flag guards where a usage error was reaching a verdict, and a fingerprint that hashed the commit rather than the content. Every one of those is a line a reader deletes as noise unless the reason is beside it, and the test blocks state the measured mutation rather than a claim about it."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-mutation-coverage.js",
+      "field": "ratio",
+      "from": 4.2,
+      "to": 5.1,
+      "reason": "The release gate found five majors in tools that publish, and each fix carries the defect it closes: a check that could never be cleared on a public install, three flag guards where a usage error was reaching a verdict, and a fingerprint that hashed the commit rather than the content. Every one of those is a line a reader deletes as noise unless the reason is beside it, and the test blocks state the measured mutation rather than a claim about it."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/check-mutation-coverage.test.js",
+      "field": "ratio",
+      "from": 4.2,
+      "to": 4.5,
+      "reason": "The release gate found five majors in tools that publish, and each fix carries the defect it closes: a check that could never be cleared on a public install, three flag guards where a usage error was reaching a verdict, and a fingerprint that hashed the commit rather than the content. Every one of those is a line a reader deletes as noise unless the reason is beside it, and the test blocks state the measured mutation rather than a claim about it."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 7.5,
+      "to": 9.7,
+      "reason": "The release gate found five majors in tools that publish, and each fix carries the defect it closes: a check that could never be cleared on a public install, three flag guards where a usage error was reaching a verdict, and a fingerprint that hashed the commit rather than the content. Every one of those is a line a reader deletes as noise unless the reason is beside it, and the test blocks state the measured mutation rather than a claim about it."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 8.1,
+      "to": 8.5,
+      "reason": "The release gate found five majors in tools that publish, and each fix carries the defect it closes: a check that could never be cleared on a public install, three flag guards where a usage error was reaching a verdict, and a fingerprint that hashed the commit rather than the content. Every one of those is a line a reader deletes as noise unless the reason is beside it, and the test blocks state the measured mutation rather than a claim about it."
     }
   ],
   "files": {
@@ -267,13 +635,13 @@
       "ratio_all": 21.4
     },
     "studio.ps1": {
-      "nonblank": 2507,
-      "comment": 834,
+      "nonblank": 2531,
+      "comment": 852,
       "header": 36,
-      "controls": 90,
+      "controls": 92,
       "named": 0,
-      "ratio": 28.2,
-      "ratio_all": 33.3
+      "ratio": 28.6,
+      "ratio_all": 33.7
     },
     "tools/archive-decisions.js": {
       "nonblank": 152,
@@ -347,6 +715,78 @@
       "ratio": 9.4,
       "ratio_all": 20.9
     },
+    "tools/check-decision-keys.js": {
+      "nonblank": 187,
+      "comment": 59,
+      "header": 52,
+      "controls": 1,
+      "named": 0,
+      "ratio": 3.2,
+      "ratio_all": 31.6
+    },
+    "tools/check-decision-keys.test.js": {
+      "nonblank": 194,
+      "comment": 36,
+      "header": 26,
+      "controls": 2,
+      "named": 0,
+      "ratio": 4.1,
+      "ratio_all": 18.6
+    },
+    "tools/check-gate-dispatch.js": {
+      "nonblank": 176,
+      "comment": 65,
+      "header": 61,
+      "controls": 0,
+      "named": 0,
+      "ratio": 2.3,
+      "ratio_all": 36.9
+    },
+    "tools/check-gate-dispatch.test.js": {
+      "nonblank": 565,
+      "comment": 168,
+      "header": 134,
+      "controls": 9,
+      "named": 0,
+      "ratio": 4.4,
+      "ratio_all": 29.7
+    },
+    "tools/check-governance-core.js": {
+      "nonblank": 221,
+      "comment": 74,
+      "header": 69,
+      "controls": 1,
+      "named": 0,
+      "ratio": 1.8,
+      "ratio_all": 33.5
+    },
+    "tools/check-governance-core.test.js": {
+      "nonblank": 258,
+      "comment": 47,
+      "header": 35,
+      "controls": 3,
+      "named": 0,
+      "ratio": 3.5,
+      "ratio_all": 18.2
+    },
+    "tools/check-hook-registration.js": {
+      "nonblank": 369,
+      "comment": 140,
+      "header": 89,
+      "controls": 4,
+      "named": 0,
+      "ratio": 12.7,
+      "ratio_all": 37.9
+    },
+    "tools/check-hook-registration.test.js": {
+      "nonblank": 506,
+      "comment": 71,
+      "header": 26,
+      "controls": 6,
+      "named": 0,
+      "ratio": 7.7,
+      "ratio_all": 14
+    },
     "tools/check-measures.js": {
       "nonblank": 235,
       "comment": 64,
@@ -364,6 +804,42 @@
       "named": 0,
       "ratio": 4.3,
       "ratio_all": 18.2
+    },
+    "tools/check-mutation-coverage.js": {
+      "nonblank": 312,
+      "comment": 97,
+      "header": 79,
+      "controls": 2,
+      "named": 0,
+      "ratio": 5.1,
+      "ratio_all": 31.1
+    },
+    "tools/check-mutation-coverage.test.js": {
+      "nonblank": 333,
+      "comment": 63,
+      "header": 40,
+      "controls": 8,
+      "named": 0,
+      "ratio": 4.5,
+      "ratio_all": 18.9
+    },
+    "tools/check-reply-shape.js": {
+      "nonblank": 260,
+      "comment": 94,
+      "header": 88,
+      "controls": 0,
+      "named": 0,
+      "ratio": 2.3,
+      "ratio_all": 36.2
+    },
+    "tools/check-reply-shape.test.js": {
+      "nonblank": 405,
+      "comment": 61,
+      "header": 42,
+      "controls": 0,
+      "named": 0,
+      "ratio": 4.7,
+      "ratio_all": 15.1
     },
     "tools/check-resume-pointer.js": {
       "nonblank": 167,
@@ -384,22 +860,22 @@
       "ratio_all": 23.4
     },
     "tools/check-roster-count.js": {
-      "nonblank": 267,
-      "comment": 62,
-      "header": 46,
+      "nonblank": 281,
+      "comment": 73,
+      "header": 55,
       "controls": 2,
       "named": 0,
-      "ratio": 5.2,
-      "ratio_all": 23.2
+      "ratio": 5.7,
+      "ratio_all": 26
     },
     "tools/check-roster-count.test.js": {
-      "nonblank": 204,
-      "comment": 30,
+      "nonblank": 219,
+      "comment": 33,
       "header": 11,
-      "controls": 15,
+      "controls": 17,
       "named": 0,
-      "ratio": 2,
-      "ratio_all": 14.7
+      "ratio": 2.3,
+      "ratio_all": 15.1
     },
     "tools/check-session-brief.js": {
       "nonblank": 442,
@@ -420,22 +896,22 @@
       "ratio_all": 25.4
     },
     "tools/run-checks.js": {
-      "nonblank": 466,
-      "comment": 94,
+      "nonblank": 545,
+      "comment": 123,
       "header": 64,
-      "controls": 5,
+      "controls": 6,
       "named": 0,
-      "ratio": 5.4,
-      "ratio_all": 20.2
+      "ratio": 9.7,
+      "ratio_all": 22.6
     },
     "tools/run-checks.test.js": {
-      "nonblank": 318,
-      "comment": 63,
+      "nonblank": 412,
+      "comment": 86,
       "header": 14,
-      "controls": 30,
+      "controls": 37,
       "named": 0,
-      "ratio": 6,
-      "ratio_all": 19.8
+      "ratio": 8.5,
+      "ratio_all": 20.9
     },
     "tools/session-budget.js": {
       "nonblank": 149,
@@ -454,6 +930,24 @@
       "named": 0,
       "ratio": 10.1,
       "ratio_all": 17.6
+    },
+    "tools/session-guard.js": {
+      "nonblank": 210,
+      "comment": 83,
+      "header": 67,
+      "controls": 1,
+      "named": 0,
+      "ratio": 7.1,
+      "ratio_all": 39.5
+    },
+    "tools/session-guard.test.js": {
+      "nonblank": 307,
+      "comment": 44,
+      "header": 25,
+      "controls": 6,
+      "named": 0,
+      "ratio": 4.2,
+      "ratio_all": 14.3
     }
   }
 }

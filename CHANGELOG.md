@@ -6,6 +6,95 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-07
+
+**What this gives you.**
+- **The shared rules now arrive as a short document instead of a long one, and every project actually loads them.** The one file every project carried was about 12,200 tokens re-sent on every single request for the life of a session. Two projects held that file and imported nothing at all, so no rule written in it ever reached them. The rules are now in `GOVERNANCE_CORE.md`, roughly a quarter of the size, and the long document stays beside it as the reasoning behind each rule.
+- **The reasons did not go missing, they moved.** Each section of the short document names which part of the long one explains it. That matters because moving a rule out of what a session loads also stops anyone finding out why it exists, and a rule nobody can explain is the first one somebody deletes.
+- **Nothing can be quietly dropped in the move, and that is checked rather than promised.** A new check reads both documents and refuses if any section of the long one is neither pointed at by a rule nor declared as background only. It refuses in the other direction too, when a rule points at a section that has been renamed or removed, which is the half a hand-written list never has.
+- **It also refuses when a project has the file and does not read it.** Being delivered a document and loading it are different things, and until now nothing compared the two. That is the defect this whole change came from, and it had been sitting there for weeks.
+- **A duplicate was found inside the shared rules themselves.** One section appeared twice, word for word, in the file every project loads on every request. Editing one copy would have left the other saying something else. It has been removed and the check now refuses on repeats.
+- **Three sub-projects are reported rather than fixed, on purpose.** They inherit the file from their parent folder and would have to reach upward to import it, and nothing here has ever confirmed that works. The obvious fix is not applied while it is still a guess; it is written down as work with the verification attached.
+- **A release can be made at all again, and this is why nothing shipped for five sittings.** The
+  record of which checks passed carries a fingerprint of the code they measured, so a green result
+  from an hour ago cannot stand in for the code in front of you. That fingerprint included the
+  commit. Releasing commits and pushes the work before it publishes, so the act of committing
+  invalidated the record the publish then read, and every release refused with every check
+  reported as never proved. The fingerprint is now taken from the content of the tree rather than
+  the commit the content happens to be sitting on. Committing changes which commit the bytes sit
+  on. It does not change the bytes.
+- **A check that no reader could ever have cleared is fixed before anyone received it.** One of
+  the checks reads the shared governance documents, and those documents deliberately do not
+  publish. On any copy installed from the public repository the check was therefore red for good,
+  in the set that runs at session start and in the set that guards a release. It now reports that
+  there is nothing here to look at, while a governance folder that exists with its documents
+  missing is still an error, because that is a defect rather than an absence.
+- **Four checks could return a verdict about a file they never opened.** A flag typed with nothing
+  after it was swallowing the next flag as its value. In one check that produced a clean bill of
+  health, silently, about settings it had not read. In another it produced the exit code that
+  means a duplicate decision key was found, with a stack trace where the finding should be. Each
+  now refuses and names the flag it wanted a value for.
+- **A release is refused when nobody reviewed the work.** Every review here is carried out by a separate agent that a session has to choose to start, and nothing recorded whether one ever did. The honest baseline, measured before the check was written: of the 21 releases this project has made, 4 shipped with no review agent started at any point in the session that shipped them. Two of those four predate the vendor setting that was blamed for it, so this was an old hole rather than a new one. From this release forward, a release is refused when the session shipping it started no reviewer.
+- **That check says plainly what it does not prove.** It proves a reviewer was started. It does not prove the reviewer read the change, and it does not prove it came back clean. A session can start a reviewer, be told the work is broken, and ship anyway with this green. Nothing on this machine can see that, and a check claiming otherwise would be worse than none.
+- **A test suite's own claim about what it proves is now worked out by the machine instead of written by hand.** A paragraph at the top of one suite listed which parts of the tool were genuinely covered and which were not. Three separate reviews falsified that paragraph, and each correction was wrong again. It is now derived: every line of the tool is removed in turn, the suite is run, and any line nothing depends on is reported. An exemption has to be written down with a reason, and it is refused once the line becomes covered, which is the half a hand-written list never has.
+- **A session can no longer end or run out of room with its own state written down and uncommitted.** That is how a session's record of what it measured used to disappear.
+- **The standing rules are re-delivered after a session runs out of room and reloads.** For two weeks that repair reported success nine times and delivered nothing.
+- **Every hook is held to the event that can actually deliver it.** A hook registered against an event that never fires looks identical to one that works, in both of the two forms this tool writes.
+- **Two sessions working on one project can no longer allocate the same decision number in silence.** It happened: two sessions read the same table, each took the next free number, and one project ended up with two decisions numbered 91 and two numbered 92. Neither writer could see the other. Decisions are referenced by number for the life of a project and are never renumbered, so a duplicate is permanent.
+- **A check that ignored dated archives by name now ignores them by shape.** The name list could not name a file that did not exist yet, so the act of archiving a document turned a check red at the next session start on work nobody had changed.
+- **The rule about writing short now has an instrument, and it fails on our own history.** It measures the shape of a reply rather than its length, deliberately: a limit becomes a target, and a target gets met by hiding detail rather than by writing better. Two hundred lines of bullet points pass; one dense paragraph does not. Run over 3,020 past replies in this project, 120 were past the limit and 48 opened with throat-clearing.
+
+### A release could be made with nobody having looked
+
+The rule was that quality gates run before anything ships, carried out by an agent that did not
+build the work. Nothing recorded whether one had been started. Four of the twenty-one releases
+this project has made went out with no reviewer started at any point in the session that shipped
+them, and no surface anywhere said so at the time or afterwards.
+
+That number is published here rather than kept internally, because a number a reader can check is
+the whole case this project makes about itself, and because two of the four predate the vendor
+setting that had been blamed for the gap. The honest version is stronger than the excuse.
+
+The check is deliberately narrow about what it proves, and it says so in its own first paragraph.
+It proves a reviewer was started in the session making the release. It cannot prove the reviewer
+read the change or that it returned a pass. It also gives three answers rather than two: a
+reviewer ran, no reviewer ran, or the record could not be read at all. Collapsing the last two
+would mean an install whose host writes no session record is locked out of releasing for good,
+and reading the first two as one would let not being able to look count as having looked.
+
+### A claim about what is tested is the claim most likely to be false
+
+One suite carried a paragraph naming which of its tool's guards were genuinely proved and which
+were deliberately left. Three consecutive reviews falsified that paragraph, and the correction
+written after each one was falsified by the next. Being more careful was tried and failed, for a
+structural reason: the person writing the claim is the person who wrote the code.
+
+So the claim is no longer written. A tool removes each line of the file in turn, asks whether what
+is left is still a program, runs the suite, and reports every line the suite does not depend on.
+Anything left uncovered has to be written down with a reason, and the reason expires: once a line
+becomes covered, the exemption is refused rather than sitting there for months describing a state
+that ended. On its first run it found four uncovered lines in a file that had already passed three
+reviews, one of them the definition of which roles count as a review at all.
+
+### Writing short, measured rather than asked for
+
+The rule to keep replies short has existed here for weeks and was carried by every role. Fourteen
+checks were running at the time and not one of them read a reply. Delivering a rule and enforcing
+it are different things, and the gap between them is invisible without an instrument.
+
+The instrument measures the largest unbroken block of prose in a reply, not its length. That
+distinction is the whole design: the rule itself forbids a line limit, because a cap becomes a
+target and the target gets met by cutting detail rather than by writing better. A long reply in
+point form passes. A short one written as a wall of prose does not.
+
+The first version counted consecutive lines of prose and was thrown away within a minute of being
+run over real history, because a paragraph is one soft-wrapped line and the longest run anywhere in
+three thousand replies was four. A threshold above that would have refused nothing and passed
+forever, which is indistinguishable from a check that does not work. The limit that shipped is
+derived from the corpus instead, and it fails on the history it came from.
+
+---
+
 ## 2026-09-05
 
 **What this gives you.**

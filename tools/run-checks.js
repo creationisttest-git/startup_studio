@@ -123,27 +123,35 @@ function walkFingerprint (root, ignoreRel) {
 }
 
 // The commit alone is not the tree: almost every check here runs against work that is not
-// committed yet, which is precisely the state a release is made from.
+// committed yet, which is precisely the state a release is made from. So this reads the CONTENT
+// of the working tree and never the commit that content happens to be sitting on.
 //
-// The record itself is excluded, and leaving it in was a self-invalidating loop rather than a
-// nicety. Writing the rows changes the tree, so every row would have been recorded against a
-// tree that had stopped existing by the time the write finished, and the gate would have said
-// NOT PROVED on a run that had just completed cleanly.
+// That is a self-invalidating loop with two halves, and only one of them used to be closed. The
+// record file is excluded, because writing the rows would otherwise move the tree the rows were
+// just recorded against. The other half is HEAD. Hashing the commit meant the ACT OF COMMITTING
+// invalidated the record, and -Release commits and pushes the work before it publishes, so the
+// publish read back a record it had broken one step earlier and refused with every row NOT
+// PROVED. Committing changes which commit the bytes sit on. It does not change the bytes.
+//
+// The cost, stated rather than discovered: two different commits carrying identical content now
+// share a fingerprint. They also carry identical code, so a result measured on one is evidence
+// about the other, which is the only question this hash is asked.
 function treeState (root, ignoreRel) {
   const skip = ignoreRel ? [':(exclude)' + ignoreRel] : []
   const head = git(root, ['rev-parse', 'HEAD'])
   if (head === null) return walkFingerprint(root, ignoreRel)
-  const porcelain = git(root, ['status', '--porcelain', '--'].concat(skip)) || ''
-  const diff = git(root, ['diff', 'HEAD', '--'].concat(skip)) || ''
-  const others = (git(root, ['ls-files', '-o', '--exclude-standard', '--'].concat(skip)) || '')
-    .split('\n').map(s => s.trim()).filter(Boolean).sort()
+  // -z, because git quotes any path it considers unusual, and a quoted path fails to open and
+  // would drop that file out of the fingerprint without a word.
+  const files = (git(root, ['ls-files', '-z', '-c', '-o', '--exclude-standard', '--'].concat(skip)) || '')
+    .split('\0').map(s => s.trim()).filter(Boolean).sort()
   const h = crypto.createHash('sha256')
-  h.update(head.trim() + '\n')
-  h.update(porcelain + '\n')
-  h.update(diff + '\n')
-  for (const f of others) {
+  for (const f of files) {
+    let buf
+    // Tracked but no longer on disk. It is absent both before and after the commit that records
+    // the deletion, so skipping it is what keeps the two states equal.
+    try { buf = fs.readFileSync(path.join(root, f)) } catch (e) { continue }
     h.update(f + '\n')
-    try { h.update(fs.readFileSync(path.join(root, f))) } catch (e) { h.update('<unreadable>\n') }
+    h.update(buf)
   }
   return { by: 'git', hash: h.digest('hex').slice(0, 16), head: head.trim(), truncated: false }
 }
@@ -194,6 +202,54 @@ function definitions (root) {
       about: 'every published page states the number of roles the roster actually holds'
     },
     {
+      name: 'hook-wiring',
+      sets: ['session-start', 'release'],
+      where: ['tools/check-hook-registration.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs, '--quiet'] }),
+      advisory: [3],
+      about: 'every session hook sits on an event that can actually deliver what it returns'
+    },
+    {
+      name: 'gate-dispatch',
+      sets: ['release'],
+      where: ['tools/check-gate-dispatch.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
+      // Exit 3 is no readable transcript, which a legitimate install can never clear. Exit 1 is a
+      // transcript read and holding no reviewer, which is a finding and refuses. Keep them apart.
+      advisory: [3],
+      about: 'a review agent was started in the session that is about to release'
+    },
+    {
+      name: 'mutation-coverage',
+      sets: ['release'],
+      where: ['tools/check-mutation-coverage.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
+      // Minutes, not milliseconds: one full suite run per line. Hence release and not session start.
+      about: 'every line of the release gate is one an assertion depends on, or is accepted with a reason'
+    },
+    {
+      name: 'decision-keys',
+      sets: ['session-start'],
+      where: ['tools/check-decision-keys.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
+      advisory: [3],
+      about: 'no decision key names two different decisions'
+    },
+    {
+      name: 'governance-core',
+      sets: ['session-start', 'release'],
+      where: ['tools/check-governance-core.js'],
+      // Two roots. --gov is in this repository; --root is the directory HOLDING it, because reach
+      // is a property of the other projects and not of this one.
+      build: f => ({ exe: process.execPath, args: [f.abs, '--gov', path.join(root, 'base', 'governance'),
+        '--root', path.dirname(root), '--quiet'] }),
+      // Exit 3 is no governance directory at all, which is every copy installed from the public
+      // export, because the governance text deliberately does not publish. Without this the check
+      // is red on every reader's machine for good and no reader can ever clear it.
+      advisory: [3],
+      about: 'no rule was retired by the governance split, and every project holding the core imports it'
+    },
+    {
       name: 'releases-page',
       sets: ['release'],
       where: ['tools/build-releases.js'],
@@ -216,6 +272,15 @@ function definitions (root) {
       build: (f, t) => ({ exe: process.execPath, args: [t.abs, f.abs, '--quiet'] }),
       advisory: [3],
       about: 'the founder brief still fits what a founder will actually read'
+    },
+    {
+      name: 'reply-shape',
+      sets: ['wind-down'],
+      where: ['CLAUDE.md'],
+      needs: ['tools/check-reply-shape.js'],
+      build: (f, t) => ({ exe: process.execPath, args: [t.abs, '--root', root, '--quiet'] }),
+      advisory: [3],
+      about: 'the replies this session actually sent are point form and lead with the answer'
     },
     {
       name: 'context-budget',
@@ -278,7 +343,8 @@ function runOne (root, def) {
   const tail = ((r.stdout || '') + (r.stderr || '')).trim().split(/\r?\n/).filter(Boolean).slice(-3).join(' | ').slice(0, 400)
   if (def.unproved) return { status: 'unproved', exit: code, cmd: cmd, ms: ms, why: def.unproved, tail: tail }
   if (def.advisory && def.advisory.indexOf(code) !== -1)
-    return { status: 'advisory', exit: code, cmd: cmd, ms: ms, why: 'exit ' + code + ' is advisory for this check', tail: tail }
+    return { status: 'advisory', exit: code, cmd: cmd, ms: ms, tail: tail,
+      why: tail || ('exit ' + code + ' is advisory for this check') }
   return { status: code === 0 ? 'ok' : 'failed', exit: code, cmd: cmd, ms: ms, tail: tail }
 }
 
@@ -393,6 +459,14 @@ function doRun (root, file, setName, quiet) {
 
 // ------------------------------------------------------------------ gate
 
+// A row is advisory only when its own definition says that exit code is advisory, because the
+// word alone is otherwise a way through this gate for EVERY check: writing it into the record by
+// hand waved past a check carrying a real refusal, which is the misspelt-status door below opened
+// with a correctly spelt word. Asked in one place so the count and the listing cannot disagree.
+function allowedAdvisory (def, row) {
+  return row.status === 'advisory' && !!def.advisory && def.advisory.indexOf(row.exit) !== -1
+}
+
 function doGate (root, file, setName, quiet) {
   const led = readLedger(file)
   const rel = relOf(root, file)
@@ -413,6 +487,8 @@ function doGate (root, file, setName, quiet) {
   let ok = 0
   let absent = 0
   let unproved = 0
+  let advisory = 0
+  const listed = []
 
   for (const def of defs) {
     const row = led.data.checks[def.name]
@@ -426,8 +502,11 @@ function doGate (root, file, setName, quiet) {
         (row.cmd || clear) + '   then: ' + clear])
       continue
     }
-    if (row.status === 'absent') { absent++; continue }
-    if (row.status === 'unproved') { unproved++; continue }
+    if (row.status === 'absent') { absent++; listed.push([def, row]); continue }
+    if (row.status === 'unproved') { unproved++; listed.push([def, row]); continue }
+    // Something to say and nothing to refuse. Reaching the catch-all below, it refused a release
+    // and blamed a record nobody had touched.
+    if (allowedAdvisory(def, row)) { advisory++; listed.push([def, row]); continue }
     // ONLY 'ok' passes, and the branch used to fall through to a pass for anything it did not
     // recognise. Measured on a fixture whose instrument really exited 1: a status misspelt as
     // "faled", a status field deleted, and a row cut down to nothing but its tree all read as
@@ -442,18 +521,19 @@ function doGate (root, file, setName, quiet) {
 
   const counted = defs.length
   say(quiet, '  ' + counted + ' check(s) in set ' + setName + ': ' + ok + ' passed, ' +
-    problems.length + ' to fix, ' + absent + ' absent from this install, ' + unproved + ' not machine-readable')
+    problems.length + ' to fix, ' + absent + ' absent from this install, ' + unproved +
+    ' not machine-readable, ' + advisory + ' advisory')
 
   for (const [name, why, cmd] of problems) {
     process.stdout.write('  NOT PROVED  ' + name + ': ' + why + '\n')
     process.stdout.write('              run: ' + cmd + '\n')
   }
-  if (absent || unproved) {
-    for (const def of defs) {
-      const row = led.data.checks[def.name]
-      if (row && (row.status === 'absent' || row.status === 'unproved'))
-        say(quiet, '  ' + row.status.toUpperCase() + '  ' + def.name + ': ' + row.why)
-    }
+  // Listed from what the loop above actually counted, never worked out a second time here.
+  // Deciding twice let a row refused as recorded against a different tree be labelled advisory in
+  // the same output, which leaves a reader two verdicts and no way to tell which one the gate
+  // acted on.
+  for (const [d, row] of listed) {
+    say(quiet, '  ' + row.status.toUpperCase() + '  ' + d.name + ': ' + row.why)
   }
   return problems.length ? 1 : 0
 }

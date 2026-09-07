@@ -122,7 +122,13 @@ $CARD_NAME   = '_project.md'
 
 # Governance files that are IDENTICAL in every project. A project's own
 # WAYS_OF_WORKING and WARM_START are its own and never distributed.
-$SHARED_GOV = @('GLOBAL_WAYS_OF_WORKING.md','AGENTS.md','BRIDGE_PROTOCOL.md')
+#
+# GOVERNANCE_CORE.md is the one a project @-imports; GLOBAL_WAYS_OF_WORKING.md is the reasoning
+# behind it and is deliberately NOT imported, because the full document is about 12,200 tokens
+# re-sent on every request for the life of a session. Splitting it can silently retire a rule,
+# so tools\check-governance-core.js refuses on a reference section the core does not account for
+# and on a project that holds the core without importing it.
+$SHARED_GOV = @('GOVERNANCE_CORE.md','GLOBAL_WAYS_OF_WORKING.md','AGENTS.md','BRIDGE_PROTOCOL.md')
 
 # Get-Content -Raw decodes a file WITHOUT a byte order mark using the ANSI code page on
 # PowerShell 5.1, not UTF-8. Agent files are deliberately BOM-less (S24), so reading one and
@@ -1698,10 +1704,19 @@ function Get-FounderBrief ([string]$ProjectPath) {
 
 # --------------------------------------------------------------- recall
 
-# Compaction is the one event that fires exactly when context is being dropped, which makes it the
-# right moment to re-state the rules rather than a timer that mostly fires when nothing is
-# happening. The CONTENT lives in base\governance\SESSION_RECALL.md and is not published; this only
-# reads it, so nothing unproven ships to the export while the mechanism is still being tried.
+# Re-state the standing rules at the one moment they are being dropped: the turn immediately AFTER
+# the context was compacted. The CONTENT lives in base\governance\SESSION_RECALL.md and is not
+# published; this only reads it, so nothing unproven ships to the export.
+#
+# THIS RAN ON THE EVENT BEFORE COMPACTION AND DELIVERED NOTHING, twice over: that event discards
+# this field outright, and the field it used is a warning shown to the USER rather than context
+# given to the session, so the rules would have reached the founder and never the agent they are
+# written for. Nine firings all logged ok, because the log records THAT a hook ran and never
+# whether anything arrived.
+#
+# Nothing here re-sends the state document: instruction files re-load by themselves after a
+# compaction, so anything a project imports into its CLAUDE.md returns without help. This document
+# is the part nothing else carries.
 function Invoke-Recall {
     $doc = Join-Path $GOV_BASE 'SESSION_RECALL.md'
     Write-HookLog 'recall' (Get-Location).Path $(if (Test-Path $doc) { 'ok' } else { 'no-governance' })
@@ -1710,11 +1725,13 @@ function Invoke-Recall {
         # carries no governance would otherwise see a hook that runs and does nothing, which is the
         # same silence this whole file exists to remove.
         @{
-            systemMessage  = ("Studio recall: this install carries no base" + [char]92 + "governance" + [char]92 +
-                              "SESSION_RECALL.md, so there are no standing rules to restate. Write your own there, " +
-                              "or unregister the PreCompact hook.")
-            suppressOutput = $true
-        } | ConvertTo-Json -Compress
+            hookSpecificOutput = @{
+                hookEventName     = 'SessionStart'
+                additionalContext = ("Studio recall: this install carries no base" + [char]92 + "governance" +
+                                     [char]92 + "SESSION_RECALL.md, so there are no standing rules to restate. " +
+                                     "Write your own there, or unregister the recall hook.")
+            }
+        } | ConvertTo-Json -Compress -Depth 4
         return
     }
     $text = Read-TextUtf8 $doc
@@ -1730,8 +1747,15 @@ function Invoke-Recall {
         if ($on) { $keep += $line }
     }
     $block = (($keep -join "`n") -replace "`n{3,}", "`n`n").Trim()
-    @{ systemMessage = ("STUDIO RECALL, context was just compacted." + "`n`n" + $block); suppressOutput = $true } |
-        ConvertTo-Json -Compress
+    # Context handed back to the session is capped at ten thousand characters and anything longer
+    # is replaced by a preview and a file path, which for a block of rules means the rules are the
+    # part that goes missing. Trimming to two sections keeps this an order of magnitude under it.
+    @{
+        hookSpecificOutput = @{
+            hookEventName     = 'SessionStart'
+            additionalContext = ("STUDIO RECALL, the context was just compacted." + "`n`n" + $block)
+        }
+    } | ConvertTo-Json -Compress -Depth 4
 }
 
 # --------------------------------------------------------------- autoload

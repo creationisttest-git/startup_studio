@@ -214,7 +214,7 @@
       <dd>A Project's generated copy of the team no longer matching the shared source. Drift is silent unless something checks for it. The health check reports it and shows which direction it went, because syncing over a local improvement would destroy that improvement, while promoting a stale copy would revert every Project.</dd>
 
       <dt id="g-gate">Gate</dt>
-      <dd>A review that must pass before work continues, carried out by an agent that did not build the work. Code review, content review, security review and the mobile check are all Gates. A Gate reports what it found and changes nothing, so the builder never signs off its own work.</dd>
+      <dd>A review that must pass before work ships, carried out by an agent that did not build the work. Code review, content review, security review and the mobile check are all Gates. A Gate reports what it found and changes nothing, so the builder never signs off its own work.</dd>
 
       <dt id="g-frontdoor">The Front Door</dt>
       <dd>The assessment an idea passes before anything is built. Six leads assess it from their own disciplines, one paragraph each, and return build, kill or park, with the one <a href="#g-measure">Measure</a> it is meant to move and every objection raised, including those that did not prevail. <b>A kill means The Front Door is doing its job.</b> If nothing is ever killed, the assessment is a rubber stamp.</dd>
@@ -287,6 +287,8 @@
     </div>
 
     <p style="margin-top:1.4rem">One limitation, stated plainly. The roster is installed into the directories Claude Code reads, and the two hooks are registered the way Claude Code registers hooks. The method itself is not tied to any one coding agent, but this tool is, and support for other agents is not built yet.</p>
+
+    <p style="margin-top:1.4rem">A second limitation, about when the Gates above actually run. They run before a release, not on every ticket. A ticket can reach done inside a batch of work that one review covers, and the release is the point where a review is required and refused for its absence. That is a deliberate trade, because a gate on every ticket was ignored in practice and a gate nobody runs is worse than one whose timing is written down. What the release refuses on is narrow and worth knowing: it refuses when no reviewer was started at all in the session shipping the work. It cannot tell whether the reviewer read the change, and it cannot tell whether the reviewer came back clean.</p>
 
     <h4 class="sub-h" id="release-vs-update">4.1 &gt; Release and Update point in opposite directions</h4>
     <p>Use <code>-Release</code> when you are shipping a change you made to the studio. Use <code>-Update</code> when you want a newer version of a studio that somebody else publishes. The two sit one letter apart in a shell history and they move work in opposite directions.</p>
