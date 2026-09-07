@@ -9,6 +9,17 @@ Newest first. Dates are when the change went public.
 ## 2026-09-07
 
 **What this gives you.**
+- **Releasing can no longer leave your private copy behind the public one.** The release command
+  publishes to the public repository and, before that, saves and uploads your own private copy.
+  The upload was written inside the branch that only runs when there is something new to save, so
+  a session that had already saved its work as it went was told there was nothing to do, and the
+  upload was skipped. The public repository then received work that the private one had never
+  sent anywhere, and the command reported success. Measured on a real release: four saved changes
+  sat on this machine only, at the moment strangers could read the same work publicly. The upload
+  now runs whichever way the work got there, and it is checked by asking the server what it holds
+  rather than by trusting that the upload said it worked. If the private copy cannot be uploaded,
+  nothing is published at all, because the public copy is the one a stranger clones and it must
+  never be the only copy that exists.
 - **The shared rules now arrive as a short document instead of a long one, and every project actually loads them.** The one file every project carried was about 12,200 tokens re-sent on every single request for the life of a session. Two projects held that file and imported nothing at all, so no rule written in it ever reached them. The rules are now in `GOVERNANCE_CORE.md`, roughly a quarter of the size, and the long document stays beside it as the reasoning behind each rule.
 - **The reasons did not go missing, they moved.** Each section of the short document names which part of the long one explains it. That matters because moving a rule out of what a session loads also stops anyone finding out why it exists, and a rule nobody can explain is the first one somebody deletes.
 - **Nothing can be quietly dropped in the move, and that is checked rather than promised.** A new check reads both documents and refuses if any section of the long one is neither pointed at by a rule nor declared as background only. It refuses in the other direction too, when a rule points at a section that has been renamed or removed, which is the half a hand-written list never has.
@@ -43,6 +54,28 @@ Newest first. Dates are when the change went public.
 - **Two sessions working on one project can no longer allocate the same decision number in silence.** It happened: two sessions read the same table, each took the next free number, and one project ended up with two decisions numbered 91 and two numbered 92. Neither writer could see the other. Decisions are referenced by number for the life of a project and are never renumbered, so a duplicate is permanent.
 - **A check that ignored dated archives by name now ignores them by shape.** The name list could not name a file that did not exist yet, so the act of archiving a document turned a check red at the next session start on work nobody had changed.
 - **The rule about writing short now has an instrument, and it fails on our own history.** It measures the shape of a reply rather than its length, deliberately: a limit becomes a target, and a target gets met by hiding detail rather than by writing better. Two hundred lines of bullet points pass; one dense paragraph does not. Run over 3,020 past replies in this project, 120 were past the limit and 48 opened with throat-clearing.
+
+### Publishing could leave your own copy behind the public one
+
+The release command saves and uploads your private copy, then publishes the public one. The
+upload was written inside the branch that only runs when there is something new to save. A
+session that had already saved its work as it went was therefore told there was nothing to do,
+the upload was skipped, and the public repository received work the private one had never sent
+anywhere. The command reported success. Measured on a real release: four saved changes sat on
+this machine only, at the moment a stranger could read the same work publicly.
+
+The upload now runs whichever way the work got there, and if it cannot be done, nothing is
+published at all. That order is deliberate. The public copy is the one a stranger clones, and it
+must never be the only copy that exists.
+
+Two things came out of proving it that are worth more than the fix. The first is that asking the
+server what it holds is not the same as trusting the upload to say it worked, so the check now
+reads the answer back; that is what the public half of the same command already did. The second
+is that the first attempt at the fix asked the server about a branch by its short name, and a
+server answers a short name with any branch whose name merely ends that way, sorted. A leftover
+backup branch could therefore answer for the real one and report everything already uploaded
+when nothing was. That is the original fault reappearing inside its own repair, and it was found
+by a review that was asked to attack the repair rather than admire it.
 
 ### A release could be made with nobody having looked
 

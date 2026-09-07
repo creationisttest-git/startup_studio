@@ -1243,7 +1243,7 @@ Studio-Source: $studioSha
 
         # verify against the remote rather than trusting the exit code
         $localSha  = (git rev-parse HEAD).Trim()
-        $remoteSha = ((git ls-remote origin $branch) -split '\s+')[0]
+        $remoteSha = ((git ls-remote origin ("refs/heads/" + $branch)) -split '\s+')[0]
         Pop-Location
         if ($localSha -ne $remoteSha) {
             Write-Host ""
@@ -1362,6 +1362,45 @@ function Test-StudioChecks {
     return $true
 }
 
+function Get-PrivateRemoteSha ([string]$Branch) {
+    # FULLY QUALIFIED, and that is the whole of this function. ls-remote matches a bare name
+    # against the TAIL of every ref at slash boundaries and answers sorted, so
+    # refs/heads/backup/master answers for master. Measured with the branch two commits ahead
+    # and a backup ref at the local head: the lookup returned the backup, this said origin
+    # already held the commit, nothing was pushed, and the release published. That is the defect
+    # this whole change exists to close, wearing the costume of its own fix.
+    $line = @(git -C $StudioRoot ls-remote origin ("refs/heads/" + $Branch) 2>$null | Where-Object { $_ }) | Select-Object -First 1
+    if (-not $line) { return $null }
+    ("$line" -split '\s+')[0]
+}
+
+# The private repo must never fall behind the public one, and for months it could.
+# The push lived inside the commit branch, so a tree that was already committed printed
+# "nothing to commit", pushed nothing, and published anyway. Measured on a real release:
+# the private repo sat four commits AHEAD of its remote at the moment the public export
+# received the same work, and the run reported success. The publish is gated on this now,
+# because the public copy is the one a stranger clones. What the remote holds is READ BACK
+# rather than inferred from the push exit code, which is what the public path already does
+# and is the half the old code never had: the whole defect was a tool reporting a success
+# it had not checked.
+function Sync-PrivateRemote {
+    $branch = "$(git -C $StudioRoot rev-parse --abbrev-ref HEAD 2>$null)".Trim()
+    $local  = "$(git -C $StudioRoot rev-parse HEAD 2>$null)".Trim()
+    if ((Get-PrivateRemoteSha $branch) -eq $local) {
+        Write-Host "  private : origin already has this commit" -ForegroundColor DarkGray
+        return $true
+    }
+    # Out-Null: anything git writes to stdout joins this function's return value, and -not on an
+    # array is false, so a failed push would pass the gate in silence.
+    git -C $StudioRoot push -q origin $branch 2>$null | Out-Null
+    if ((Get-PrivateRemoteSha $branch) -ne $local) {
+        Write-Host "  PRIVATE PUSH FAILED. Nothing published: the public copy must not get ahead of the private one." -ForegroundColor Red
+        return $false
+    }
+    Write-Host "  private : pushed $branch to origin" -ForegroundColor Green
+    return $true
+}
+
 function Invoke-Release {
     # The outward-facing writers. STUDIO_SAFE was added after an automated run wrote where
     # it should not have, and these two write to a PUBLIC remote, which is the one write
@@ -1416,12 +1455,15 @@ $($files.Count) file(s) changed: $(($files | Select-Object -First 10) -join ', '
                 Write-Host "  PRIVATE COMMIT FAILED. Nothing published." -ForegroundColor Red
                 return $false
             }
-            git -C $StudioRoot push -q origin HEAD 2>$null
-            if ($LASTEXITCODE -ne 0) { Write-Host "  private push failed" -ForegroundColor Red; return $false }
-            Write-Host "  private : committed and pushed, $($files.Count) file(s)" -ForegroundColor Green
+            Write-Host "  private : committed, $($files.Count) file(s)" -ForegroundColor Green
         }
     } else {
         Write-Host "  private : nothing to commit" -ForegroundColor DarkGray
+    }
+
+    # The push is OUTSIDE the commit branch, and the publish is gated on it.
+    if (-not $WhatIf) {
+        if (-not (Sync-PrivateRemote)) { return $false }
     }
 
     # 2. the public repo, from the same note
