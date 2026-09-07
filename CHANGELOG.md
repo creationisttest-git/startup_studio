@@ -55,6 +55,45 @@ Newest first. Dates are when the change went public.
 - **A check that ignored dated archives by name now ignores them by shape.** The name list could not name a file that did not exist yet, so the act of archiving a document turned a check red at the next session start on work nobody had changed.
 - **The rule about writing short now has an instrument, and it fails on our own history.** It measures the shape of a reply rather than its length, deliberately: a limit becomes a target, and a target gets met by hiding detail rather than by writing better. Two hundred lines of bullet points pass; one dense paragraph does not. Run over 3,020 past replies in this project, 120 were past the limit and 48 opened with throat-clearing.
 
+- **The picture of the method was missing one of its own roles, and a count beside it was wrong.** The page that explains how this works lists the team, then draws the flow they work through. One role was in the list and not in the drawing, so a single page disagreed with itself about who is involved. Reading the rest of it turned up worse: a sentence four lines under that list said four checks have to pass, where five roles are listed. Both are corrected.
+- **The release preview now says what it will do with your own copy, and warns you when the release will stop.** The command has a preview that shows what a release would do before it does it. It described the save and the publish and said nothing about uploading your private copy, which is the step that can now refuse the whole release. Measured on a real release: the preview said there was nothing to save and that it would publish, while the private copy sat seven changes behind. The preview now names the upload, or says it is not needed, and it says plainly when the release would refuse: no server configured, a server that does not answer, a detached checkout, or a server holding work your copy does not have. In those cases it no longer goes on to say it would publish. It reads the server to find out and never writes to it.
+
+### The picture of the method disagreed with the page it was drawn on
+
+The page that explains the method lists the roles, then draws the flow they work through. One
+role was in the list and not in the drawing. It now sits where that role actually acts, between
+the quality gates and the release: it records what was proved, so a release can refuse on it.
+The row of the diagram was already full, so every box, arrow and label in it was laid out again
+rather than one being squeezed in, and the description read aloud to anyone using a screen
+reader moved with the picture instead of describing the old one.
+
+Four lines under that same list, a sentence said four checks have to pass, with proof, before
+anything goes out. Five are listed. The count went stale when the fifth was added and nothing
+moved the number written below it. Nobody had asked about it, and no check anywhere reads a
+number written in a sentence, so it had been telling every reader of that page something that
+was not true.
+
+### A preview that said nothing about the step that can stop a release
+
+Releasing saves and uploads your private copy first, and if that upload cannot be done, nothing
+is published at all. That gate is new, and the preview never mentioned it. It printed that there
+was nothing to save and that it would publish, which is a preview of the easy half: the one step
+that can stop everything was the step it did not describe. Measured on a real release, the
+preview said exactly that while the private copy sat seven changes behind the server.
+
+The preview now names the upload it would make, or says the server already has the work. It
+reads the server to find out and never writes to it, so a preview stays a preview.
+
+Saying something is not the same as saying which, and the first version of this fix proved that
+the hard way. It printed one calm line for four different situations, and in three of them the
+release stops: there is no server configured, the server does not answer, or the server holds
+work your copy does not have. Worse, the situation where it stops because no server is
+configured printed the same sentence, word for word, as the ordinary case where your branch is
+simply new. A preview that reassures you in exactly the situations it exists to warn about is
+the original fault with a positive sentence in place of the silence. Each of those situations
+now says the release would refuse, says why, and stops rather than going on to tell you it would
+publish. The last line you read is the one you act on.
+
 ### Publishing could leave your own copy behind the public one
 
 The release command saves and uploads your private copy, then publishes the public one. The

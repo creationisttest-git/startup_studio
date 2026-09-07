@@ -1362,16 +1362,22 @@ function Test-StudioChecks {
     return $true
 }
 
-function Get-PrivateRemoteSha ([string]$Branch) {
+function Get-PrivateRemoteRef ([string]$Branch) {
     # FULLY QUALIFIED, and that is the whole of this function. ls-remote matches a bare name
     # against the TAIL of every ref at slash boundaries and answers sorted, so
     # refs/heads/backup/master answers for master. Measured with the branch two commits ahead
     # and a backup ref at the local head: the lookup returned the backup, this said origin
     # already held the commit, nothing was pushed, and the release published. That is the defect
     # this whole change exists to close, wearing the costume of its own fix.
-    $line = @(git -C $StudioRoot ls-remote origin ("refs/heads/" + $Branch) 2>$null | Where-Object { $_ }) | Select-Object -First 1
-    if (-not $line) { return $null }
-    ("$line" -split '\s+')[0]
+    #
+    # ONE lookup with two readers. The push and the preview must ask the same question the same
+    # way, or the qualification above holds in one and the defect returns in the other. ANSWERED
+    # is kept apart from the sha because "origin has no such branch" is an ordinary push and
+    # "origin did not answer" refuses the release; the first preview printed one string for both.
+    $lines = @(git -C $StudioRoot ls-remote origin ("refs/heads/" + $Branch) 2>$null | Where-Object { $_ })
+    $answered = ($LASTEXITCODE -eq 0)
+    $sha = if ($lines.Count) { ("$($lines[0])" -split '\s+')[0] } else { $null }
+    @{ Answered = $answered; Sha = $sha }
 }
 
 # The private repo must never fall behind the public one, and for months it could.
@@ -1386,18 +1392,77 @@ function Get-PrivateRemoteSha ([string]$Branch) {
 function Sync-PrivateRemote {
     $branch = "$(git -C $StudioRoot rev-parse --abbrev-ref HEAD 2>$null)".Trim()
     $local  = "$(git -C $StudioRoot rev-parse HEAD 2>$null)".Trim()
-    if ((Get-PrivateRemoteSha $branch) -eq $local) {
+    if ((Get-PrivateRemoteRef $branch).Sha -eq $local) {
         Write-Host "  private : origin already has this commit" -ForegroundColor DarkGray
         return $true
     }
     # Out-Null: anything git writes to stdout joins this function's return value, and -not on an
     # array is false, so a failed push would pass the gate in silence.
     git -C $StudioRoot push -q origin $branch 2>$null | Out-Null
-    if ((Get-PrivateRemoteSha $branch) -ne $local) {
+    if ((Get-PrivateRemoteRef $branch).Sha -ne $local) {
         Write-Host "  PRIVATE PUSH FAILED. Nothing published: the public copy must not get ahead of the private one." -ForegroundColor Red
         return $false
     }
     Write-Host "  private : pushed $branch to origin" -ForegroundColor Green
+    return $true
+}
+
+# The preview said nothing at all about the private push, and the push is now the step that can
+# REFUSE the whole release. A preview that omits the one write which can stop everything is a
+# preview of the easy half, and it reassures: measured on a real release, -WhatIf printed
+# "private : nothing to commit" and then "would publish" while the remote sat seven commits
+# behind. This reads the remote and never writes to it, so the preview stays a preview.
+#
+# SAYING SOMETHING IS NOT THE SAME AS SAYING WHICH. Measured across six real repositories, the
+# first version of this printed one calm line for four states, three of which REFUSE, and the
+# no-origin state, which refuses, printed the SAME STRING as the new-branch state, which
+# succeeds. So each refusing state says WOULD REFUSE in its own words, and the caller stops
+# rather than going on to say it would publish.
+#
+# The dirty case answers without a further round trip, because a release about to commit will
+# push what it commits. That is a saving and not a safeguard: the CLEAN path reads the remote,
+# which is also the state the original defect lived in, so a remote that prompts for a
+# credential can hold up a preview that used to make no network call at all.
+function Show-PrivatePushPreview ([bool]$WillCommit) {
+    $branch = "$(git -C $StudioRoot rev-parse --abbrev-ref HEAD 2>$null)".Trim()
+    if ($branch -eq 'HEAD' -or -not $branch) {
+        Write-Host "  WOULD REFUSE: HEAD is detached, so there is no branch to push and nothing would be published." -ForegroundColor Red
+        return $false
+    }
+    git -C $StudioRoot remote get-url origin 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  WOULD REFUSE: there is no origin remote to push to, so nothing would be published." -ForegroundColor Red
+        return $false
+    }
+    if ($WillCommit) {
+        Write-Host "  would push $branch to origin, carrying the commit above" -ForegroundColor DarkGray
+        return $true
+    }
+    $local = "$(git -C $StudioRoot rev-parse HEAD 2>$null)".Trim()
+    $ref   = Get-PrivateRemoteRef $branch
+    if (-not $ref.Answered) {
+        Write-Host "  WOULD REFUSE: origin did not answer, so the private push would fail and nothing would be published." -ForegroundColor Red
+        return $false
+    }
+    $remote = $ref.Sha
+    if (-not $remote) {
+        Write-Host "  would push $branch to origin, which does not have that branch yet" -ForegroundColor DarkGray
+        return $true
+    }
+    if ($remote -eq $local) {
+        Write-Host "  would not push: origin already has this commit" -ForegroundColor DarkGray
+        return $true
+    }
+    $at = if ("$remote".Length -ge 7) { "$remote".Substring(0, 7) } else { "$remote" }
+    # Exit 0 means the remote commit is contained in this branch and the push fast-forwards. Any
+    # other exit means it is not, whether the histories diverged or the commit is not in this
+    # repository at all, and a push that does not force is rejected either way.
+    git -C $StudioRoot merge-base --is-ancestor $remote HEAD 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  WOULD REFUSE: origin is at $at and this branch does not contain it, so the push would be rejected and nothing would be published." -ForegroundColor Red
+        return $false
+    }
+    Write-Host "  would push $branch to origin, which is at $at" -ForegroundColor DarkGray
     return $true
 }
 
@@ -1462,7 +1527,14 @@ $($files.Count) file(s) changed: $(($files | Select-Object -First 10) -join ', '
     }
 
     # The push is OUTSIDE the commit branch, and the publish is gated on it.
-    if (-not $WhatIf) {
+    if ($WhatIf) {
+        # A preview that has just said the release would refuse must not go on to say it would
+        # publish. The last line a reader sees is the one they act on, and this said both.
+        if (-not (Show-PrivatePushPreview ([bool]$dirty.Count))) {
+            Write-Host "  would stop there. Nothing would be published." -ForegroundColor Red
+            return $true
+        }
+    } else {
         if (-not (Sync-PrivateRemote)) { return $false }
     }
 

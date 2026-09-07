@@ -522,6 +522,14 @@
       "from": 28.6,
       "to": 28.8,
       "reason": "ST-170 and the review gate that failed it. Three explanations sit beside about fifteen lines of new release code: why the remote lookup must be fully qualified, which was the gate's major 1 and is this change's own defect wearing the costume of its fix; why the push output is discarded, without which a failed push passes the gate in silence; and why the push left the commit branch at all. Tightened once first, 28.9 to 28.8, and what remains is the measurement each claim rests on, which is the line this tool exists to reward."
+    },
+    {
+      "date": "2026-09-07",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 28.8,
+      "to": 28.9,
+      "reason": "studio.ps1 gained the private-push preview, whose four refusing branches each need to say why that state refuses rather than pushes; three comment blocks were tightened first and the rise is 28.8 to 28.9 per cent"
     }
   ],
   "files": {
@@ -643,12 +651,12 @@
       "ratio_all": 21.4
     },
     "studio.ps1": {
-      "nonblank": 2570,
-      "comment": 870,
+      "nonblank": 2641,
+      "comment": 896,
       "header": 36,
-      "controls": 94,
+      "controls": 96,
       "named": 0,
-      "ratio": 28.8,
+      "ratio": 28.9,
       "ratio_all": 33.9
     },
     "tools/archive-decisions.js": {
