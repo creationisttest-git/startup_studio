@@ -50,6 +50,16 @@
  * harder: a crash is a statement about the SUITE rather than about the line, so its reason has to
  * say why the suite cannot be made to report instead.
  *
+ * WHAT THIS CANNOT SEE, WRITTEN DOWN HERE BECAUSE A BLIND SPOT NOBODY HAS STATED READS AS A
+ * GUARANTEE. It mutates by deleting whole LINES, so a defect INSIDE a line is invisible to it. The
+ * live example: `const rec = record[k] && record[k][n]` deleted entire is caught, and dropping just
+ * the `record[k] &&` guard leaves a program that still parses, still runs, and throws only on an
+ * input no fixture happens to produce. Neither this tool nor the suite it drives guards that, and
+ * it was found by reading rather than by running. So COVERED means the LINE is load bearing. It
+ * does not mean every part of the line is, and it does not mean the assertion that reddened is
+ * asserting the right thing: an assertion can hold for a reason its name does not describe, which
+ * a line-deletion run cannot distinguish from a real one (S137).
+ *
  * IT REFUSES IN BOTH DIRECTIONS, WHICH IS THE PART THAT KEEPS THE RECORD HONEST. An unaccounted
  * line fails, so a new guard nobody proved cannot arrive quietly. A baseline entry that is no
  * longer in the state it was accepted for ALSO fails, so an exemption written months ago cannot
@@ -69,6 +79,7 @@
  * be run as "node <suite>" with no arguments. Every node suite in this repository does both.
  *
  *   node tools/check-mutation-coverage.js                     the gate-dispatch pair
+ *   node tools/check-mutation-coverage.js --tool tools/x.js  x against tools/x.test.js
  *   node tools/check-mutation-coverage.js --report            every line and its classification
  *   node tools/check-mutation-coverage.js --write-baseline    record the accountable lines as they are
  *   options: --tool <file>  --suite <file>  --root <dir>  --baseline <file>  --quiet
@@ -87,8 +98,16 @@ const path = require('path')
 const { execFileSync } = require('child_process')
 
 const DEFAULT_TOOL = 'tools/check-gate-dispatch.js'
-const DEFAULT_SUITE = 'tools/check-gate-dispatch.test.js'
 const DEFAULT_BASELINE = 'tools/mutation-coverage-baseline.json'
+
+// THE SUITE IS DERIVED FROM THE TOOL, and it used to be a hardcoded default. That default was
+// this file's own first subject, so `--tool <anything else>` with no `--suite` measured that tool
+// against a suite belonging to a different one, and produced a confident verdict that meant
+// nothing: pointed at ITSELF it reported 217 code lines, 0 covered and 131 silent. Zero covered is
+// not a finding about coverage, it is the shape of an answer to a question nobody asked. A flag
+// left off must not silently change the subject (S140 in a new costume), so the pair is now
+// derived and a missing suite is a usage error naming the file it looked for.
+function suiteFor (toolRel) { return toolRel.replace(/\.js$/, '.test.js') }
 
 const COUNT = /(\d+) passed, (\d+) failed/
 
@@ -112,20 +131,30 @@ function candidates (lines) {
   const out = []
   let inBlock = false
   for (let i = 0; i < lines.length; i++) {
-    const t = lines[i].trim()
-    const wasInBlock = inBlock
+    let t = lines[i].trim()
+    // Code sharing a line with the CLOSE of a block comment is still code. It used to be dropped
+    // from every bucket, so the N code lines this tool reports was quietly short and no fixture
+    // could see it: the fixtures only ever closed a comment on a line of its own. ST-141 m3.
     if (inBlock) {
-      if (t.indexOf('*/') !== -1) inBlock = false
-      continue
+      const close = t.indexOf('*/')
+      if (close === -1) continue
+      inBlock = false
+      t = t.slice(close + 2).trim()
+      if (!t) continue
     }
     if (t.slice(0, 2) === '/*') {
-      if (t.indexOf('*/') === -1) inBlock = true
-      continue
+      const close = t.indexOf('*/')
+      if (close === -1) { inBlock = true; continue }
+      t = t.slice(close + 2).trim()
+      if (!t) continue
     }
+    // The guard that used to sit at the bottom of this loop, `if (wasInBlock) continue`, was
+    // unreachable: wasInBlock was captured from inBlock immediately above a branch that continues
+    // whenever inBlock is true, so it could only ever be false here. Deleting it changed the
+    // verdict for no line in any file in tools. ST-141 m2.
     if (!t) continue
     if (t.slice(0, 2) === '//') continue
     if (t.slice(0, 2) === '#!') continue
-    if (wasInBlock) continue
     out.push(i)
   }
   return out
@@ -234,7 +263,9 @@ function main (argv) {
   // --tool instead: a usage error that silently became a verdict about the default pair.
   const rootRel = flagOf(argv, 'root', process.cwd())
   const toolRel = flagOf(argv, 'tool', DEFAULT_TOOL)
-  const suiteRel = flagOf(argv, 'suite', DEFAULT_SUITE)
+  // Derived only when there IS a tool: --tool typed last leaves it null, and deriving from null
+  // would throw out of a usage path whose whole job is to print which flag is missing.
+  const suiteRel = flagOf(argv, 'suite', toolRel === null ? null : suiteFor(toolRel))
   const baselineRel = flagOf(argv, 'baseline', DEFAULT_BASELINE)
   for (const pair of [['tool', toolRel], ['suite', suiteRel], ['baseline', baselineRel], ['root', rootRel]]) {
     if (pair[1] === null) {
@@ -335,4 +366,4 @@ function main (argv) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)))
 
-module.exports = { main, candidates, accountable }
+module.exports = { main, candidates, accountable, suiteFor }

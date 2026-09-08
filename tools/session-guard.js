@@ -118,8 +118,28 @@ function readState (id) {
   try { return JSON.parse(fs.readFileSync(statePath(id), 'utf8')) || {}; } catch (e) { return {}; }
 }
 
+// Every session left one of these behind for good, so the temp directory grew a file per session
+// forever. They are swept on write rather than on read, because a read happens on every turn and
+// a write happens only when a refusal is spent. A week is well past the life of any session, and
+// the whole thing fails open: a guard that cannot clean up is still a guard, and one that throws
+// while tidying is worse than the litter.
+const STATE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+
+function sweepState (now) {
+  try {
+    for (const f of fs.readdirSync(os.tmpdir())) {
+      if (f.indexOf('studio-session-guard-') !== 0) continue;
+      const p = path.join(os.tmpdir(), f);
+      try {
+        if (now - fs.statSync(p).mtimeMs > STATE_LIFETIME_MS) fs.unlinkSync(p);
+      } catch (e) { /* gone, or someone else's; either way not ours to worry about */ }
+    }
+  } catch (e) { /* fail open */ }
+}
+
 function writeState (id, state) {
   try { fs.writeFileSync(statePath(id), JSON.stringify(state)); } catch (e) { /* fail open */ }
+  sweepState(Date.now());
 }
 
 // Two spaces between fields and no byte order mark, which is the format the health report parses.
@@ -136,8 +156,11 @@ function localStamp () {
 
 function log (event, outcome, detail) {
   try {
+    // os.EOL rather than a literal CRLF. The format the health report parses is the two spaces
+    // between fields, not the line ending, and writing CRLF on a host that does not use it puts
+    // a stray carriage return into every line of a file two writers append to.
     const line = localStamp() +
-                 '  ' + event + '  ' + outcome + '  ' + (detail || '') + '\r\n';
+                 '  ' + event + '  ' + outcome + '  ' + (detail || '') + os.EOL;
     fs.appendFileSync(HOOK_LOG, line, { encoding: 'utf8' });
   } catch (e) { /* the log is evidence, never a dependency */ }
 }

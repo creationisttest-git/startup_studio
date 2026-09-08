@@ -86,6 +86,13 @@ const EXPECT_ONLY = new Set(['WARM_START.md', 'CLAUDE.md'])
 // people install. Both shapes are looked for and the first that exists wins.
 const AGENT_DIRS = ['base/agents', 'agents']
 
+// AND THE BASELINE HAS TO SURVIVE THAT FLATTENING TOO, which it did not for weeks. Every key was
+// a source-tree path, so on the published export base/fragments/x.md was measured as fragments/x.md
+// and matched no record, and the check was red on every installed copy in the session-start AND
+// release sets with nothing the reader could do about it. It passed here on every run because
+// here the paths are the ones it was written against (S133). One canonical key serves both.
+function canonicalKey (rel) { return rel.replace(/^base\//, '') }
+
 const SCAN = [
   { dir: '.', depth: 0, ext: ['.html', '.md', '.ps1'] },
   { dir: 'base/agents', depth: 3, ext: ['.md'] },
@@ -273,10 +280,34 @@ function main (argv) {
     return 1
   }
 
+  // Both sides keyed the same way, so a record written in one layout is found in the other.
+  const record = {}
+  for (const f of Object.keys(base.data.exempt)) {
+    const k = canonicalKey(f)
+    record[k] = record[k] || {}
+    for (const n of Object.keys(base.data.exempt[f])) record[k][n] = base.data.exempt[f][n]
+  }
+  // KEYED ON THE LAYOUT, NOT THE FILE AND NOT THE DIRECTORY, AND THE DIFFERENCE IS A REFUSAL.
+  // Forgiving an absent FILE forgives a deletion; forgiving an absent DIRECTORY forgives a
+  // deleted TREE, which is the same defect one level up. Measured on a copy of HEAD: removing
+  // base/fragments/advocacy.md exits 1, removing the whole tree exits 0 and prints nothing under
+  // --quiet. Absence is legitimate only where the EXPORT caused it, so here, where base/agents
+  // exists, nothing is forgiven and an absent record is a deletion (S145).
+  const sourceLayout = AGENT_DIRS.some(function (d) {
+    return d.indexOf('base/') === 0 && fs.existsSync(path.join(root, d.split('/').join(path.sep)))
+  })
+  const scannedDirs = {}
+  for (const f of files) {
+    const k = canonicalKey(f)
+    const cut = k.lastIndexOf('/')
+    scannedDirs[cut === -1 ? '.' : k.slice(0, cut)] = true
+  }
+  function dirOf (k) { const cut = k.lastIndexOf('/'); return cut === -1 ? '.' : k.slice(0, cut) }
+
   const problems = []
   for (const f of Object.keys(measured)) {
     for (const n of Object.keys(measured[f])) {
-      const rec = base.data.exempt[f] && base.data.exempt[f][n]
+      const rec = record[canonicalKey(f)] && record[canonicalKey(f)][n]
       const found = measured[f][n].count
       if (!rec) {
         problems.push(f + ': ' + found + ' claim(s) of "' + (WORDS[Number(n)] || n) +
@@ -289,17 +320,32 @@ function main (argv) {
           '" where the record holds ' + rec.count + '. Held exact, so a new one and a deleted one both refuse.')
     }
   }
-  for (const f of Object.keys(base.data.exempt)) {
-    for (const n of Object.keys(base.data.exempt[f])) {
-      if (!measured[f] || !measured[f][n])
-        problems.push(f + ': the record holds ' + base.data.exempt[f][n].count + ' claim(s) of "' +
-          (WORDS[Number(n)] || n) + '" and none is there now. Record the change with --write-baseline.')
+  // A record for a file this install does not carry is NOT a stale record. base/governance is
+  // deliberately not published, so on the export those entries name files that were never copied.
+  // Counted and NAMED in the summary rather than refused, because refusing on something a
+  // legitimate install can never satisfy locks that install out for good. The names matter: a
+  // bare integer here is a number nobody can act on, and the assertion covering it could not
+  // fail for the reason it gave. A record for a file whose DIRECTORY is here and whose claim has
+  // gone is still a refusal, which is the case the rule was written for.
+  // Named once per FILE rather than once per (file, number): two exempt numbers in one absent
+  // file printed the same name twice, which reads as two problems.
+  const notCarried = []
+  const measuredByKey = {}
+  for (const f of Object.keys(measured)) measuredByKey[canonicalKey(f)] = measured[f]
+  for (const f of Object.keys(record)) {
+    for (const n of Object.keys(record[f])) {
+      if (measuredByKey[f] && measuredByKey[f][n]) continue
+      if (!sourceLayout && !scannedDirs[dirOf(f)]) { notCarried.push(f); continue }
+      problems.push(f + ': the record holds ' + record[f][n].count + ' claim(s) of "' +
+        (WORDS[Number(n)] || n) + '" and none is there now. Record the change with --write-baseline.')
     }
   }
 
   const matching = claims.filter(c => c.n === roster.count).length
   say(quiet, 'roster ' + roster.count + ' in ' + roster.dir + ': ' + matching + ' claim(s) state it, ' +
-    (claims.length - matching) + ' state something else, across ' + files.length + ' file(s)')
+    (claims.length - matching) + ' state something else, across ' + files.length + ' file(s)' +
+    (notCarried.length ? ', ' + new Set(notCarried).size + ' exemption(s) for file(s) this install does ' +
+      'not carry: ' + Array.from(new Set(notCarried)).sort().join(', ') : ''))
   if (!problems.length) return 0
 
   process.stdout.write('FAIL  ' + problems.length + ' roster claim(s) do not match what is on disk\n')

@@ -228,6 +228,24 @@ const ALL_THREE = {
     code === 2 && /--tool needs a value/.test(out));
 }
 
+/* ST-141 round seven M3. THE SUITE USED TO BE A HARDCODED DEFAULT, and that default was this
+   tool's own first subject. So --tool <anything else> with no --suite measured that tool against
+   a suite belonging to a different one and printed a confident verdict about nothing: pointed at
+   ITSELF it reported 217 code lines, 0 covered, 131 silent. Zero covered is not a finding about
+   coverage, it is the shape of an answer to a question nobody asked, and it is why this tool
+   could not measure itself. Mutation: put the constant back as the fallback and the first two go
+   red while the explicit --suite one stays green, which is what makes it a proof about the
+   DEFAULT rather than about the flag working at all. */
+{
+  const { suiteFor } = require('./check-mutation-coverage.js');
+  ok('the suite is derived from the tool rather than defaulted to one particular pair',
+    suiteFor('tools/check-reply-shape.js') === 'tools/check-reply-shape.test.js');
+  ok('and the derivation is the tool name, so a tool can measure ITSELF',
+    suiteFor('tools/check-mutation-coverage.js') === 'tools/check-mutation-coverage.test.js');
+  ok('and only the trailing .js is replaced, so a dotted directory name survives it',
+    suiteFor('a.b/c.js') === 'a.b/c.test.js');
+}
+
 // --- quiet, and what counts as a line worth mutating ------------------------------------------
 {
   const d = world(ALL_THREE);
@@ -241,6 +259,28 @@ const ALL_THREE = {
   const got = candidates(lines);
   ok('blank lines, comments and the shebang are not mutated, because deleting one proves nothing',
     got.length === 3 && got[0] === 1 && got[1] === 7 && got[2] === 9);
+}
+/* ST-141 m3, and it is the case the fixture above could never reach. Every comment in it closes
+   on a line of its own, so a line that CLOSES a block and carries code after it was dropped from
+   every bucket and the N code lines summary was quietly short. Nothing here could see it, which
+   is why it survived seven review rounds on this file. Mutation: put back the branch that
+   continued unconditionally once a block comment closed, and both of the first two go red. */
+{
+  const got = candidates(['/* a block', ' * of comment', ' */ const x = 1', 'const y = 2']);
+  ok('code sharing a line with the CLOSE of a block comment is still a line worth mutating',
+    got.length === 2 && got[0] === 2 && got[1] === 3);
+}
+{
+  const got = candidates(['/* one line */ const x = 1', 'const y = 2']);
+  ok('and code sharing a line with a whole one-line block comment is too',
+    got.length === 2 && got[0] === 0 && got[1] === 1);
+}
+{
+  // The control. Without it the two above are indistinguishable from a classifier that has
+  // stopped excluding comments at all, which would report every header line as a code line.
+  const got = candidates(['/* a block', ' * of comment', ' */', 'const x = 1']);
+  ok('a line that closes a block and carries nothing else is still not a line worth mutating',
+    got.length === 1 && got[0] === 3);
 }
 
 /* CRASHED IS ITS OWN VERDICT AND IS HELD TO THE SAME ACCOUNT AS SILENT. A crash used to be ORed
@@ -345,7 +385,7 @@ junk.forEach(d => { try { fs.rmSync(d, { recursive: true, force: true }); } catc
     /--root needs a value/.test(b.out));
 }
 
-const EXPECTED_ASSERTIONS = 35;
+const EXPECTED_ASSERTIONS = 41;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

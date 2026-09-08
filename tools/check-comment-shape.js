@@ -267,6 +267,14 @@ function readPublishedPaths (root) {
   return { entries: entries, manifest: manifest, hasManifest: manifestBody !== null };
 }
 
+// ONE KEY FOR BOTH LAYOUTS, BECAUSE THE EXPORT FLATTENS THE SOURCE TREE. The manifest publishes
+// base/board as board, so a baseline keyed on the source path matched nothing on an installed
+// copy: eleven published files read as files the record had never seen, were held to the 5 per
+// cent cap meant for a new file, and refused, in the session-start AND release sets, with
+// nothing the reader could do. It passed here because here the paths are the ones it was written
+// against (S133). A file at base/board/board.js is now REPORTED under the name a reader sees.
+function canonicalKey (rel) { return rel.replace(/\\/g, '/').replace(/^base\//, ''); }
+
 function resolveEntry (root, entry) {
   var candidates = [entry.from];
   var rel = entry.from.replace(/\\/g, '/');
@@ -313,7 +321,8 @@ function measureTree (root, entries) {
   var result = { root: root, roster: roster, absent: found.absent, files: {} };
   found.files.forEach(function (rel) {
     var lang = CODE_LANG[path.extname(rel).toLowerCase()];
-    result.files[rel] = measureText(readText(path.join(root, rel)), lang, roleRe);
+    // Read by the path on THIS disk, key by the name the record holds in either layout.
+    result.files[canonicalKey(rel)] = measureText(readText(path.join(root, rel)), lang, roleRe);
   });
   return result;
 }
@@ -331,9 +340,19 @@ function totals (measured) {
   return t;
 }
 
+// A record written before the key was canonical is read as though it had been, so an existing
+// baseline needs no migration to be found and a rewritten one stays found.
+function canonicaliseBaseline (b) {
+  if (!b || !b.files) return b;
+  var out = {};
+  Object.keys(b.files).forEach(function (k) { out[canonicalKey(k)] = b.files[k]; });
+  b.files = out;
+  return b;
+}
+
 function readBaseline (file) {
   if (!fs.existsSync(file)) return null;
-  var b = JSON.parse(readText(file));
+  var b = canonicaliseBaseline(JSON.parse(readText(file)));
   if (!b || typeof b !== 'object' || !b.files || typeof b.files !== 'object') throw new Error('the baseline at ' + file + ' has no files object.');
   return b;
 }

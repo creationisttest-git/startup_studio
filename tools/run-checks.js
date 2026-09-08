@@ -275,8 +275,13 @@ function definitions (root) {
     },
     {
       name: 'reply-shape',
-      sets: ['wind-down'],
-      where: ['CLAUDE.md'],
+      sets: ['wind-down', 'release'],
+      // ANCHORED ON THE TOOL, NOT ON CLAUDE.md, BECAUSE CLAUDE.md DOES NOT PUBLISH. This check
+      // reads the session TRANSCRIPTS and nothing in the repository, so CLAUDE.md was never the
+      // artefact it is about; it was a stand-in, and it is not in PUBLIC_MANIFEST, so on every
+      // installed copy the row read ABSENT and the check never ran. Three published surfaces
+      // said a verbose session refuses its own release and it could not, for any reader (S133).
+      where: ['tools/check-reply-shape.js'],
       needs: ['tools/check-reply-shape.js'],
       build: (f, t) => ({ exe: process.execPath, args: [t.abs, '--root', root, '--quiet'] }),
       advisory: [3],

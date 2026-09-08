@@ -30,20 +30,26 @@
  * refusing on something a legitimate install can never satisfy locks that install out for good.
  *
  * SO THERE ARE THREE ANSWERS AND NOT TWO, AND THE THIRD IS THE ONE THAT KEEPS IT HONEST.
- * A review agent was started: exit 0. A transcript was found and read and holds no review
- * agent at all: exit 1, and that refuses, because a positive finding of nothing is a real
- * finding. No transcript could be read: exit 3, advisory, named out loud. Collapsing the last
- * two would mean a host that writes no transcript silently blocks every release, and reading
- * the first two as one would mean not being able to look counted as having looked.
+ * Both kinds of review agent were started: exit 0. A transcript was found and read and is
+ * missing either kind: exit 1, and that refuses, because a positive finding of nothing is a
+ * real finding. No transcript could be read: exit 3, advisory, named out loud. Collapsing the
+ * last two would mean a host that writes no transcript silently blocks every release, and
+ * reading the first two as one would mean not being able to look counted as having looked.
+ *
+ * A REVIEWER IS TWO LISTS AND NOT ONE. PRODUCT_REVIEWERS read the WORK; METHOD_REVIEWERS read
+ * the METHOD, meaning whether the studio's own process was followed and whether the replies the
+ * founder was sent are the shape the studio publishes. A release needs ONE OF EACH, because as
+ * one flat list a session that started only the director would clear a gate whose entire
+ * question is whether anybody read the change. The page draws six Gate tiles and this is the six.
  *
  * FOUR THINGS THE CODE BELOW DECIDES ONCE, AND WHY EACH IS ONE PLACE RATHER THAN TWO.
- * Which roles count as a review, because the same question asked twice is two answers that
- * disagree eventually, and a review that quietly stops counting is a silent miss. Which tool
- * name starts an agent, because the host has used two across versions and recognising only the
- * current one turns a rename into a report that nobody has ever reviewed anything. Which
- * session is the current one, which is the most recently written, because the host is still
- * appending to it while this runs. And how a working directory becomes a directory name, which
- * is the undocumented part described above.
+ * Which roles count as a review and in which of the two kinds, because the same question asked
+ * twice is two answers that disagree eventually, and a review that quietly stops counting is a
+ * silent miss. Which tool name starts an agent, because the host has used two across versions
+ * and recognising only the current one turns a rename into a report that nobody has ever
+ * reviewed anything. Which session is the current one, which is the most recently written,
+ * because the host is still appending to it while this runs. And how a working directory
+ * becomes a directory name, which is the undocumented part described above.
  *
  * A TRANSCRIPT IS READ WHILE IT IS BEING WRITTEN, so the last line can be half a line. An
  * unparseable line is skipped rather than fatal: the alternative is a check that refuses a
@@ -58,7 +64,7 @@
  *   node tools/check-gate-dispatch.js --list          name every agent the session started
  *   options: --root <dir>  --home <dir>  --quiet
  *
- * Exit 0 a review ran, 1 none did, 2 on a usage error, 3 nothing could be read.
+ * Exit 0 one review of EACH KIND ran, 1 either kind is missing, 2 usage error, 3 unreadable.
  */
 
 'use strict'
@@ -67,7 +73,10 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 
-const REVIEW_ROLES = ['qa-tester', 'code-reviewer', 'security-reviewer', 'content-reviewer', 'mobile-qa']
+// Two lists, one of each required. See the header for why they cannot be one.
+const PRODUCT_REVIEWERS = ['qa-tester', 'code-reviewer', 'security-reviewer', 'content-reviewer', 'mobile-qa']
+const METHOD_REVIEWERS = ['studio-director']
+const REVIEW_ROLES = PRODUCT_REVIEWERS.concat(METHOD_REVIEWERS)
 
 const DISPATCH_TOOLS = ['Agent', 'Task']
 
@@ -189,6 +198,23 @@ function main (argv) {
     return 1
   }
 
+  const product = reviews.filter(d => PRODUCT_REVIEWERS.indexOf(d.role) !== -1)
+  const method = reviews.filter(d => METHOD_REVIEWERS.indexOf(d.role) !== -1)
+
+  if (!product.length) {
+    process.stdout.write('  NO PRODUCT REVIEW RAN in this session. Started: ' + names + '.\n')
+    process.stdout.write('  The METHOD was reviewed and the WORK was not. Start one of: ' + PRODUCT_REVIEWERS.join(', ') + '.\n')
+    process.stdout.write('  Session: ' + path.basename(file) + '\n')
+    return 1
+  }
+
+  if (!method.length) {
+    process.stdout.write('  NO METHOD REVIEW RAN in this session. Started: ' + names + '.\n')
+    process.stdout.write('  The WORK was reviewed and the METHOD was not. Start one of: ' + METHOD_REVIEWERS.join(', ') + '.\n')
+    process.stdout.write('  Session: ' + path.basename(file) + '\n')
+    return 1
+  }
+
   say('  ' + reviews.length + ' review agent(s) started in this session: ' + names)
   say('  It proves they were started, never that they passed. Session: ' + path.basename(file))
   return 0
@@ -196,4 +222,4 @@ function main (argv) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)))
 
-module.exports = { main, projectDirName, REVIEW_ROLES, DISPATCH_TOOLS, dispatchesIn }
+module.exports = { main, projectDirName, REVIEW_ROLES, PRODUCT_REVIEWERS, METHOD_REVIEWERS, DISPATCH_TOOLS, dispatchesIn }

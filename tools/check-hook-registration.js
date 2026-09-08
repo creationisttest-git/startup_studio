@@ -385,7 +385,16 @@ function main () {
   return notices.length ? 3 : 0;
 }
 
-let code = 1;
-try { code = main(); }
-catch (e) { console.log('FAIL  ' + e.message); code = 1; }
-process.exit(code);
+// Guarded, because without it `require` of this file RAN the check and then called
+// process.exit, so anything that loaded it to reach one function killed its own process. Every
+// sibling in tools guards this; this one did not, and nothing could have noticed because nothing
+// required it. The export is the other half: a guard with nothing exported leaves a file that can
+// be loaded safely and still gives a caller nothing.
+if (require.main === module) {
+  let code = 1;
+  try { code = main(); }
+  catch (e) { console.log('FAIL  ' + e.message); code = 1; }
+  process.exit(code);
+}
+
+module.exports = { main };

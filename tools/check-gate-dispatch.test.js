@@ -220,7 +220,7 @@ function run (w, extra) {
 // --- a review agent was started: the half that announces a check gone paranoid ----------------
 {
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
   const r = run(w);
   ok('a session that started a reviewer passes', r.code === 0);
   ok('and it names which reviewer, so the row is worth reading', /code-reviewer 1/.test(r.out));
@@ -240,6 +240,8 @@ function run (w, extra) {
     /2 agent\(s\) started/.test(r.out));
   ok('and it says which roles WOULD have counted, so the refusal is actionable rather than final',
     /A reviewer is one of/.test(r.out) && /qa-tester/.test(r.out));
+  ok('and it stops there rather than falling through and refusing a second time for another reason',
+    !/NO PRODUCT REVIEW RAN/.test(r.out) && !/NO METHOD REVIEW RAN/.test(r.out));
 }
 {
   const w = world();
@@ -298,7 +300,7 @@ function run (w, extra) {
   // THE FIRST RACE, and it was called impossible to fixture twice. See the header.
   const w = world();
   const made = dangling(transcriptDir(w), 'a-vanished.jsonl');
-  session(w, 'z-real', [dispatch('qa-tester')]);
+  session(w, 'z-real', [dispatch('qa-tester'), dispatch('studio-director')]);
   const r = run(w);
   ok('a session listed and then gone before it can be measured is skipped rather than fatal',
     made && r.code === 0);
@@ -319,6 +321,70 @@ function run (w, extra) {
     (r.out.match(/CANNOT TELL/g) || []).length === 1);
 }
 
+// --- the exported main returns a value, and that value is not the exit code ------------------
+// ST-141 round seven M2. The final `return 0` was accepted as SILENT on the written reason that
+// no input can tell 0 from undefined, because process.exit(undefined) also exits 0. That reason
+// was false from the moment main was exported: called in process the return VALUE is readable,
+// and 0 and undefined are different values. An exemption is a claim, and this one was never run.
+// Both calls are wrapped, because a mutant that throws would otherwise kill the whole suite and
+// be counted as unmeasurable rather than as red, which is S127 and cost a whole derivation once.
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  let rv = 'threw';
+  try { rv = require('./check-gate-dispatch.js').main(['--root', w.root, '--home', w.home, '--quiet']); }
+  catch (e) { rv = 'threw'; }
+  ok('the exported main RETURNS zero on a pass rather than only exiting zero', rv === 0);
+
+  const w2 = world();
+  session(w2, 's1', [dispatch('pm')]);
+  let rv2 = 'threw';
+  try { rv2 = require('./check-gate-dispatch.js').main(['--root', w2.root, '--home', w2.home, '--quiet']); }
+  catch (e) { rv2 = 'threw'; }
+  ok('and it returns one when it refuses, so the two are told apart by value and not by exit code',
+    rv2 === 1);
+}
+
+// --- a reviewer is TWO kinds, and one of each is required -------------------------------------
+// The director reads the METHOD and never the diff, so it can never stand in for the five that
+// read the WORK, and the five say nothing about whether the studio's own process was followed.
+// The published page draws six Gate tiles; this is the half that makes the six true. ST-156.
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('security-reviewer')]);
+  const r = run(w);
+  ok('a session that reviewed the WORK and not the METHOD refuses', r.code === 1);
+  ok('and it says which half is missing rather than that no review ran at all',
+    /NO METHOD REVIEW RAN/.test(r.out) && !/NO REVIEW RAN/.test(r.out));
+  ok('and it names what to start, so the refusal is actionable rather than final',
+    /studio-director/.test(r.out));
+  ok('and it still names what DID run, so the reader can tell it looked',
+    /code-reviewer 1/.test(r.out) && /security-reviewer 1/.test(r.out));
+  ok('and it names the session it read, which is the only way to check it read the right one',
+    /Session: s1\.jsonl/.test(r.out));
+}
+{
+  const w = world();
+  session(w, 's1', [dispatch('studio-director')]);
+  const r = run(w);
+  ok('a session that reviewed the METHOD and not the WORK refuses, which is the whole reason '
+    + 'the director is held in its own list', r.code === 1);
+  ok('and it says the work was not read rather than reporting a clean gate',
+    /NO PRODUCT REVIEW RAN/.test(r.out));
+  ok('and it names the five that would have counted, none of them the director',
+    /code-reviewer/.test(r.out) && !/Start one of: [^\n]*studio-director/.test(r.out));
+  ok('and this branch names the session it read too, so neither refusal loses the file',
+    /Session: s1\.jsonl/.test(r.out));
+}
+{
+  const w = world();
+  session(w, 's1', [dispatch('mobile-qa'), dispatch('studio-director')]);
+  const r = run(w);
+  ok('one of each passes, and that is the only shape that does', r.code === 0);
+  ok('and it names both, so the row says which six the page means',
+    /mobile-qa 1/.test(r.out) && /studio-director 1/.test(r.out));
+}
+
 // --- the newest session is the one that is read -----------------------------------------------
 // Sorts second AND is written second, so name, creation and metadata order all disagree with
 // modification order. Both directions are asserted. See the header.
@@ -335,7 +401,7 @@ function run (w, extra) {
 {
   const w = world();
   session(w, 'a-oldest', [dispatch('pm')], 1000000);
-  session(w, 'm-newest', [dispatch('mobile-qa')], 3000000);
+  session(w, 'm-newest', [dispatch('mobile-qa'), dispatch('studio-director')], 3000000);
   session(w, 'z-middle', [dispatch('tech-lead')], 2000000);
   const r = run(w);
   ok('and a reviewer in the NEWEST session passes, so the rule is a rule and not an accident',
@@ -347,14 +413,14 @@ function run (w, extra) {
 // --- shapes the host really produces ----------------------------------------------------------
 {
   const w = world();
-  session(w, 's1', [dispatch('security-reviewer'), '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Task","input":{"subagent_type":"code-rev']);
+  session(w, 's1', [dispatch('security-reviewer'), '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Task","input":{"subagent_type":"code-rev', dispatch('studio-director')]);
   const r = run(w);
   ok('a half-written last line is skipped rather than crashing the check', r.code === 0);
   ok('and nothing about the failure reaches the reader as an error', !/SyntaxError/.test(r.out));
 }
 {
   const w = world();
-  session(w, 's1', ['{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Task","input":{"subagent_type":"code-rev', dispatch('security-reviewer')]);
+  session(w, 's1', ['{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Task","input":{"subagent_type":"code-rev', dispatch('security-reviewer'), dispatch('studio-director')]);
   const r = run(w);
   ok('a half-written line does not stop the scan finding a reviewer AFTER it', r.code === 0);
   ok('and that reviewer is the one counted, so a bad record is skipped and not the rest of the file',
@@ -365,7 +431,7 @@ function run (w, extra) {
   session(w, 's1', [JSON.stringify({
     type: 'assistant',
     message: { content: [{ type: 'tool_use', name: 'Task', input: { subagent_type: 'content-reviewer' } }] }
-  })]);
+  }), dispatch('studio-director')]);
   ok('the older name for the dispatch tool is recognised, so a rename is not a silent miss',
     run(w).code === 0);
 }
@@ -375,8 +441,9 @@ function run (w, extra) {
     type: 'assistant',
     message: { content: [{ type: 'tool_use', name: 'Bash', input: { subagent_type: 'code-reviewer' } }] }
   })]);
+  const rNotTool = run(w);
   ok('a tool that is not the dispatch tool does not count as a review, whatever it carries',
-    run(w).code === 1);
+    rNotTool.code === 1 && /NO REVIEW RAN/.test(rNotTool.out) && /0 agent\(s\) started/.test(rNotTool.out));
 }
 {
   const w = world();
@@ -402,7 +469,7 @@ function run (w, extra) {
 {
   // THE PAIR: this goes red only when BOTH guards are gone. See the header.
   const w = world();
-  session(w, 's1', ['null', dispatch('qa-tester')]);
+  session(w, 's1', ['null', dispatch('qa-tester'), dispatch('studio-director')]);
   const r = run(w);
   ok('a bare null line is skipped and the reviewer after it is still found', r.code === 0);
   ok('and nothing about it reaches the reader as an error', !/TypeError/.test(r.out));
@@ -414,7 +481,7 @@ function run (w, extra) {
     message: { content: null },
     toolUseResult: { subagent_type: 'code-reviewer' }
   });
-  session(w, 's1', [nullContent, dispatch('qa-tester')]);
+  session(w, 's1', [nullContent, dispatch('qa-tester'), dispatch('studio-director')]);
   const r = run(w);
   ok('a record whose content is null is skipped, not walked, so the scan survives it', r.code === 0);
   ok('and the reviewer after it is still counted', /qa-tester 1/.test(r.out));
@@ -425,7 +492,7 @@ function run (w, extra) {
     type: 'assistant',
     message: { content: 'a plain string mentioning subagent_type in prose' }
   });
-  session(w, 's1', [stringContent, dispatch('qa-tester')]);
+  session(w, 's1', [stringContent, dispatch('qa-tester'), dispatch('studio-director')]);
   const r = run(w);
   ok('a record whose content is a string is skipped the same way', r.code === 0);
   ok('and the reviewer after THAT is still counted', /qa-tester 1/.test(r.out));
@@ -437,7 +504,7 @@ function run (w, extra) {
     type: 'assistant',
     message: { content: { subagent_type: 'code-reviewer' } }
   });
-  session(w, 's1', [objectContent, dispatch('qa-tester')]);
+  session(w, 's1', [objectContent, dispatch('qa-tester'), dispatch('studio-director')]);
   const r = run(w);
   ok('a record whose content is an OBJECT is skipped rather than walked', r.code === 0);
   ok('and the reviewer after it is still counted, so the file was not abandoned',
@@ -448,7 +515,7 @@ function run (w, extra) {
   session(w, 's1', [JSON.stringify({
     type: 'assistant',
     message: { content: [null, { type: 'tool_use', name: 'Agent', input: { subagent_type: 'qa-tester' } }] }
-  })]);
+  }), dispatch('studio-director')]);
   const r = run(w);
   ok('an empty block inside the content array does not stop the blocks after it', r.code === 0);
 }
@@ -462,7 +529,7 @@ function run (w, extra) {
         { type: 'tool_use', name: 'Agent', input: { subagent_type: 'qa-tester' } }
       ]
     }
-  })]);
+  }), dispatch('studio-director')]);
   const r = run(w);
   ok('a dispatch block carrying no input at all is skipped rather than crashing the scan', r.code === 0);
 }
@@ -475,7 +542,7 @@ function run (w, extra) {
   const r = run(world_with(w, [odd]));
   ok('a subagent_type that is not a string is not counted as an agent', /0 agent\(s\) started/.test(r.out));
   const w2 = world();
-  session(w2, 's1', [odd, dispatch('qa-tester')]);
+  session(w2, 's1', [odd, dispatch('qa-tester'), dispatch('studio-director')]);
   const r2 = run(w2);
   ok('and an odd record does not stop the scan finding a real reviewer after it', r2.code === 0);
   ok('and the real one is the one counted', /qa-tester 1/.test(r2.out));
@@ -528,7 +595,7 @@ function run (w, extra) {
 {
   // THE SHAPE PRODUCTION ACTUALLY USES, which until this existed nothing exercised. See header.
   const w = world();
-  session(w, 's1', [dispatch('qa-tester')]);
+  session(w, 's1', [dispatch('qa-tester'), dispatch('studio-director')]);
   const env = Object.assign({}, process.env, { USERPROFILE: w.home, HOME: w.home });
   let code = 0, out = '';
   try { out = execFileSync('node', [TOOL, '--root', w.root], { env: env, stdio: ['pipe', 'pipe', 'pipe'] }).toString(); }
@@ -539,7 +606,7 @@ function run (w, extra) {
 {
   // The other half of the same fallback line.
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
   let code = 0, out = '';
   try { out = execFileSync('node', [TOOL, '--home', w.home], { cwd: w.root, stdio: ['pipe', 'pipe', 'pipe'] }).toString(); }
   catch (e) { code = e.status; out = ((e.stdout || '') + (e.stderr || '')).toString(); }
@@ -548,7 +615,7 @@ function run (w, extra) {
 }
 {
   const w = world();
-  session(w, 's1', [dispatch('qa-tester')]);
+  session(w, 's1', [dispatch('qa-tester'), dispatch('studio-director')]);
   const r = run(w, ['--quiet']);
   ok('--quiet says nothing at all on a pass, because the gate prints its own row',
     r.code === 0 && r.out === '');
@@ -567,7 +634,7 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 65;
+const EXPECTED_ASSERTIONS = 79;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

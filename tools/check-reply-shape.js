@@ -28,8 +28,8 @@
  * for, and NEITHER can be satisfied by removing content, which is the whole design.
  *
  * WHAT IS MEASURED, AND WHY WORDS RATHER THAN LINES. The first version of this counted
- * consecutive prose LINES and was wrong, which the corpus said immediately: across 3,019
- * replies the longest run of consecutive prose lines anywhere was FOUR, because a markdown
+ * consecutive prose LINES and was wrong, which the corpus said immediately: across every
+ * reply in it the longest run of consecutive prose lines anywhere was FOUR, because a markdown
  * paragraph is one long soft-wrapped line and not several. A limit on that would have refused
  * nothing and passed forever, which is indistinguishable from a check that does not work. The
  * unit is words in a single unbroken prose block.
@@ -44,12 +44,20 @@
  *                request and announcing what is about to be said. That is a property of the
  *                opening line alone, so it is read without guessing at intent.
  *
- * WHERE THE LIMIT COMES FROM, DERIVED AND NOT CHOSEN. Measured across this project's 32
- * top-level transcripts, 3,020 replies: the largest prose block per reply runs p50 26 words,
- * p75 41, p90 63, p95 77, p99 99, maximum 154. The limit is 80, just above the ninety-fifth
- * percentile, so it refuses the densest 4.0 per cent (120 of 3,020) and leaves an argument that
- * genuinely needs a paragraph alone. It is stated here with the population and the boundary
- * because a number without the boundary it was counted across carries nothing.
+ * WHERE THE LIMIT COMES FROM, DERIVED AND NOT CHOSEN. Re-derived 2026-09-08 across this
+ * project's 39 top-level transcripts: 3,195 assistant replies, of which 3,191 carry a prose
+ * block that can be measured at all. The largest prose block per reply runs p50 26 words, p75
+ * 41, p90 62, p95 77, p99 99, maximum 154. The limit is 80, just above the ninety-fifth
+ * percentile, so it refuses the densest 3.9 per cent (123 of 3,195) and leaves an argument that
+ * genuinely needs a paragraph alone. It is stated here with the population, the boundary AND the
+ * date, because a number without the boundary it was counted across carries nothing (S125).
+ *
+ * THIS PARAGRAPH USED TO GIVE TWO DIFFERENT TOTALS FOR ONE CORPUS, 3,019 in one place and 3,020
+ * in another, inside the header that argues a number carries its boundary. It was corrected by
+ * re-running the derivation rather than by picking whichever of the two looked right, because
+ * reconciling two numbers by choosing one is how a number nobody measured gets published twice.
+ * The percentiles reproduced on the larger corpus to within one word at p90, so the limit did
+ * not move.
  *
  * THE NUMBER THAT IS REPORTED AND NOT REFUSED ON, AND WHY THAT IS NOT A DODGE. Of the 987
  * replies over forty words, the MEDIAN carries 100 per cent of its words in prose and no point
@@ -66,9 +74,15 @@
  * CONTENT and are deliberately not scored, because a tool inventing a verdict on those would be
  * worse than no tool.
  *
- * WHERE THE EVIDENCE COMES FROM. The same per-project transcripts check-gate-dispatch.js reads,
- * through the SAME derivation, imported from that file rather than copied, so the two cannot
- * disagree about where a project's sessions live. That derivation is undocumented and one
+ * WHERE THE EVIDENCE COMES FROM. The same per-project transcripts check-gate-dispatch.js reads.
+ * ONE HALF OF THAT IS SHARED AND THE OTHER HALF IS NOT, and this used to claim both were. The
+ * directory-name derivation, projectDirName, is IMPORTED from that file, so the two tools cannot
+ * disagree about where a project's sessions live. transcriptsFor and newest are COPIES: newest is
+ * byte-identical to the other one today and transcriptsFor differs only by carrying the directory
+ * in what it returns, and being identical today is not the same as being unable to diverge, which
+ * is the whole property an import buys. A claim that two things cannot disagree is worth exactly
+ * as much as the import that makes it true, so it is stated for the half that has one. That
+ * derivation is undocumented and one
  * silent rename away from being wrong; when it is wrong, or the host writes no transcript, this
  * reports that it cannot see and does NOT refuse, because a gate refusing on something a
  * legitimate install can never satisfy locks that install out for good.
@@ -168,6 +182,14 @@ function wordsIn (s) { return s.split(/\s+/).filter(Boolean).length }
 // exactly the right answer.
 function shapeOf (text) {
   const lines = text.split(/\r?\n/)
+  // AN ODD NUMBER OF FENCE LINES USED TO HIDE THE REST OF THE REPLY. The flag was toggled and
+  // never reconciled at the end of the text, so a reply whose last fence is never closed scored
+  // ZERO from that point on and a dense paragraph below it was invisible. A reply is a fragment
+  // of a stream, so an unterminated fence is an ordinary thing rather than a corruption. The last
+  // fence is counted first and, when the count is odd, that final one opens nothing.
+  const fenceLines = lines.filter(l => l.trim().slice(0, 3) === '```').length
+  const unterminated = fenceLines % 2 === 1
+  let fencesSeen = 0
   let fenced = false
   let first = null
   let prose = 0
@@ -176,7 +198,12 @@ function shapeOf (text) {
   let biggest = 0
   for (const raw of lines) {
     const t = raw.trim()
-    if (t.slice(0, 3) === '```') { fenced = !fenced; run = 0; continue }
+    if (t.slice(0, 3) === '```') {
+      fencesSeen++
+      if (!(unterminated && fencesSeen === fenceLines)) fenced = !fenced
+      run = 0
+      continue
+    }
     if (fenced) continue
     if (!t) { run = 0; continue }
     if (first === null) first = t

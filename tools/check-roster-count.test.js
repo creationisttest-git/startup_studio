@@ -225,11 +225,129 @@ function check (root, extra) {
   ok('and exits 0 even while the tree would refuse', r.code === 0);
 }
 
+/* ST-171 m1. THE EXPORT LAYOUT, WHICH IS THE ONLY LAYOUT A READER EVER RUNS THIS IN. The
+   published copy renames base/fragments to fragments and does not carry base/governance at all,
+   and every baseline key was a source-tree path, so on an installed copy the check was red in the
+   session-start AND release sets with nothing the reader could do (S133). Measured on a
+   reconstructed export before the fix: 3 failures, one for the moved file measured under its new
+   name, one for the same record under its old name, and one for a file the export never carries.
+   Mutation: drop the ^base/ strip from canonicalKey and the first two go red; drop the scanned[]
+   test and the third goes red while the LAST group here stays green, which is what makes it a
+   proof about absent FILES rather than about absent claims. */
+{
+  const root = roster(fixture(), 3, 'agents');
+  put(root, 'fragments/advocacy.md', 'nine roles carry this paragraph\n');
+  baseline(root, { roster: 3, exempt: {
+    'base/fragments/advocacy.md': { '9': { count: 1, why: 'a subset, measured' } },
+    'base/governance/AGENTS.md': { '1': { count: 2, why: 'an overlay holds one role' } }
+  } });
+  const r = check(root);
+  ok('a baseline written against the source tree is honoured in the export layout', r.code === 0);
+  ok('and the exemption for a file the export does not carry is NAMED rather than passed silently',
+    /1 exemption\(s\) for file\(s\) this install does not carry: governance\/AGENTS\.md/.test(r.out));
+}
+{
+  // The negative control, and without it the group above is indistinguishable from a check that
+  // stopped reading the baseline. A record for a file that IS here and whose claim has gone must
+  // still refuse, because that is the stale record the rule was written for.
+  const root = roster(fixture(), 3, 'agents');
+  put(root, 'fragments/advocacy.md', 'a paragraph with no roster claim in it at all\n');
+  baseline(root, { roster: 3, exempt: {
+    'base/fragments/advocacy.md': { '9': { count: 1, why: 'a subset, measured' } }
+  } });
+  const r = check(root);
+  ok('a record whose file IS carried and whose claim has gone still refuses', r.code === 1);
+  ok('and it says the claim is not there rather than blaming the layout',
+    /none is there now/.test(r.out));
+}
+{
+  // And the other direction: a claim present in the export layout that the baseline does NOT
+  // cover still refuses, so the canonical key widened what MATCHES and not what is allowed.
+  const root = roster(fixture(), 3, 'agents');
+  put(root, 'fragments/advocacy.md', 'nine roles carry this paragraph\n');
+  baseline(root, { roster: 3, exempt: {} });
+  const r = check(root);
+  ok('an unrecorded claim in the export layout still refuses', r.code === 1);
+}
+
+/* THE RELEASE GATE'S M1, AND IT WAS A REFUSAL THIS CHANGE HAD REMOVED IN SILENCE. Forgiving a
+   record whose FILE is absent forgives a DELETION, which is the strongest form of the stale
+   record the loop above exists to refuse. Measured on a copy of the real tree: deleting
+   base/fragments/advocacy.md took the shipped tool to exit 1 naming the file, and the first
+   version of this fix to exit 0 printing NOTHING under --quiet, which is how both the
+   session-start and release sets call it. The unit is the DIRECTORY, because what the export
+   drops is a whole tree. Mutation: key scannedDirs on the file again and the first pair here
+   goes red while the export group above stays green, which is what makes this a proof about the
+   unit rather than about the forgiveness existing. */
+{
+  const root = roster(fixture(), 3, 'agents');
+  put(root, 'fragments/advocacy.md', 'nine roles carry this paragraph\n');
+  put(root, 'fragments/other.md', 'a second file, so the directory is scanned after the delete\n');
+  baseline(root, { roster: 3, exempt: {
+    'base/fragments/advocacy.md': { '9': { count: 1, why: 'a subset, measured' } }
+  } });
+  fs.unlinkSync(path.join(root, 'fragments', 'advocacy.md'));
+  const r = check(root);
+  ok('a record whose file was DELETED from a directory this install carries still refuses',
+    r.code === 1);
+  ok('and it names the file, because a deletion nobody is told about is the case this catches',
+    /advocacy\.md/.test(r.out) && /none is there now/.test(r.out));
+}
+{
+  // The control that keeps the group above honest: a record for a file in a directory this
+  // install does not carry at all is still forgiven, which is the export case.
+  const root = roster(fixture(), 3, 'agents');
+  put(root, 'fragments/advocacy.md', 'nine roles carry this paragraph\n');
+  baseline(root, { roster: 3, exempt: {
+    'base/fragments/advocacy.md': { '9': { count: 1, why: 'a subset, measured' } },
+    'base/governance/AGENTS.md': { '1': { count: 2, why: 'an overlay holds one role' } }
+  } });
+  const r = check(root);
+  ok('and a record for a whole directory the install does not carry is still forgiven',
+    r.code === 0);
+}
+
+/* THE NEXT GATE'S M2, AND IT IS THE ROW ABOVE ONE LEVEL UP. Re-keying forgiveness on the
+   DIRECTORY closed the single-file case and left the whole-TREE case wide open, because a tree
+   is also what a person deletes. Measured on a copy of HEAD before the fix: removing
+   base/fragments/advocacy.md exits 1 and names it, while removing the entire base/fragments
+   tree exits 0 and, under --quiet as both enforced sets call it, prints NOTHING AT ALL. So the
+   unit is neither the file nor the directory, it is the LAYOUT. Where base/agents exists the
+   source tree carries every published tree, so an absent record is a deletion; only an
+   installed copy has had a tree taken away from it by the export. The block above and the one
+   below are the controls and they must stay GREEN, because that is what makes this a proof
+   about the layout rather than about the forgiveness having been removed. Mutation: drop the
+   sourceLayout term from the guard and this pair goes red while both controls hold. */
+{
+  const root = roster(fixture(), 3);
+  put(root, 'base/fragments/other.md', 'a file that will go with the tree\n');
+  baseline(root, { roster: 3, exempt: {
+    'base/fragments/advocacy.md': { '9': { count: 1, why: 'a subset, measured' } }
+  } });
+  fs.rmSync(path.join(root, 'base', 'fragments'), { recursive: true, force: true });
+  const r = check(root, ['--quiet']);
+  ok('a record whose whole TREE was deleted from the source layout still refuses',
+    r.code === 1);
+  ok('and it says so under --quiet, which is how both enforced sets call it',
+    /advocacy\.md/.test(r.out) && /none is there now/.test(r.out));
+}
+{
+  // The other half of the layout pair, and it is the reader's case: the same absent tree in an
+  // installed copy is the export having dropped base/governance, which no reader can restore.
+  const root = roster(fixture(), 3, 'agents');
+  baseline(root, { roster: 3, exempt: {
+    'governance/AGENTS.md': { '1': { count: 2, why: 'an overlay holds one role' } }
+  } });
+  const r = check(root);
+  ok('the same absent tree in the export layout is still forgiven, so a reader is not locked out',
+    r.code === 0);
+}
+
 /* Measured: a fatal guard firing part way through a suite reported 0 failed and exit 0, having
    run 22 of 214, so a count of failures cannot see an assertion that never ran. The total is
    pinned here and the number is written down rather than measured from the run it checks.
    Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 37;
+const EXPECTED_ASSERTIONS = 48;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

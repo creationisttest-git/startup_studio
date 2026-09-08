@@ -6,6 +6,86 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-08
+
+### Two checks that were quietly wrong about a missing file, and one of them was wrong for every reader
+
+**What this gives you.**
+- **A check that is supposed to notice deleted files stopped noticing whole deleted folders.**
+  The tool that keeps the written descriptions of the team honest refuses when a document it has
+  a record for is no longer there, because a record with nothing behind it is a claim nobody can
+  check. It had to be taught that a published copy legitimately does not carry every folder this
+  source tree does. The version released this morning learned that lesson too well: it forgave
+  any missing folder anywhere, so deleting an entire directory of shared rules made it report
+  success and, in the mode both automatic runs use, print nothing at all. Deleting a single file
+  out of that same directory still failed correctly, which is what made it hard to see. It now
+  decides by which layout it is looking at rather than by what happens to be missing: in the
+  source tree nothing is forgiven and an absent record is a deletion, and only an installed copy
+  can have had a folder taken away from it.
+- **The comment ratchet passed here and failed for everybody who installed it, and now it does
+  not.** The instrument that stops comments quietly bloating held its record against paths from
+  this source tree, and publishing flattens those paths. So on every installed copy eleven
+  published files looked like files the record had never seen, were held to the strict limit that
+  exists for genuinely new files, and refused, in both the automatic run at session start and the
+  one that gates a release. There was nothing the reader could do about it, because the obvious
+  remedy rewrites a file they received rather than wrote. One record now serves both layouts, and
+  the proof is that the two now report the same numbers: forty-eight files, four hundred and
+  ninety-two control lines, the same ratio, in the source tree and in a rebuilt copy of the
+  published export.
+- **Both were found by pointing the reviewer at the repair rather than at the thing repaired.**
+  The first is a fault introduced by this morning's own fix, an hour old, that a suite of five
+  hundred and eighty-three assertions could not see. Both now have assertions, each proved by
+  putting the fault back and watching exactly the named assertions fail while the controls beside
+  them stay green.
+
+### The review gate now asks two questions instead of one, and the page and the tool finally name the same roles
+
+**What this gives you.**
+- **The page that sells the method said five checks and the tool that detects them counted a
+  different five.** Both listed five, and they were not the same five: the page drew the studio
+  director as a gate and the tool did not count it, and the tool counted the QA tester which the
+  page did not draw. So a session that started exactly the reviewers the published page advertises
+  could be told that nobody had reviewed anything, and the release would refuse. Both surfaces now
+  name the same six, and a check compares them in both directions on every test run, along with
+  the number written in prose beside them, so neither can drift from the other again and the count
+  cannot go stale a third time.
+- **A reviewer is now two kinds, and a release needs one of each.** Five of them read the WORK:
+  the QA tester, the code, security and content reviewers, and the mobile check. The studio
+  director reads the METHOD instead, meaning whether the process was actually followed and whether
+  the replies you were sent are the shape this studio publishes. It never reads the change, so it
+  can never stand in for the five, and holding them in one list would have meant a session that
+  started only the director cleared a gate whose entire question is whether anybody read the work.
+- **Being long-winded with you can now stop a release.** The instrument that measures reply shape
+  existed and only ran at the end of a session, where it could report and never refuse. It runs in
+  the release set now, so a session that buried the answer in a wall of prose cannot ship until it
+  is fixed. It measures shape rather than length on purpose: a long list of bullets passes and one
+  dense paragraph does not, because a length cap becomes a target met by hiding detail.
+- **A check that every installed copy failed and nobody could clear now passes.** The roster
+  check compared its record of exceptions against paths from the private source tree, and the
+  published copy lays those files out differently and leaves some of them out entirely. So every
+  reader who installed it got a permanent red mark with nothing they could do about it, while it
+  passed here on every run. One record now serves both layouts, and an exception for a file the
+  published copy does not carry is named rather than treated as a broken record.
+- **An unfinished code block no longer hides the rest of a reply.** The reply measurement treated
+  a code fence as opening a block and never reconciled it at the end of the text, so a reply whose
+  last fence was never closed scored nothing from that point on, and the densest paragraph in it
+  was invisible.
+- **The release command can now tell a branch with no commits from a detached one.** It asked git
+  a question that answers the same way for both, so on a branch with nothing committed it reported
+  the wrong reason. Neither state is reachable on the ordinary path, and it now says which.
+- **The coverage tool can be pointed at any tool, and at itself.** It compared whatever you named
+  against one particular tool's tests, which were hardcoded. So asking it about anything else gave
+  a confident answer to a question you had not asked. It now works out which tests belong to the
+  tool you named.
+- **Smaller repairs.** Loading the hook check from another program used to run it and then kill
+  that program. The session guard left one small file behind in the temporary directory for every
+  session ever run, and wrote Windows line endings on any machine. The coverage tool silently
+  dropped any line of code that shared a line with the end of a comment, so its count of code
+  lines was quietly short. And the published note about where the reply measurement gets its
+  evidence claimed the whole derivation was shared with another tool when only part of it is.
+
+---
+
 ## 2026-09-07
 
 **What this gives you.**

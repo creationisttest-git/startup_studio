@@ -218,9 +218,15 @@ const CLEAN_JS = lines([
   r = run(['--root', root, '--write-baseline']);
   ok('the first write records what is there', r.code === 0 && fs.existsSync(baselineOf(root)));
   const b = readBaseline(root);
-  ok('the baseline holds the named count per file', b.files['tools/y.ps1'].named === 1 && b.files['base/board/x.js'].named === 0);
+  // Keyed by the published name. These three named base/board/x.js and went red on that fix, so
+  // each is restated rather than edited green (S134); tools/y.ps1 is the control, a path the
+  // manifest does not rewrite.
+  // Read through rec(): the mutation these catch makes the key absent, and a bare index then
+  // throws and takes the suite down, which reports no count rather than a red line (S127).
+  const rec = function (k) { return b.files[k] || {}; };
+  ok('the baseline holds the named count per file', rec('tools/y.ps1').named === 1 && rec('board/x.js').named === 0);
   ok('the baseline holds the control count per file', b.files['tools/y.ps1'].controls === 1);
-  ok('the baseline holds the counted ratio per file', b.files['base/board/x.js'].ratio === 10);
+  ok('the baseline holds the counted ratio per file, under the published name', rec('board/x.js').ratio === 10);
   ok('the baseline starts with no overrides', Array.isArray(b.overrides) && b.overrides.length === 0);
 
   r = run(['--root', root]);
@@ -270,7 +276,7 @@ const CLEAN_JS = lines([
 
   const tight = readBaseline(root);
   const loose = JSON.parse(JSON.stringify(tight));
-  loose.files['base/board/x.js'].ratio = 60;
+  (loose.files['board/x.js'] || {}).ratio = 60;
   writeBaselineJson(root, loose);
   r = run(['--root', root]);
   ok('a ratio raised by hand in the baseline is refused as slack', r.code === 1 && /ratio fell from 60 to 10/.test(r.out));
@@ -424,12 +430,62 @@ const CLEAN_JS = lines([
     /1 published path\(s\) not found/.test(r.out));
 }
 
+/* One record, both layouts: eleven published files refused on the export as files the baseline
+   had never seen, and no reader could clear it (S133). The first block is the control, because
+   a fix that broke the source layout looks identical from the export side. Mutation: drop the
+   ^base/ strip from canonicalKey and the second block goes red at the new-file cap. */
+{
+  const root = fixture();
+  put(root, 'base/board/x.js', CLEAN_JS);
+  fs.writeFileSync(path.join(root, 'studio.ps1'), lines([
+    '# a fixture program',
+    "$PUBLISHED_TREES = @('base/board')",
+    "$PUBLIC_MANIFEST = @( @{ from = 'base/board'; to = 'board' } )",
+    "Write-Host 'x'"
+  ]));
+  run(['--root', root, '--write-baseline']);
+  const r = run(['--root', root, '--quiet']);
+  ok('a baseline written in the source layout holds in the source layout', r.code === 0);
+  const rec = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'comment-shape-baseline.json'), 'utf8'));
+  ok('and the record is keyed by the name a reader sees, not by the source path',
+    Object.keys(rec.files).indexOf('board/x.js') !== -1 &&
+    Object.keys(rec.files).indexOf('base/board/x.js') === -1);
+}
+{
+  const src = fixture();
+  put(src, 'base/board/x.js', CLEAN_JS);
+  fs.writeFileSync(path.join(src, 'studio.ps1'), lines([
+    '# a fixture program',
+    "$PUBLISHED_TREES = @('base/board')",
+    "$PUBLIC_MANIFEST = @( @{ from = 'base/board'; to = 'board' } )",
+    "Write-Host 'x'"
+  ]));
+  run(['--root', src, '--write-baseline']);
+
+  const exp = fixture();
+  // An export has no base/ at all, and the empty base/board fixture() makes would resolve the
+  // manifest entry so board/x.js is never walked and the pair passes having measured nothing (S141).
+  fs.rmSync(path.join(exp, 'base'), { recursive: true, force: true });
+  put(exp, 'board/x.js', CLEAN_JS);
+  fs.copyFileSync(path.join(src, 'studio.ps1'), path.join(exp, 'studio.ps1'));
+  fs.mkdirSync(path.join(exp, 'tools'), { recursive: true });
+  fs.copyFileSync(path.join(src, 'tools', 'comment-shape-baseline.json'),
+    path.join(exp, 'tools', 'comment-shape-baseline.json'));
+
+  const r = run(['--root', exp]);
+  ok('the export fixture really did measure the flattened file, so the pair cannot go quiet',
+    /board\/x\.js/.test(r.out));
+  ok('the same record is found in the export layout, so a reader is not locked out', r.code === 0);
+  ok('and it is not treated as a new file held to the new-file cap',
+    !/new file at/.test(r.out));
+}
+
 /* Measured: a fatal guard firing part way through the studio suite reported 0 failed
    and exit 0, having run 22 of 214, so a count of failures cannot see an assertion that
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 110;
+const EXPECTED_ASSERTIONS = 115;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

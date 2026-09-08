@@ -1390,8 +1390,25 @@ function Get-PrivateRemoteRef ([string]$Branch) {
 # and is the half the old code never had: the whole defect was a tool reporting a success
 # it had not checked.
 function Sync-PrivateRemote {
-    $branch = "$(git -C $StudioRoot rev-parse --abbrev-ref HEAD 2>$null)".Trim()
+    # symbolic-ref, NOT rev-parse --abbrev-ref, and the difference is which state gets named.
+    # Measured on git 2.53: rev-parse --abbrev-ref prints the literal string HEAD for BOTH a
+    # detached head and an unborn branch, so a guard testing for that string cannot tell them
+    # apart and reports whichever it happens to check first. symbolic-ref -q --short returns the
+    # branch name on an unborn branch and nothing at all when HEAD is detached.
+    $branch = "$(git -C $StudioRoot symbolic-ref -q --short HEAD 2>$null)".Trim()
+    if (-not $branch) {
+        Write-Host "  PRIVATE PUSH FAILED: HEAD is detached, so there is no branch to push." -ForegroundColor Red
+        return $false
+    }
     $local  = "$(git -C $StudioRoot rev-parse HEAD 2>$null)".Trim()
+    # ASKED, RATHER THAN LEFT TO LUCK. On an unborn branch rev-parse HEAD prints the literal string
+    # HEAD, and ls-remote can never return HEAD in the sha column, so the comparison below simply
+    # failed to match and the push went ahead. It refused the right way for the wrong reason, and
+    # the reason was one string comparison away from not holding at all.
+    if ($local -notmatch '^[0-9a-f]{40}$') {
+        Write-Host "  PRIVATE PUSH FAILED: there is no commit on this branch yet, so there is nothing to push." -ForegroundColor Red
+        return $false
+    }
     if ((Get-PrivateRemoteRef $branch).Sha -eq $local) {
         Write-Host "  private : origin already has this commit" -ForegroundColor DarkGray
         return $true
@@ -1424,8 +1441,12 @@ function Sync-PrivateRemote {
 # which is also the state the original defect lived in, so a remote that prompts for a
 # credential can hold up a preview that used to make no network call at all.
 function Show-PrivatePushPreview ([bool]$WillCommit) {
-    $branch = "$(git -C $StudioRoot rev-parse --abbrev-ref HEAD 2>$null)".Trim()
-    if ($branch -eq 'HEAD' -or -not $branch) {
+    # symbolic-ref for the same reason the push uses it: rev-parse --abbrev-ref answers HEAD for a
+    # detached head AND for an unborn branch, so this guard fired on both and named the wrong one.
+    # The unborn guard below it was therefore dead code, which is a message covering a state it
+    # does not describe, inside the fix written to remove exactly that (S139).
+    $branch = "$(git -C $StudioRoot symbolic-ref -q --short HEAD 2>$null)".Trim()
+    if (-not $branch) {
         Write-Host "  WOULD REFUSE: HEAD is detached, so there is no branch to push and nothing would be published." -ForegroundColor Red
         return $false
     }
@@ -1439,6 +1460,10 @@ function Show-PrivatePushPreview ([bool]$WillCommit) {
         return $true
     }
     $local = "$(git -C $StudioRoot rev-parse HEAD 2>$null)".Trim()
+    if ($local -notmatch '^[0-9a-f]{40}$') {
+        Write-Host "  WOULD REFUSE: there is no commit on this branch yet, so nothing would be pushed or published." -ForegroundColor Red
+        return $false
+    }
     $ref   = Get-PrivateRemoteRef $branch
     if (-not $ref.Answered) {
         Write-Host "  WOULD REFUSE: origin did not answer, so the private push would fail and nothing would be published." -ForegroundColor Red

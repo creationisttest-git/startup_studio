@@ -52,7 +52,7 @@ const TOOL = path.join(__dirname, 'check-reply-shape.js')
 const { projectDirName } = require('./check-gate-dispatch.js')
 const { shapeOf, main } = require('./check-reply-shape.js')
 
-const EXPECTED_ASSERTIONS = 60
+const EXPECTED_ASSERTIONS = 62
 
 let pass = 0
 let fail = 0
@@ -176,6 +176,21 @@ const asBullets = BODY.map((wd, i) => (i % 8 === 0 ? '\n- ' + wd : wd)).join(' '
   const fenced = '```\n' + asProse + '\n```\nDone.'
   ok('fenced code is counted in neither direction', shapeOf(fenced).proseWords === 1)
   ok('and a pasted tool output therefore cannot refuse a reply', shapeOf(fenced).biggestProseBlock === 1)
+}
+{
+  // ST-171 m4. The fence flag was toggled and never reconciled at the end of the text, so an ODD
+  // number of fence lines left it open and everything after the last fence scored zero. A reply
+  // is a fragment of a stream and an unterminated fence is ordinary, so the densest paragraph in
+  // a reply could be hidden by one stray line above it. Mutation: delete the unterminated test in
+  // the toggle and the FIRST assertion here goes red, measured at 61 passed 1 failed. The second
+  // stays green and is meant to: it is the CONTROL, and a control that reddens with the thing it
+  // controls for is not a control. Without it the first is indistinguishable from a change that
+  // simply stopped reading fences at all.
+  const open = 'Here is the output:\n```\nnot counted at all\n\n' + asProse
+  ok('an unterminated fence does not hide the rest of the reply',
+    shapeOf(open).biggestProseBlock === shapeOf(asProse).biggestProseBlock)
+  ok('and the properly closed pair still hides what it should, so the fix did not simply stop '
+    + 'reading fences', shapeOf('```\n' + asProse + '\n```').biggestProseBlock === 0)
 }
 {
   ok('a blank line breaks a prose block rather than continuing it',
