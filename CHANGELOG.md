@@ -6,6 +6,116 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-10
+
+### The message that greets you at the start of a session looked like something had gone wrong
+
+**What this gives you.**
+- **The studio hands you a short brief when a session opens, and it was being read as a stack of
+  errors.** It is not one, and it never was: the thing that produces it finishes cleanly, writes
+  nothing to the error channel, and hands over a valid message every time. That was measured by
+  running it, twice, on two different days. The problem is that the only channel a start-of-session
+  message has is painted in warning colour by the terminal, with a prefix stamped on every line,
+  and none of that is ours to change. So thirteen lines of ordinary text arrive looking like
+  thirteen lines of failure.
+- **The founder reported it as an error two sittings running, and the second report is the reason
+  this is a change rather than an answer.** The first time it was explained. Explaining it again
+  would have meant explaining it every sitting until the brief stopped being read, which is
+  exactly the fate this studio has already recorded for another line it prints: nine projects
+  learned to ignore that one. A question asked twice is a defect in the thing being asked about.
+- **The fix is one line and it leads rather than merely appears.** The brief now opens by saying
+  what it is not, before anything else. A correction printed underneath the thing it corrects is
+  not a correction, so two separate tests guard it: one that the label begins with those words,
+  and one that no line of the brief is read before the label. The second exists because the first
+  was published as if it checked both, and it does not: move the brief above the label and the
+  first test stays green, which is exactly the arrangement the fix exists to prevent.
+- **It cost nothing you were already paying for.** No line was spent to buy the label: one line of
+  the message was replaced by one line, and the caps that keep this brief short and narrow are
+  untouched.
+
+### The check that measures what a session costs could only see one level, and neither could the health report
+
+**What this gives you.**
+- **The budget check was blind to anything a nested document pulled in.** Every project loads a
+  set of documents before a session starts, and every character in them is re-sent on every
+  single request for the life of that session. There is a check that measures this and refuses
+  when it is too much. It read the top document's own imports and stopped there. So a project
+  whose top document loads another one that loads five more was charged for all of it and
+  measured for none of it, and the check reported a clean bill on a project that was already
+  eleven per cent past the limit it exists to enforce. It now follows imports all the way down.
+- **It was found by another project's session reading our tool, not by us.** That is worth
+  saying plainly, because it is the second time this week that the useful finding came from
+  somebody else's numbers rather than from our own review.
+- **The same blindness was in the health report, and that is the command you are told to run.**
+  The number `-Doctor` prints is worked out by a completely separate piece of code that had the
+  identical defect. Fixing only the check would have left the two disagreeing, with nothing
+  anywhere that would notice, so both were fixed together and there is now a test that runs both
+  and refuses if they give different answers. That test earned itself immediately: the repair to
+  the health report went in with a mangled pattern that silently dropped every document whose
+  path contained the letter s, and comparing the two answers side by side is the only thing that
+  caught it.
+- **Two rules decide the number, and both were measured rather than assumed.** An import is
+  resolved next to the file that declares it, not at the top of the project, which was confirmed
+  against a real project where every second-level document is absent under the other reading.
+  And a document reached by two different paths is charged once, not twice, which on that same
+  project is the difference between a true number and one inflated by a hundred and twenty
+  thousand characters. A loop of documents importing each other now reaches a verdict instead of
+  running until it runs out of memory.
+- **The health report had never been tested at all.** The suite drives the tool as a program and
+  had never reached the function that works this out, which is why a defect in it survived in a
+  published script. It has two tests now.
+
+### A tool that could not see a hyphen, and a check that finds documents nothing can read
+
+**What this gives you.**
+- **The archiver refused to work for anyone who numbers their decisions with a dash.** It
+  reads the decision numbers to work out which end of the table is newest, and the pattern it
+  used allowed letters straight against digits and nothing in between. So a table numbered S147
+  was read and a table numbered D-001 was not, which meant the tool worked perfectly in the
+  project it was written in and refused in the one that needed it, whose decisions table had
+  grown past the size where archiving is supposed to happen. Two separate sessions there recorded
+  the refusal and moved on.
+- **Worse, it told them the wrong reason.** The single message it printed said it could not tell
+  which end of the table was newest, and that condition had never been tested. Their table was
+  unbroken from the first decision to the hundred and twenty-first, in order, with no gaps. Two
+  sessions read that sentence and believed their own records were ambiguous. There are now three
+  separate refusals, each naming what actually happened, and when it succeeds it says which
+  signal told it the order. It also reads every row rather than only the first and last, so one
+  unreadable line no longer refuses a table the rest of the rows settle beyond doubt.
+- **A new check finds documents that look organised to a person and are unreadable to every
+  tool.** Everything here locates things by shape: a heading to find a section, a table header to
+  find the decisions. A document can be perfectly clear to a reader and have none of that, and
+  when that happens the tools do not fail loudly, they find nothing and say nothing, and the
+  project carries on believing it is covered. One document was fifty-seven thousand characters
+  with not a single heading. Three separate instruments had been silently doing nothing there for
+  months. The check refuses four things, each one something a tool actually needs rather than a
+  matter of taste, and it looks across every project rather than only the one it lives in.
+- **That new check was scoped before it shipped, because the first version would have refused on
+  your files.** It reads the folder holding the studio, which here is a folder of studio projects
+  and on your machine is wherever you happened to clone it. Measured before release: put any
+  unrelated project beside it and the check reported that project's notes as broken, in the set
+  that runs at the start of every session, on a document we did not write and you have no reason
+  to change. It now only looks at projects that actually load the studio's own governance
+  documents, and a fresh install with none beside it says there is nothing here to check and
+  passes, rather than showing you a red line you cannot clear.
+- **A rule about getting text safely through the shell now reaches every project, instead of one.**
+  Long commands typed straight into a shell break on an unclosed quote, and one project here lost
+  sixty two tool calls to it over four weeks: fifty four unterminated single quotes, six double,
+  two backticks. Backticks are the worst of the three because they do not announce themselves, the
+  shell runs whatever sits between them and drops the output into your text, which silently deleted
+  three references from a paragraph here and reported success. The fix was already written down and
+  it was written down in one project's private notes, where no other project could ever read it. It
+  is now a shared rule carried by all seventeen roles and by the governance document every project
+  loads on every request, from a single file, so the two cannot drift apart.
+
+- **It immediately found an invisible character in the file every session reads first.** Three
+  projects were loading a main instruction file that began with a mark you cannot see in any
+  diff or review tool. That exact character stopped thirteen of sixteen team-role files loading
+  a month ago; it was fixed for those and nobody thought to re-check the instruction documents.
+  All of them are clean now.
+
+---
+
 ## 2026-09-08
 
 ### Two checks that were quietly wrong about a missing file, and one of them was wrong for every reader

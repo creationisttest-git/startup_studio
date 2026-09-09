@@ -97,8 +97,49 @@ const asc = n => Array.from({ length: n }, (_, i) => '| ' + (i + 1) + ' | decisi
   const before = fs.readFileSync(file, 'utf8');
   const r = run(file, ['--write']);
   ok('an unreadable row order is refused', r.code === 1);
-  ok('and the refusal explains why rather than just failing', /cannot tell which end/.test(r.out));
+  // Restated, not edited green (S134). This fixture has NO readable number in any row, so the
+  // honest refusal is that the numbers could not be READ. The old message said the order could
+  // not be told from them, which is a different condition and was printed for both; two sessions
+  // in another project read it and believed their table was ambiguous when it was contiguous
+  // D-001 to D-121 and the parser simply could not see a hyphen (S139).
+  ok('and the refusal names the condition that actually fired, unreadable numbers',
+    /could not read a decision number from 30 of 30/.test(r.out));
   ok('and nothing was written when it refused', fs.readFileSync(file, 'utf8') === before);
+}
+/* ST-187 M3. THE FIXTURE ABOVE HAS ZERO READABLE ROWS, SO IT EXERCISES NEITHER BOUNDARY, and the
+   release gate proved both refusals were unwatched: raising the threshold to readable < 1, and
+   deleting the all-equal branch outright, each left this suite at 25 passed 0 failed. Both are on
+   the --write path and both fail the way this tool must never fail, by acting on a guess.
+   Mutation: readable < 2 becomes readable < 1 and the first pair goes red; delete the all-equal
+   stop() and the second pair does; the zero-readable fixture above stays green through both,
+   which is what makes these boundaries rather than a second copy of it. */
+{
+  // EXACTLY ONE readable row. One number cannot establish an order, and with the threshold at 1
+  // it does not refuse here at all: it falls through to the all-equal branch and refuses with the
+  // WRONG REASON, which is the ST-176 defect itself, in the tool that was rewritten to end it.
+  const rows = Array.from({ length: 29 }, () => '| x | decision | reason | 2026-01-01 |')
+    .concat(['| S7 | decision | reason | 2026-01-01 |']);
+  const { file } = doc(rows);
+  const before = fs.readFileSync(file, 'utf8');
+  const r = run(file, ['--write']);
+  ok('ONE readable number out of thirty cannot establish an order and is refused', r.code === 1);
+  ok('and it refuses for the reason that actually fired, that the numbers could not be read',
+    /could not read a decision number from 29 of 30/.test(r.out));
+  ok('and nothing was written', fs.readFileSync(file, 'utf8') === before);
+}
+{
+  // EVERY readable number IDENTICAL. up and down are both zero, so nothing says which end is
+  // newest. Without the branch, newestFirst = down > 0 is false, the tool announces ASCENDING
+  // and archives from the TOP on a --write: the exact outcome its own refusal calls out, that
+  // archiving the wrong rows discards precisely what somebody needs.
+  const rows = Array.from({ length: 30 }, () => '| S9 | decision | reason | 2026-01-01 |');
+  const { file } = doc(rows);
+  const before = fs.readFileSync(file, 'utf8');
+  const r = run(file, ['--write']);
+  ok('a table whose readable numbers are ALL THE SAME is refused rather than archived', r.code === 1);
+  ok('and it names that condition rather than announcing an order it cannot have established',
+    /every readable decision number is the same/.test(r.out) && !/ascending/.test(r.out));
+  ok('and nothing was written', fs.readFileSync(file, 'utf8') === before);
 }
 {
   const { file } = doc(['not a table'], { noTable: true });
@@ -137,7 +178,38 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 20;
+
+// --- the two conditions the old refusal could not tell apart ------------------------------------
+/* THE DEFECT THIS FIX EXISTS FOR. The identifier pattern was letters immediately against digits,
+   so S147 parsed and D-001 did not. One project numbers with a hyphen, so this tool archived
+   cleanly in the studio and refused there twice while its decisions table passed the size trigger.
+   Mutation: drop the [-_ ]? from idOf and the first pair goes red while the ambiguous-order block
+   below stays green, which is what makes this a proof about the SEPARATOR rather than about
+   refusing less. */
+{
+  const rows = Array.from({ length: 30 }, (_, i) => '| D-' + String(i + 1).padStart(3, '0') + ' | decision | reason | 2026-01-01 |');
+  const { file } = doc(rows);
+  const r = run(file, []);
+  ok('a hyphenated identifier is read, so an ascending D-001 table is not refused', r.code === 0);
+  ok('and it says which signal decided the order rather than leaving the reader to guess',
+    /ascending/.test(r.out) && /30 of 30/.test(r.out));
+}
+{
+  // The control, and the case the old message CLAIMED: numbers that genuinely go both ways.
+  // Nothing can establish which end is newest here, and it must still refuse.
+  const rows = ['| 5 | d | r | 2026-01-01 |', '| 9 | d | r | 2026-01-01 |', '| 2 | d | r | 2026-01-01 |']
+    .concat(Array.from({ length: 27 }, (_, i) => '| ' + (i + 20) + ' | d | r | 2026-01-01 |'));
+  const { file } = doc(rows);
+  const before = fs.readFileSync(file, 'utf8');
+  const r = run(file, ['--write']);
+  ok('a table that rises AND falls is refused, which is what the old message only claimed',
+    r.code === 1);
+  ok('and the refusal counts both directions rather than naming a condition it did not test',
+    /rise 2[0-9]* time\(s\) and fall/.test(r.out) || /rise \d+ time\(s\) and fall \d+ time\(s\)/.test(r.out));
+  ok('and nothing was written', fs.readFileSync(file, 'utf8') === before);
+}
+
+const EXPECTED_ASSERTIONS = 31;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

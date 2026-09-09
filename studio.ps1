@@ -2055,16 +2055,54 @@ $CONTEXT_FILE_LIMIT = 150000
 function Get-LoadedContext ([string]$ProjectPath) {
     $cm = Join-Path $ProjectPath 'CLAUDE.md'
     if (-not (Test-Path $cm)) { return $null }
-    $text = Read-TextUtf8 $cm
-    $files = @([pscustomobject]@{ Name = 'CLAUDE.md'; Chars = $text.Length })
-    foreach ($line in ($text -split "`r?`n")) {
-        $m = [regex]::Match($line.Trim(), '^@([^\s]+\.md)$')
-        if (-not $m.Success) { continue }
-        $rel = $m.Groups[1].Value
-        $p = Join-Path $ProjectPath $rel
-        # A missing import is already reported by the DEAD check; here it simply loads nothing.
-        $n = if (Test-Path $p) { (Read-TextUtf8 $p).Length } else { 0 }
-        $files += [pscustomobject]@{ Name = $rel; Chars = $n }
+    # TRANSITIVELY, ALL THE WAY DOWN. This was a single flat loop over CLAUDE.md's own imports,
+    # so a project whose CLAUDE.md imports another CLAUDE.md had everything below level one
+    # invisible to the number -Doctor prints. tools/check-context-budget.js carried the identical
+    # defect and the two are fixed together on purpose: fixing one alone leaves the command every
+    # session is told to run disagreeing with the check that gates a release, with nothing
+    # anywhere that would refuse the drift. ST-190, CEO d1.
+    #
+    # TWO RULES DECIDE THE NUMBER and both were measured on a real two-level project (S125).
+    # An import resolves against the FILE THAT DECLARES IT, not the project root: every one of
+    # that project's five level-two imports is ABSENT resolved against the root and PRESENT
+    # resolved against the importing file, so root-relative resolution would have walked down,
+    # found nothing, and looked exactly like a project with no second level. And a document
+    # reached twice is LOADED ONCE, which makes the seen-set load bearing for the TOTAL rather
+    # than only for cycle safety: on that same project three of the five level-two imports are
+    # files the root already imports by another path, and counted twice they add 124,080
+    # characters against a 150,000 limit, turning a real finding into a false one.
+    $files = @()
+    $seen  = New-Object 'System.Collections.Generic.HashSet[string]'
+    # Depth-first and pre-order, with an EXPLICIT STACK. PowerShell 5.1 has no cheap way to
+    # recurse a local closure, and a stack also makes the traversal order legible to a reader.
+    $stack = New-Object 'System.Collections.Stack'
+    $stack.Push([pscustomobject]@{ Full = $cm; Name = 'CLAUDE.md'; Depth = 0 })
+    while ($stack.Count) {
+        $cur = $stack.Pop()
+        # The RESOLVED path, lower-cased, so two spellings of one file collapse on a filesystem
+        # where two spellings ARE one file.
+        $key = ([IO.Path]::GetFullPath($cur.Full)).ToLowerInvariant()
+        if (-not $seen.Add($key)) { continue }
+        $exists = Test-Path -LiteralPath $cur.Full
+        # A missing import is already reported by the DEAD check; here it simply loads nothing,
+        # and recording it as 0 keeps the arithmetic honest.
+        $text = if ($exists) { Read-TextUtf8 $cur.Full } else { '' }
+        $files += [pscustomobject]@{ Name = $cur.Name; Chars = $text.Length; Depth = $cur.Depth }
+        if (-not $exists) { continue }
+        $kids = @()
+        foreach ($line in ($text -split "`r?`n")) {
+            $m = [regex]::Match($line.Trim(), '^@([^\s]+\.md)$')
+            if (-not $m.Success) { continue }
+            $rel = $m.Groups[1].Value
+            $kids += [pscustomobject]@{
+                Full  = (Join-Path ([IO.Path]::GetDirectoryName($cur.Full)) $rel)
+                Name  = $rel
+                Depth = $cur.Depth + 1
+            }
+        }
+        # Pushed in REVERSE so they pop in the order the file writes them. A stack read forwards
+        # reports a document's imports backwards, which is a quiet way to make a tree unreadable.
+        for ($i = $kids.Count - 1; $i -ge 0; $i--) { $stack.Push($kids[$i]) }
     }
     [pscustomobject]@{
         Total = ($files | Measure-Object -Property Chars -Sum).Sum
@@ -2668,7 +2706,16 @@ if ($Autoload) {
                     # which breaks the same 100-column rule the check enforces on the brief below it.
                     # The width rule applied to the founder's words and not to mine, which is the
                     # check having a blind spot exactly where its author was standing.
-                    $lines += ("FOUNDER BRIEF, from WARM_START.md, written at the last wind-down." + "`n" +
+                    #
+                    # IT OPENS WITH NOT AN ERROR, and that is the whole of ST-193. systemMessage is
+                    # the ONLY founder-facing channel a SessionStart hook has, and the CLI paints it
+                    # in warning colour with a prefix stamped on EVERY line. We control neither, so
+                    # the text is the only lever there is. The founder opened two consecutive
+                    # sittings reporting this healthy hook as a red error, and both times the answer
+                    # was to RUN it: exit 0, empty stderr, one valid JSON document. A brief read as
+                    # a failure is a brief that gets ignored, which is the fate the REALITY line
+                    # further down this file already records for nine projects.
+                    $lines += ("NOT AN ERROR. This is the FOUNDER BRIEF from WARM_START.md, written at the last wind-down." + "`n" +
                                "Treat every number in it as a claim to verify rather than a fact:" + "`n`n" + $fb)
                 }
             }

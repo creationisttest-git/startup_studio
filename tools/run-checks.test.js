@@ -430,7 +430,30 @@ function ledgerOf (root) {
     /NOT PROVED\s+comment-shape/.test(g.out) && !/ADVISORY\s+comment-shape/.test(g.out));
 }
 
-const EXPECTED_ASSERTIONS = 66;
+/* ST-187. THE WIRING IS WHERE THIS CHECK'S DEFECT LIVED BOTH TIMES AND NOTHING ASSERTED IT.
+   doc-shape was first pointed at THIS repository, the one place a shape fault has never been
+   true, so it would have passed forever; corrected to the parent, it then walked the READER'S own
+   unrelated work on every installed copy and refused on it, exit 1, in the session-start set. Both
+   defects are one argument in one line of a definition, and the release gate proved a suite cannot
+   see either: restoring path.dirname(root) to root left run-checks.test.js at 66 passed 0 failed
+   and check-document-shape.test.js at 24 passed 0 failed, everything green.
+   Mutation: change the argument back to root and the reach assertion goes red; drop
+   --governed-only and the scope assertion does; drop advisory:[3] and the third does. */
+{
+  const defs = T.definitions('C:' + path.sep + 'somewhere' + path.sep + 'startup_studio');
+  const doc = defs.filter(d => d.name === 'doc-shape')[0];
+  const built = doc.build({ abs: 'TOOL' }, { abs: 'TOOL' });
+  ok('doc-shape is pointed at the directory HOLDING this repository, not at this repository, '
+   + 'because the fault it hunts has never once been true here',
+    built.args.indexOf('C:' + path.sep + 'somewhere') !== -1);
+  ok('AND IT IS SCOPED TO PROJECTS THAT LOAD STUDIO GOVERNANCE, because that same directory is '
+   + 'the reader\'s own work on every installed copy and refusing on it is worse than not looking',
+    built.args.indexOf('--governed-only') !== -1);
+  ok('and finding nothing in scope is advisory, so a fresh install is never locked out',
+    !!doc.advisory && doc.advisory.indexOf(3) !== -1);
+}
+
+const EXPECTED_ASSERTIONS = 69;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

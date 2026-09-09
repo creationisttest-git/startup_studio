@@ -153,6 +153,55 @@ test('a value block may run to several paragraphs', function () {
   assert.deepStrictEqual(B.extractValueBlock(lines), ['One.', '', 'Two.']);
 });
 
+/* A DATED SECTION HOLDS ONE BLOCK PER CHANGE AND MOST DAYS SHIP MORE THAN ONE. Taking only the
+   first dropped every later block from the page and nothing reported it, because --check compares
+   the page against the changelog and the page was faithful to the first block. Measured on
+   2026-09-10 against the real file: 144 list items published where the changelog holds 168, so
+   twenty four bullets of release notes had been missing with the tool printing "current".
+   The three assertions below are separate on purpose. The first is the defect itself. The second
+   proves the SECOND block's own content arrives rather than merely a bullet count rising, because
+   a count can be satisfied by duplicating the first. The third pins the ORDER, since a page that
+   carries both blocks in the wrong order still misreports which change is which. Mutation: put
+   `break` back after the first block and the first two go red together while the paragraph
+   assertion above stays green, which is what proves these carry the property on their own. */
+test('every value block in a dated section is gathered, not just the first', function () {
+  const lines = [
+    '### Newest change', '',
+    '**What this gives you.** One.', '',
+    '### Older change on the same day', '',
+    '**What this gives you.** Two.'
+  ];
+  assert.deepStrictEqual(B.extractValueBlock(lines), ['One.', '', 'Two.']);
+});
+
+test('the later block reaches the page with its own content, not a repeat of the first', function () {
+  const md = [
+    '# Changelog', '',
+    '## 2026-01-02', '',
+    '### First', '',
+    '**What this gives you.**',
+    '- Alpha bullet.', '',
+    '### Second', '',
+    '**What this gives you.**',
+    '- Omega bullet.', ''
+  ].join('\n');
+  const html = B.build(md).html;
+  assert.ok(html.indexOf('Alpha bullet.') !== -1, 'the first block never reached the page');
+  assert.ok(html.indexOf('Omega bullet.') !== -1,
+    'the SECOND block was dropped from the page, which is the defect this test exists for');
+});
+
+test('gathered blocks keep the order they were written in', function () {
+  const lines = [
+    '**What this gives you.** Alpha.', '',
+    '### next', '',
+    '**What this gives you.** Omega.'
+  ];
+  const body = B.extractValueBlock(lines).join('\n');
+  assert.ok(body.indexOf('Alpha.') < body.indexOf('Omega.'),
+    'the blocks came back out of order, so the page misreports which change is which');
+});
+
 /* ---------- rendering prose ---------- */
 
 test('renderBody turns a wrapped paragraph into one p element', function () {
@@ -529,7 +578,7 @@ test('no release prose reaches the structured data', function () {
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 53;
+const EXPECTED_ASSERTIONS = 56;
 const ranBefore = pass + fail;
 test('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

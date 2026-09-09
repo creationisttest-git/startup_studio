@@ -250,6 +250,29 @@ function definitions (root) {
       about: 'no rule was retired by the governance split, and every project holding the core imports it'
     },
     {
+      name: 'doc-shape',
+      sets: ['session-start'],
+      where: ['tools/check-document-shape.js'],
+      // Run on the directory HOLDING this one, the same reach argument governance-core makes:
+      // a document with no shape is a property of the other projects, and this repository is the
+      // one place it has never been true.
+      //
+      // --governed-only IS LOAD BEARING AND IS NOT TIDINESS. The directory holding this one is
+      // our projects folder and is the READER'S OWN WORK on every copy installed from the public
+      // export. Measured without the flag, on a parent holding one unrelated project: exit 1,
+      // "FAIL some-unrelated-app/CLAUDE.md: has markdown headings", in the session-start set, on
+      // a document we did not write and cannot fix. The flag scopes the walk to projects that
+      // load studio governance. Asserted in run-checks.test.js on the argv this line builds,
+      // because the wiring was where the defect lived both times (ST-187).
+      build: f => ({ exe: process.execPath,
+        args: [f.abs, path.dirname(root), '--quiet', '--governed-only'] }),
+      // Exit 3 is no studio-governed project beside this install, which is the ordinary state of
+      // a fresh one. Without this the check is red on every reader's machine for good, and unlike
+      // board-audit there is no documented command that clears it (S148).
+      advisory: [3],
+      about: 'every document a session loads has a shape an instrument can actually read'
+    },
+    {
       name: 'releases-page',
       sets: ['release'],
       where: ['tools/build-releases.js'],

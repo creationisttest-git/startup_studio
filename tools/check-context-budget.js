@@ -96,13 +96,53 @@ function importsOf(text) {
   return out;
 }
 
-const loaded = [{ name: 'CLAUDE.md', chars: read(claude).length, full: claude }];
-for (const rel of importsOf(read(claude))) {
-  const p = path.join(target, rel);
-  // A missing import loads nothing and says nothing. -Doctor reports it separately as DEAD;
-  // here it simply contributes zero, and recording it as 0 keeps the arithmetic honest.
-  loaded.push({ name: rel, chars: fs.existsSync(p) ? read(p).length : 0, full: p, missing: !fs.existsSync(p) });
+// WHAT A SESSION ACTUALLY LOADS, ALL THE WAY DOWN. This was a single flat loop over CLAUDE.md's
+// own imports, with no recursion, so a project whose CLAUDE.md imports another CLAUDE.md had
+// everything below level one invisible to the tool enforcing the limit. Found by another
+// project's own session, on their numbers rather than ours: the tool reported a passing total
+// while the real load was about 11 per cent OVER the same limit. An instrument that cannot
+// see the thing it is about reports a clean bill on exactly the projects that need it. ST-190.
+//
+// TWO RULES DECIDE THE NUMBER, and both were measured on a real two-level project rather than
+// assumed, because getting either wrong produces a confident total that is wrong (S125).
+//
+//   1. AN IMPORT RESOLVES AGAINST THE FILE THAT DECLARES IT, not against the project root.
+//      Measured: every one of that project's five level-two imports is ABSENT resolved against
+//      the root and PRESENT resolved against the importing file. Root-relative resolution would
+//      have walked to level two and found nothing there, which reads identically to there being
+//      no second level at all, so the walk would have looked correct and changed no number.
+//
+//   2. A DOCUMENT REACHED TWICE IS LOADED ONCE, so the seen-set is load bearing for the TOTAL
+//      and not only for cycle safety. On that same project three of the five level-two imports
+//      are files the root already imports by another path; counted again they add 124,080
+//      characters against a 150,000 limit, which turns a real finding into a false one. The key
+//      is the RESOLVED path, so two spellings of one file collapse, lower-cased because this
+//      runs on a case-insensitive filesystem where two spellings ARE one file.
+//
+// Depth-first and pre-order, so the printed list reads as the tree it is: a document appears
+// under the parent that pulled it in, at the depth it was reached.
+function loadedSet (entry) {
+  const out = [];
+  const seen = new Set();
+  const walk = (full, name, depth) => {
+    const key = path.resolve(full).toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    const missing = !fs.existsSync(full);
+    // A missing import loads nothing and says nothing. -Doctor reports it separately as DEAD;
+    // here it simply contributes zero, and recording it as 0 keeps the arithmetic honest.
+    const text = missing ? '' : read(full);
+    out.push({ name: name, chars: text.length, full: full, missing: missing, depth: depth });
+    if (missing) return;
+    for (const rel of importsOf(text)) {
+      walk(path.join(path.dirname(full), rel), rel, depth + 1);
+    }
+  };
+  walk(entry, 'CLAUDE.md', 0);
+  return out;
 }
+
+const loaded = loadedSet(claude);
 
 const total = loaded.reduce((n, f) => n + f.chars, 0);
 const tokens = Math.round(total / 4);
@@ -111,7 +151,9 @@ if (!quiet) {
   console.log('');
   console.log('  ' + target);
   for (const f of loaded) {
-    console.log('    ' + String(f.chars).padStart(7) + '  ' + f.name + (f.missing ? '   (missing, loads nothing)' : ''));
+    // INDENTED BY DEPTH. A flat list says WHAT is loaded and not which file pulled in what, and
+    // on a nested project the second question is the one a reader actually has.
+    console.log('    ' + String(f.chars).padStart(7) + '  ' + '  '.repeat(f.depth) + f.name + (f.missing ? '   (missing, loads nothing)' : ''));
   }
   console.log('    ' + String(total).padStart(7) + '  TOTAL, about ' + tokens + ' tokens on EVERY request');
   console.log('');

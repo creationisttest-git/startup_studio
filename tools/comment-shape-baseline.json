@@ -1,6 +1,6 @@
 {
   "what": "Per published code file: named comment lines, counted comment ratio and control lines, as tools/check-comment-shape.js defines them. Written only by that tool. The check refuses when any value differs from this record: the wrong way outright, the right way until this record is rewritten, so the record is never slack.",
-  "written": "2026-09-08",
+  "written": "2026-09-10",
   "new_file_cap": 5,
   "overrides": [
     {
@@ -738,6 +738,262 @@
       "from": 4.7,
       "to": 4.8,
       "reason": "The release gate's M1. check-comment-shape.test.js gains the layout pair proving one record is found in both the source and the export, its S141 fixture correction, and the S127 guard that keeps the mutation a red assertion rather than a dead suite."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/archive-decisions.js",
+      "field": "ratio",
+      "from": 5.3,
+      "to": 9.4,
+      "reason": "ST-176. archive-decisions.js gains the header explaining why the identifier pattern now allows a separator and why the order is read from the whole column instead of the two ends; the suite gains the hyphen pair, the ambiguous-order control, and the restatement of the assertion that pinned the old refusal message."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/archive-decisions.test.js",
+      "field": "ratio",
+      "from": 6.5,
+      "to": 9.2,
+      "reason": "ST-176. archive-decisions.js gains the header explaining why the identifier pattern now allows a separator and why the order is read from the whole column instead of the two ends; the suite gains the hyphen pair, the ambiguous-order control, and the restatement of the assertion that pinned the old refusal message."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-document-shape.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 10.3,
+      "reason": "ST-180. Two new files. check-document-shape.js carries the measured reason each rule exists, including the 739-line 56,807-character document with zero headings that prompted it and the three CLAUDE.md files found carrying a byte order mark; its suite carries the named mutation beside every group, all six of which were run on copies. Both are above the new-file cap because the header states what the tool CANNOT see, which is the part a reader needs and no assertion can carry."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-document-shape.test.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 9.9,
+      "reason": "ST-180. Two new files. check-document-shape.js carries the measured reason each rule exists, including the 739-line 56,807-character document with zero headings that prompted it and the three CLAUDE.md files found carrying a byte order mark; its suite carries the named mutation beside every group, all six of which were run on copies. Both are above the new-file cap because the header states what the tool CANNOT see, which is the part a reader needs and no assertion can carry."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-document-shape.js",
+      "field": "ratio",
+      "from": 10.3,
+      "to": 11.2,
+      "reason": "ST-180 round two. check-document-shape gains the project walk, so it reaches the other projects rather than only the one repository where a shape fault has never been true, plus the reach mutation recorded beside it."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-document-shape.test.js",
+      "field": "ratio",
+      "from": 9.9,
+      "to": 10.5,
+      "reason": "ST-180 round two. check-document-shape gains the project walk, so it reaches the other projects rather than only the one repository where a shape fault has never been true, plus the reach mutation recorded beside it."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 10.4,
+      "to": 10.7,
+      "reason": "ST-180 round two. check-document-shape gains the project walk, so it reaches the other projects rather than only the one repository where a shape fault has never been true, plus the reach mutation recorded beside it."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-document-shape.test.js",
+      "field": "ratio",
+      "from": 10.5,
+      "to": 11.6,
+      "reason": "ST-180. The stdio note in check-document-shape.test.js records why execFileSync must be told not to inherit stderr: leaving it out killed the whole studio suite at 580 of 586 and the death guard, not a failing assertion, is what caught it."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/archive-decisions.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 2,
+      "reason": "ST-187. The release gate found doc-shape green here and RED on every installed copy: pointed at the directory holding this repository it walks the READER'S own unrelated projects and refuses on them, exit 1, in the session-start set, with no command that clears it. Measured both reader states before the fix. check-document-shape.js gains --governed-only, a third exit code for nothing-in-scope, and a read guard so an I/O failure cannot wear the code that means a document has no shape; run-checks.js gains the flag and advisory:[3]. The comments carry the MEASUREMENT rather than the intent, because the same wiring line carried both of this check's defects and no suite could see either: restoring it left every suite fully green. The three test files carry the mutation named beside each new group, all nine run on copies with controls at 30/0, 31/0 and 69/0. archive-decisions gains the two boundary fixtures the gate proved were unwatched, one readable row and every number identical, both on the --write path."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/archive-decisions.test.js",
+      "field": "ratio",
+      "from": 9.2,
+      "to": 13,
+      "reason": "ST-187. The release gate found doc-shape green here and RED on every installed copy: pointed at the directory holding this repository it walks the READER'S own unrelated projects and refuses on them, exit 1, in the session-start set, with no command that clears it. Measured both reader states before the fix. check-document-shape.js gains --governed-only, a third exit code for nothing-in-scope, and a read guard so an I/O failure cannot wear the code that means a document has no shape; run-checks.js gains the flag and advisory:[3]. The comments carry the MEASUREMENT rather than the intent, because the same wiring line carried both of this check's defects and no suite could see either: restoring it left every suite fully green. The three test files carry the mutation named beside each new group, all nine run on copies with controls at 30/0, 31/0 and 69/0. archive-decisions gains the two boundary fixtures the gate proved were unwatched, one readable row and every number identical, both on the --write path."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-document-shape.js",
+      "field": "ratio",
+      "from": 11.2,
+      "to": 17.5,
+      "reason": "ST-187. The release gate found doc-shape green here and RED on every installed copy: pointed at the directory holding this repository it walks the READER'S own unrelated projects and refuses on them, exit 1, in the session-start set, with no command that clears it. Measured both reader states before the fix. check-document-shape.js gains --governed-only, a third exit code for nothing-in-scope, and a read guard so an I/O failure cannot wear the code that means a document has no shape; run-checks.js gains the flag and advisory:[3]. The comments carry the MEASUREMENT rather than the intent, because the same wiring line carried both of this check's defects and no suite could see either: restoring it left every suite fully green. The three test files carry the mutation named beside each new group, all nine run on copies with controls at 30/0, 31/0 and 69/0. archive-decisions gains the two boundary fixtures the gate proved were unwatched, one readable row and every number identical, both on the --write path."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-document-shape.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 2,
+      "reason": "ST-187. The release gate found doc-shape green here and RED on every installed copy: pointed at the directory holding this repository it walks the READER'S own unrelated projects and refuses on them, exit 1, in the session-start set, with no command that clears it. Measured both reader states before the fix. check-document-shape.js gains --governed-only, a third exit code for nothing-in-scope, and a read guard so an I/O failure cannot wear the code that means a document has no shape; run-checks.js gains the flag and advisory:[3]. The comments carry the MEASUREMENT rather than the intent, because the same wiring line carried both of this check's defects and no suite could see either: restoring it left every suite fully green. The three test files carry the mutation named beside each new group, all nine run on copies with controls at 30/0, 31/0 and 69/0. archive-decisions gains the two boundary fixtures the gate proved were unwatched, one readable row and every number identical, both on the --write path."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-document-shape.test.js",
+      "field": "ratio",
+      "from": 11.6,
+      "to": 15.6,
+      "reason": "ST-187. The release gate found doc-shape green here and RED on every installed copy: pointed at the directory holding this repository it walks the READER'S own unrelated projects and refuses on them, exit 1, in the session-start set, with no command that clears it. Measured both reader states before the fix. check-document-shape.js gains --governed-only, a third exit code for nothing-in-scope, and a read guard so an I/O failure cannot wear the code that means a document has no shape; run-checks.js gains the flag and advisory:[3]. The comments carry the MEASUREMENT rather than the intent, because the same wiring line carried both of this check's defects and no suite could see either: restoring it left every suite fully green. The three test files carry the mutation named beside each new group, all nine run on copies with controls at 30/0, 31/0 and 69/0. archive-decisions gains the two boundary fixtures the gate proved were unwatched, one readable row and every number identical, both on the --write path."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/run-checks.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "ST-187. The release gate found doc-shape green here and RED on every installed copy: pointed at the directory holding this repository it walks the READER'S own unrelated projects and refuses on them, exit 1, in the session-start set, with no command that clears it. Measured both reader states before the fix. check-document-shape.js gains --governed-only, a third exit code for nothing-in-scope, and a read guard so an I/O failure cannot wear the code that means a document has no shape; run-checks.js gains the flag and advisory:[3]. The comments carry the MEASUREMENT rather than the intent, because the same wiring line carried both of this check's defects and no suite could see either: restoring it left every suite fully green. The three test files carry the mutation named beside each new group, all nine run on copies with controls at 30/0, 31/0 and 69/0. archive-decisions gains the two boundary fixtures the gate proved were unwatched, one readable row and every number identical, both on the --write path."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 10.7,
+      "to": 12,
+      "reason": "ST-187. The release gate found doc-shape green here and RED on every installed copy: pointed at the directory holding this repository it walks the READER'S own unrelated projects and refuses on them, exit 1, in the session-start set, with no command that clears it. Measured both reader states before the fix. check-document-shape.js gains --governed-only, a third exit code for nothing-in-scope, and a read guard so an I/O failure cannot wear the code that means a document has no shape; run-checks.js gains the flag and advisory:[3]. The comments carry the MEASUREMENT rather than the intent, because the same wiring line carried both of this check's defects and no suite could see either: restoring it left every suite fully green. The three test files carry the mutation named beside each new group, all nine run on copies with controls at 30/0, 31/0 and 69/0. archive-decisions gains the two boundary fixtures the gate proved were unwatched, one readable row and every number identical, both on the --write path."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/run-checks.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "ST-187. The release gate found doc-shape green here and RED on every installed copy: pointed at the directory holding this repository it walks the READER'S own unrelated projects and refuses on them, exit 1, in the session-start set, with no command that clears it. Measured both reader states before the fix. check-document-shape.js gains --governed-only, a third exit code for nothing-in-scope, and a read guard so an I/O failure cannot wear the code that means a document has no shape; run-checks.js gains the flag and advisory:[3]. The comments carry the MEASUREMENT rather than the intent, because the same wiring line carried both of this check's defects and no suite could see either: restoring it left every suite fully green. The three test files carry the mutation named beside each new group, all nine run on copies with controls at 30/0, 31/0 and 69/0. archive-decisions gains the two boundary fixtures the gate proved were unwatched, one readable row and every number identical, both on the --write path."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 8.5,
+      "to": 9.2,
+      "reason": "ST-187. The release gate found doc-shape green here and RED on every installed copy: pointed at the directory holding this repository it walks the READER'S own unrelated projects and refuses on them, exit 1, in the session-start set, with no command that clears it. Measured both reader states before the fix. check-document-shape.js gains --governed-only, a third exit code for nothing-in-scope, and a read guard so an I/O failure cannot wear the code that means a document has no shape; run-checks.js gains the flag and advisory:[3]. The comments carry the MEASUREMENT rather than the intent, because the same wiring line carried both of this check's defects and no suite could see either: restoring it left every suite fully green. The three test files carry the mutation named beside each new group, all nine run on copies with controls at 30/0, 31/0 and 69/0. archive-decisions gains the two boundary fixtures the gate proved were unwatched, one readable row and every number identical, both on the --write path."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-document-shape.js",
+      "field": "ratio",
+      "from": 17.5,
+      "to": 18.3,
+      "reason": "ST-187, second pass. The studio suite's LEAK SCANNER refused the first version of this fix: a comment in check-document-shape.js named a private project while explaining why the governance marker is held as document NAMES rather than as a path, and tools/ publishes wholesale. It was caught at the publish gate rather than after the private repo had committed, which is exactly what that assertion exists for. The comment now makes the same point without naming the project, which costs one control line and moves the ratio. The reason is worth keeping: the marker has to be a list of names precisely BECAUSE the projects reach the same governance text by different paths, and that is the sentence that needed the example."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-document-shape.js",
+      "field": "controls",
+      "from": 6,
+      "to": 5,
+      "reason": "ST-187, second pass. The studio suite's LEAK SCANNER refused the first version of this fix: a comment in check-document-shape.js named a private project while explaining why the governance marker is held as document NAMES rather than as a path, and tools/ publishes wholesale. It was caught at the publish gate rather than after the private repo had committed, which is exactly what that assertion exists for. The comment now makes the same point without naming the project, which costs one control line and moves the ratio. The reason is worth keeping: the marker has to be a list of names precisely BECAUSE the projects reach the same governance text by different paths, and that is the sentence that needed the example."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "ST-190: the transitive import walk and its two resolution rules each needed their reason written down, plus five new fixtures whose sizes are chosen to land on opposite sides of the refusal and would be unreadable numbers without it"
+    },
+    {
+      "date": "2026-09-09",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 29.1,
+      "to": 29.4,
+      "reason": "ST-190: the transitive import walk and its two resolution rules each needed their reason written down, plus five new fixtures whose sizes are chosen to land on opposite sides of the refusal and would be unreadable numbers without it"
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-context-budget.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "ST-190: the transitive import walk and its two resolution rules each needed their reason written down, plus five new fixtures whose sizes are chosen to land on opposite sides of the refusal and would be unreadable numbers without it"
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-context-budget.js",
+      "field": "ratio",
+      "from": 13.5,
+      "to": 21.7,
+      "reason": "ST-190: the transitive import walk and its two resolution rules each needed their reason written down, plus five new fixtures whose sizes are chosen to land on opposite sides of the refusal and would be unreadable numbers without it"
+    },
+    {
+      "date": "2026-09-09",
+      "file": "tools/check-context-budget.test.js",
+      "field": "ratio",
+      "from": 9.4,
+      "to": 16.6,
+      "reason": "ST-190: the transitive import walk and its two resolution rules each needed their reason written down, plus five new fixtures whose sizes are chosen to land on opposite sides of the refusal and would be unreadable numbers without it"
+    },
+    {
+      "date": "2026-09-09",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 1,
+      "to": 2,
+      "reason": "ST-193. Eight comment lines added at studio.ps1:2709 recording WHY the founder brief now opens with NOT AN ERROR: systemMessage is the only founder-facing channel a SessionStart hook has, the CLI paints it warning-coloured with a per-line prefix we do not control, and the founder read a healthy hook as a red error at two consecutive session starts. A one-line label change with no comment is a change the next reader deletes as noise, which is the rule this studio wrote for itself."
+    },
+    {
+      "date": "2026-09-09",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 29.4,
+      "to": 29.6,
+      "reason": "ST-193. Eight comment lines added at studio.ps1:2709 recording WHY the founder brief now opens with NOT AN ERROR: systemMessage is the only founder-facing channel a SessionStart hook has, the CLI paints it warning-coloured with a per-line prefix we do not control, and the founder read a healthy hook as a red error at two consecutive session starts. A one-line label change with no comment is a change the next reader deletes as noise, which is the rule this studio wrote for itself."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/build-releases.js",
+      "field": "ratio",
+      "from": 9.8,
+      "to": 11.2,
+      "reason": "ST-195. Four files gained control comments because both release gates failed and every finding had to be recorded where the next reader of the code will see it rather than only on the ticket. build-releases.js: why gathering EVERY value block is load bearing, with the measured loss, 144 published list items against 168 in the changelog, and why --check could not see it. check-document-shape.js: why every generic filename was removed from the scoping list, with the reader measurement that proved the lockout, and why the transitive walk and the scoping fix are the same fix rather than two. Both test files: why the out-of-scope fixture must IMPORT something generically named, since the version that imported nothing made the scoping branch unreachable and certified the lockout as safe. Each of these is a defect that shipped once and would read as an arbitrary rule without its cause attached."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/build-releases.test.js",
+      "field": "ratio",
+      "from": 6.3,
+      "to": 6.9,
+      "reason": "ST-195. Four files gained control comments because both release gates failed and every finding had to be recorded where the next reader of the code will see it rather than only on the ticket. build-releases.js: why gathering EVERY value block is load bearing, with the measured loss, 144 published list items against 168 in the changelog, and why --check could not see it. check-document-shape.js: why every generic filename was removed from the scoping list, with the reader measurement that proved the lockout, and why the transitive walk and the scoping fix are the same fix rather than two. Both test files: why the out-of-scope fixture must IMPORT something generically named, since the version that imported nothing made the scoping branch unreachable and certified the lockout as safe. Each of these is a defect that shipped once and would read as an arbitrary rule without its cause attached."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-document-shape.js",
+      "field": "named",
+      "from": 0,
+      "to": 2,
+      "reason": "ST-195. Four files gained control comments because both release gates failed and every finding had to be recorded where the next reader of the code will see it rather than only on the ticket. build-releases.js: why gathering EVERY value block is load bearing, with the measured loss, 144 published list items against 168 in the changelog, and why --check could not see it. check-document-shape.js: why every generic filename was removed from the scoping list, with the reader measurement that proved the lockout, and why the transitive walk and the scoping fix are the same fix rather than two. Both test files: why the out-of-scope fixture must IMPORT something generically named, since the version that imported nothing made the scoping branch unreachable and certified the lockout as safe. Each of these is a defect that shipped once and would read as an arbitrary rule without its cause attached."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-document-shape.js",
+      "field": "ratio",
+      "from": 18.3,
+      "to": 23.5,
+      "reason": "ST-195. Four files gained control comments because both release gates failed and every finding had to be recorded where the next reader of the code will see it rather than only on the ticket. build-releases.js: why gathering EVERY value block is load bearing, with the measured loss, 144 published list items against 168 in the changelog, and why --check could not see it. check-document-shape.js: why every generic filename was removed from the scoping list, with the reader measurement that proved the lockout, and why the transitive walk and the scoping fix are the same fix rather than two. Both test files: why the out-of-scope fixture must IMPORT something generically named, since the version that imported nothing made the scoping branch unreachable and certified the lockout as safe. Each of these is a defect that shipped once and would read as an arbitrary rule without its cause attached."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-document-shape.test.js",
+      "field": "named",
+      "from": 2,
+      "to": 3,
+      "reason": "ST-195. Four files gained control comments because both release gates failed and every finding had to be recorded where the next reader of the code will see it rather than only on the ticket. build-releases.js: why gathering EVERY value block is load bearing, with the measured loss, 144 published list items against 168 in the changelog, and why --check could not see it. check-document-shape.js: why every generic filename was removed from the scoping list, with the reader measurement that proved the lockout, and why the transitive walk and the scoping fix are the same fix rather than two. Both test files: why the out-of-scope fixture must IMPORT something generically named, since the version that imported nothing made the scoping branch unreachable and certified the lockout as safe. Each of these is a defect that shipped once and would read as an arbitrary rule without its cause attached."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-document-shape.test.js",
+      "field": "ratio",
+      "from": 15.6,
+      "to": 19.8,
+      "reason": "ST-195. Four files gained control comments because both release gates failed and every finding had to be recorded where the next reader of the code will see it rather than only on the ticket. build-releases.js: why gathering EVERY value block is load bearing, with the measured loss, 144 published list items against 168 in the changelog, and why --check could not see it. check-document-shape.js: why every generic filename was removed from the scoping list, with the reader measurement that proved the lockout, and why the transitive walk and the scoping fix are the same fix rather than two. Both test files: why the out-of-scope fixture must IMPORT something generically named, since the version that imported nothing made the scoping branch unreachable and certified the lockout as safe. Each of these is a defect that shipped once and would read as an arbitrary rule without its cause attached."
     }
   ],
   "files": {
@@ -859,49 +1115,49 @@
       "ratio_all": 21.4
     },
     "studio.ps1": {
-      "nonblank": 2666,
-      "comment": 909,
+      "nonblank": 2713,
+      "comment": 941,
       "header": 36,
-      "controls": 98,
-      "named": 0,
-      "ratio": 29.1,
-      "ratio_all": 34.1
+      "controls": 102,
+      "named": 2,
+      "ratio": 29.6,
+      "ratio_all": 34.7
     },
     "tools/archive-decisions.js": {
-      "nonblank": 152,
-      "comment": 50,
+      "nonblank": 191,
+      "comment": 63,
       "header": 42,
-      "controls": 0,
+      "controls": 3,
       "named": 0,
-      "ratio": 5.3,
-      "ratio_all": 32.9
+      "ratio": 9.4,
+      "ratio_all": 33
     },
     "tools/archive-decisions.test.js": {
-      "nonblank": 138,
-      "comment": 27,
+      "nonblank": 208,
+      "comment": 55,
       "header": 13,
-      "controls": 5,
-      "named": 0,
-      "ratio": 6.5,
-      "ratio_all": 19.6
+      "controls": 15,
+      "named": 2,
+      "ratio": 13,
+      "ratio_all": 26.4
     },
     "tools/build-releases.js": {
-      "nonblank": 521,
-      "comment": 76,
+      "nonblank": 536,
+      "comment": 86,
       "header": 23,
-      "controls": 2,
+      "controls": 3,
       "named": 0,
-      "ratio": 9.8,
-      "ratio_all": 14.6
+      "ratio": 11.2,
+      "ratio_all": 16
     },
     "tools/build-releases.test.js": {
-      "nonblank": 461,
-      "comment": 52,
+      "nonblank": 507,
+      "comment": 63,
       "header": 14,
-      "controls": 9,
+      "controls": 14,
       "named": 0,
-      "ratio": 6.3,
-      "ratio_all": 11.3
+      "ratio": 6.9,
+      "ratio_all": 12.4
     },
     "tools/check-comment-shape.js": {
       "nonblank": 543,
@@ -922,22 +1178,22 @@
       "ratio_all": 13.3
     },
     "tools/check-context-budget.js": {
-      "nonblank": 148,
-      "comment": 69,
+      "nonblank": 189,
+      "comment": 96,
       "header": 47,
-      "controls": 2,
-      "named": 0,
-      "ratio": 13.5,
-      "ratio_all": 46.6
+      "controls": 8,
+      "named": 1,
+      "ratio": 21.7,
+      "ratio_all": 50.8
     },
     "tools/check-context-budget.test.js": {
-      "nonblank": 139,
-      "comment": 29,
+      "nonblank": 223,
+      "comment": 58,
       "header": 10,
-      "controls": 6,
+      "controls": 11,
       "named": 0,
-      "ratio": 9.4,
-      "ratio_all": 20.9
+      "ratio": 16.6,
+      "ratio_all": 26
     },
     "tools/check-decision-keys.js": {
       "nonblank": 187,
@@ -956,6 +1212,24 @@
       "named": 0,
       "ratio": 4.1,
       "ratio_all": 18.6
+    },
+    "tools/check-document-shape.js": {
+      "nonblank": 302,
+      "comment": 145,
+      "header": 60,
+      "controls": 14,
+      "named": 2,
+      "ratio": 23.5,
+      "ratio_all": 48
+    },
+    "tools/check-document-shape.test.js": {
+      "nonblank": 349,
+      "comment": 116,
+      "header": 12,
+      "controls": 35,
+      "named": 3,
+      "ratio": 19.8,
+      "ratio_all": 33.2
     },
     "tools/check-gate-dispatch.js": {
       "nonblank": 199,
@@ -1120,22 +1394,22 @@
       "ratio_all": 25.4
     },
     "tools/run-checks.js": {
-      "nonblank": 550,
-      "comment": 128,
+      "nonblank": 573,
+      "comment": 142,
       "header": 64,
-      "controls": 7,
-      "named": 0,
-      "ratio": 10.4,
-      "ratio_all": 23.3
+      "controls": 9,
+      "named": 1,
+      "ratio": 12,
+      "ratio_all": 24.8
     },
     "tools/run-checks.test.js": {
-      "nonblank": 412,
-      "comment": 86,
+      "nonblank": 434,
+      "comment": 95,
       "header": 14,
-      "controls": 37,
-      "named": 0,
-      "ratio": 8.5,
-      "ratio_all": 20.9
+      "controls": 41,
+      "named": 1,
+      "ratio": 9.2,
+      "ratio_all": 21.9
     },
     "tools/session-budget.js": {
       "nonblank": 149,

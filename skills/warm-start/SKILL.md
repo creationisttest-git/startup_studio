@@ -93,7 +93,31 @@ STALE     points at the block dated <old>, which this document marks superseded 
 BROKEN    the resume section carries no fenced block, so there was nothing to extract
 ```
 
-## Step 4: do not fix the file
+## Step 4: archive first if it is over budget, and change nothing else
+
+Run the context budget check before handing anything over:
+
+```
+node <studio>/tools/check-context-budget.js <project-dir>
+```
+
+**If it refuses, archive BEFORE you do any work, not at the wind-down.** Move the superseded rows
+out with `archive-decisions.js`, and move the superseded dated blocks and session-log entries by
+hand into the archive file beside the document, unedited and in the same order, leaving a pointer
+that names what moved.
+
+Do it first for a structural reason rather than a tidy one. At wind-down the session is out of
+budget and archiving is the last act before stopping, so it is the thing that gets deferred: one
+project declined the manual cut eleven sittings running while it was a wind-down job, and this
+studio's own state document sat 23 per cent over its limit having had a wind-down every sitting
+for weeks. The project that moved it to the opening act is three for three. And the saving is
+collected on every request of the session that does the work, which is the session paying for it.
+
+**Prove nothing was lost at the destination before you remove anything from the source.** Count
+the non-blank lines out and read them back in. The archiver does this for the decisions table
+itself; a hand-moved block has no such guard, so you are the guard.
+
+## Step 5: do not fix the file
 
 Report staleness. Do not edit `WARM_START.md` to correct it.
 
@@ -101,3 +125,8 @@ That document is written at wind-down, deliberately, from a reading of the whole
 it at session start means a document that describes the end of the last session gets quietly
 amended by one that has done no work yet, and the amendment is not reviewed by anybody. If the
 prompt is badly out of date, the answer is a wind-down, not a patch.
+
+**Archiving is not an exception to this and never was.** Correcting the file means changing what
+it CLAIMS. Archiving changes no claim: it moves rows unchanged into an append-only file beside the
+document and leaves a pointer naming what moved, so the trail is followable and nothing is
+reworded by a session that has done no work. Move, never amend.

@@ -133,13 +133,99 @@ const filler = k => 'x'.repeat(k);
   ok('a missing import contributes nothing and does not crash', r.code === 0 && !/Error/.test(r.out));
 }
 
+
+// --- IMPORTS ARE FOLLOWED ALL THE WAY DOWN ----------------------------------------------------
+// This was a single flat loop over CLAUDE.md's own imports, so a project whose CLAUDE.md imports
+// another CLAUDE.md had everything below level one invisible, and the tool enforcing the limit
+// reported a clean bill on a real project already 11 per cent over it. ST-190.
+//
+// EVERY FIXTURE BELOW IS SIZED SO THE TWO ANSWERS LAND ON OPPOSITE SIDES OF THE REFUSAL. A walk
+// that stops at level one cannot reach the limit and a walk that goes all the way must, so each
+// assertion is about the defect rather than about a number that happens to differ.
+function runLoud (dir) {
+  try { return { code: 0, out: execFileSync('node', [TOOL, dir], { stdio: ['pipe', 'pipe', 'pipe'] }).toString() }; }
+  catch (e) { return { code: e.status, out: ((e.stdout || '') + (e.stderr || '')).toString() }; }
+}
+{
+  const d = project({
+    'CLAUDE.md': '# p\n\n@sub/CLAUDE.md\n',
+    'sub/CLAUDE.md': '# nested\n\n@DEEP.md\n',
+    'sub/DEEP.md': filler(160000),
+  });
+  const r = run(d);
+  ok('an import of an import is counted, so a nested project cannot hide its weight',
+     r.code === 1 && /past 150000/.test(r.out));
+}
+{
+  // AN IMPORT RESOLVES AGAINST THE FILE THAT DECLARES IT, not against the project root. The decoy
+  // at the root has the same NAME and a harmless size, so root-relative resolution finds a real
+  // file and passes. WITHOUT the decoy a root-relative walk simply finds nothing at level two,
+  // which reads exactly like a project that has no second level, and the fixture would then agree
+  // with the defect instead of catching it.
+  const d = project({
+    'CLAUDE.md': '# p\n\n@sub/CLAUDE.md\n',
+    'sub/CLAUDE.md': '# nested\n\n@DEEP.md\n',
+    'sub/DEEP.md': filler(160000),
+    'DEEP.md': filler(10),
+  });
+  const r = run(d);
+  ok('a nested import resolves beside its own file, not at the project root',
+     r.code === 1 && /past 150000/.test(r.out));
+}
+{
+  // A DOCUMENT REACHED TWICE IS LOADED ONCE, which makes the seen-set load bearing for the TOTAL
+  // and not only for cycle safety. Charged twice this fixture is over 160,000 and REFUSES; charged
+  // once it is about 80,000 and passes.
+  const d = project({
+    'CLAUDE.md': '# p\n\n@sub/CLAUDE.md\n@sub/DEEP.md\n',
+    'sub/CLAUDE.md': '# nested\n\n@DEEP.md\n',
+    'sub/DEEP.md': filler(80000),
+  });
+  ok('a document reached by two paths is charged once, not twice', run(d).code === 0);
+}
+{
+  // A CYCLE MUST NOT HANG. Two documents importing each other is a mistake somebody will make, and
+  // a check that never returns is worse than one that refuses: it takes the whole set down with no
+  // verdict at all, which is the shape of S149. A timeout kills the child and reddens this line.
+  const d = project({
+    'CLAUDE.md': '# p\n\n@a.md\n',
+    'a.md': '# a\n\n@b.md\n',
+    'b.md': '# b\n\n@a.md\n@CLAUDE.md\n',
+  });
+  // IT MUST REACH A VERDICT, not merely stop. The first version of this assertion asked only
+  // whether the child had been killed, and the obvious mutation -- taking the seen-set out -- 
+  // recurses until the stack overflows, which exits 1 and is not a kill, so the assertion stayed
+  // GREEN while the tool crashed. Node exits 1 on an uncaught throw and this tool exits 1 on a
+  // finding, so an exit code cannot tell a crash from a result: only the summary line can. S76.
+  const verdict = run(d);
+  ok('a cycle of imports reaches a verdict instead of hanging or overflowing',
+     /[0-9]+ passed, [0-9]+ failed/.test(verdict.out));
+}
+{
+  // THE TREE IS PRINTED WITH DEPTH. A flat list says WHAT is loaded and never which file pulled in
+  // what, and on the nested projects this fix exists for that is the question a reader has.
+  // Measured by where the NAME starts, not by leading whitespace: the size column is right
+  // aligned, so a one-character file and a six-character one have different leading runs and an
+  // indent test would be measuring the number rather than the depth.
+  const d = project({
+    'CLAUDE.md': '# p\n\n@sub/CLAUDE.md\n',
+    'sub/CLAUDE.md': '# nested\n\n@DEEP.md\n',
+    'sub/DEEP.md': 'x',
+  });
+  const lines = runLoud(d).out.split(/\r?\n/);
+  const one = lines.filter(l => l.indexOf('sub/CLAUDE.md') !== -1)[0] || '';
+  const two = lines.filter(l => l.indexOf('DEEP.md') !== -1)[0] || '';
+  ok('the printed tree indents a document under the file that imported it',
+     one !== '' && two !== '' && two.indexOf('DEEP.md') > one.indexOf('sub/CLAUDE.md'));
+}
+
 junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 /* Measured: a fatal guard firing part way through the studio suite reported 0 failed
    and exit 0, having run 22 of 214, so a count of failures cannot see an assertion that
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 15;
+const EXPECTED_ASSERTIONS = 20;   // +5, ST-190: transitive walk, file-relative resolution, dedupe, cycle, printed depth
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

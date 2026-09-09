@@ -57,6 +57,7 @@ const target = args.filter((a, i) => !a.startsWith('--') && !(keepArg > -1 && i 
 
 function die(msg) { console.error('archive-decisions: ' + msg); process.exit(2); }
 function stop(msg) { console.log(msg); process.exit(1); }
+function say(msg) { console.log('  ' + msg); }
 
 if (!target) die('usage: node tools/archive-decisions.js <file> [--keep N] [--write]');
 if (!fs.existsSync(target)) die('no such file: ' + target);
@@ -89,17 +90,57 @@ if (rows.length <= KEEP) {
 
 // --- work out which end is newest -------------------------------------------------------------
 // Both directions exist in this studio today, so this is established rather than assumed.
+//
+// THE IDENTIFIER MAY CARRY A SEPARATOR, AND FOR WEEKS IT COULD NOT. The pattern was
+// ([A-Za-z]*)(\d+), letters immediately against digits, so S147 parsed and D-001 returned null.
+// One project numbers its decisions with a hyphen; this one does not. So this tool archived
+// cleanly here and refused there, twice, on a table that was contiguous D-001 to D-121 with no
+// gaps and nothing ambiguous about it, while that project's decisions table passed 73,193
+// characters against a 60,000 trigger with the only tool that could act on it unable to read it.
 function idOf(line) {
-  const m = line.match(/^\|\s*([A-Za-z]*)(\d+)\s*\|/);
+  const m = line.match(/^\|\s*([A-Za-z]*)[-_ ]?(\d+)\s*\|/);
   return m ? parseInt(m[2], 10) : null;
 }
-const firstId = idOf(rows[0].line);
-const lastId = idOf(rows[rows.length - 1].line);
-if (firstId === null || lastId === null || firstId === lastId) {
-  stop('cannot tell which end of the table is newest from the row identifiers, so nothing was ' +
-       'written. Archiving the wrong rows discards exactly what somebody needs.');
+
+// READ THE WHOLE COLUMN, NOT THE TWO ENDS. Asking only the first and last row let one
+// unreadable row at either end refuse a table whose other rows settled the order beyond doubt,
+// and it could not see a table that is neither ascending nor descending at all, which is the
+// case actually worth refusing.
+const rowIds = rows.map(r => idOf(r.line));
+const readable = rowIds.filter(v => v !== null).length;
+if (readable < 2) {
+  stop('could not read a decision number from ' + (rows.length - readable) + ' of ' + rows.length +
+       ' row(s), so the order of the table is unknown and nothing was written. A row identifier ' +
+       'is optional letters, an optional -, _ or space, then digits, as in S147, D-001 or 91.');
 }
-const newestFirst = firstId > lastId;
+
+let up = 0, down = 0, prev = null;
+const breaks = [];
+for (let i = 0; i < rowIds.length; i++) {
+  if (rowIds[i] === null) continue;
+  if (prev !== null) {
+    if (rowIds[i] > prev) up++;
+    else if (rowIds[i] < prev) down++;
+    else breaks.push(rowIds[i]);
+  }
+  prev = rowIds[i];
+}
+if (up > 0 && down > 0) {
+  stop('the decision numbers rise ' + up + ' time(s) and fall ' + down + ' time(s), so the table ' +
+       'is in no consistent order and which end is newest cannot be established. Nothing was ' +
+       'written, because archiving the wrong rows discards exactly what somebody needs.');
+}
+if (up === 0 && down === 0) {
+  stop('every readable decision number is the same, so which end is newest cannot be established ' +
+       'from them. Nothing was written.');
+}
+// SAY WHICH SIGNAL DECIDED IT. The old refusal named a condition that had not fired, and two
+// sessions read it and believed their data was ambiguous when the fault was this parser (S139).
+const newestFirst = down > 0;
+say(readable + ' of ' + rows.length + ' row(s) carry a readable number, ' +
+    (newestFirst ? 'descending' : 'ascending') + ', so the newest is at the ' +
+    (newestFirst ? 'TOP' : 'BOTTOM') +
+    (breaks.length ? '. ' + breaks.length + ' repeated number(s), which do not decide the order' : ''));
 
 const keep = newestFirst ? rows.slice(0, KEEP) : rows.slice(rows.length - KEEP);
 const archive = newestFirst ? rows.slice(KEEP) : rows.slice(0, rows.length - KEEP);

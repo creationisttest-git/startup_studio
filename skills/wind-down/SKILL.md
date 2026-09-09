@@ -293,6 +293,15 @@ leaving a line in the live table naming which numbers moved and where they went.
 already specific, and five projects sailed past it. An instruction that is 0 for 5 is not a
 control. The step that had never happened was a human choosing to run it.
 
+**If you are archiving HERE, you are archiving late, and that is now the fallback rather than the
+plan.** `/warm-start` archives at the opening of a session, before any work. The reason is
+structural: at a wind-down the session is out of budget and this is the last act before stopping,
+so it is the step that gets deferred, and the saving is handed to the NEXT session rather than
+collected by the one paying for it. One project declined the manual cut eleven sittings running
+while it lived here; the project that moved it to the opening act is three for three. Run it here
+when the document crossed the line during the session that is now ending, which is the case
+warm-start could not have seen.
+
 **What makes it safe to run unsupervised**, because it rewrites the one artefact that holds the
 decision trail. It refuses rather than guessing the row order, and both directions exist in real
 projects here, so archiving the wrong twenty would discard exactly the rows somebody needs. It

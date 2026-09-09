@@ -88,28 +88,45 @@ function parseChangelog(text) {
 }
 
 /**
- * Pulls the value block out of one release section. It runs from the marker to the next
- * heading, the next horizontal rule, or the end of the section, so a block may be several
- * paragraphs or a short list.
+ * Pulls the value blocks out of one release section and joins them, in the order written.
+ * Each block runs from its marker to the next heading, the next horizontal rule, the next
+ * marker, or the end of the section, so a block may be several paragraphs or a short list.
+ *
+ * IT GATHERS EVERY BLOCK, AND TAKING ONLY THE FIRST WAS A SILENT LOSS OF PUBLISHED CONTENT.
+ * A dated section holds one "###" block per change and most days ship more than one. This
+ * function used to find the first marker and stop, so every block after the first was dropped
+ * from the page with nothing anywhere reporting it: --check compares the page to the changelog
+ * and the page WAS faithful to the first block, so it printed "releases.html is current" over
+ * a page missing a whole change. Measured on 2026-09-10: merging a new block in above the
+ * previous sitting's took its five bullets off the page and printed exit 0, and the second
+ * block of the section below it had already been absent for a day. The "###" headings are
+ * never rendered, so joining the blocks is what the reader was always meant to receive.
  */
 function extractValueBlock(sectionLines) {
-  let start = -1;
-  for (let i = 0; i < sectionLines.length; i++) {
-    if (MARKER.test(sectionLines[i])) { start = i; break; }
-  }
-  if (start === -1) return null;
+  const out = [];
+  let i = 0;
 
-  const out = [sectionLines[start].replace(MARKER, '')];
-  for (let i = start + 1; i < sectionLines.length; i++) {
-    const line = sectionLines[i];
-    if (/^#{1,6}\s/.test(line)) break;
-    if (/^-{3,}\s*$/.test(line)) break;
-    if (MARKER.test(line)) break;
-    out.push(line);
+  while (i < sectionLines.length) {
+    if (!MARKER.test(sectionLines[i])) { i++; continue; }
+
+    const block = [sectionLines[i].replace(MARKER, '')];
+    i++;
+    for (; i < sectionLines.length; i++) {
+      const line = sectionLines[i];
+      if (/^#{1,6}\s/.test(line)) break;
+      if (/^-{3,}\s*$/.test(line)) break;
+      if (MARKER.test(line)) break;
+      block.push(line);
+    }
+
+    while (block.length && block[0].trim() === '') block.shift();
+    while (block.length && block[block.length - 1].trim() === '') block.pop();
+    if (block.length) {
+      if (out.length) out.push('');
+      for (const l of block) out.push(l);
+    }
   }
 
-  while (out.length && out[0].trim() === '') out.shift();
-  while (out.length && out[out.length - 1].trim() === '') out.pop();
   return out.length ? out : null;
 }
 
