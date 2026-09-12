@@ -237,11 +237,153 @@ function warm (opts) {
   ok('a line one character over the width cap fails', r.code === 1);
 }
 
+// --- shape: the brief may not be a paragraph ------------------------------------------------------
+//
+// THE LIMIT IS READ OUT OF THE OTHER INSTRUMENT, AND WHAT THAT DOES AND DOES NOT PROVE WAS STATED
+// WRONGLY HERE FIRST. The comment used to say that if either tool moved its limit and the other
+// did not, the pair below would go red. Two reviewers ran it: moving MAX_PROSE_WORDS returns DELTA
+// ZERO against this suite, because these fixtures read the SAME constant and move with it. The
+// property is real and it is proved by the reply checker's own suite, which goes 62/0 to 54/8 on
+// that mutation. What the pair below proves is narrower and still worth having: that this tool
+// refuses at whatever the borrowed limit currently IS. Redeclaring the number here with a
+// different value is caught, delta 4; redeclaring it with today's identical value is not caught at
+// all, and saying so is the point, because a comment claiming a control that does not exist is the
+// defect this project keeps paying for.
+const CAP = require('./check-reply-shape.js').MAX_PROSE_WORDS;
+// Borrowed from the tool under test for the same reason: two copies of a cap agree until they do not.
+const BRIEF_CAP = require('./check-session-brief.js').BRIEF_CAP;
+const MAX_WIDTH = require('./check-session-brief.js').MAX_WIDTH;
+
+// N words of prose, soft wrapped so no line trips the width rule and the whole thing fits the line
+// cap. Wrapping matters: an unbroken run spans consecutive prose lines, so this really is one block.
+//
+// THE WRAP SCALES WITH THE CAP RATHER THAN SITTING AT A CONSTANT 18. At a fixed width this fixture
+// outgrew the brief's own 12-line cap once the borrowed limit passed about 216, and the assertions
+// below then went red for the LINE rule while claiming to test the PROSE rule, which sends the
+// reader to the wrong place. The generated block is asserted to fit both other caps before it is
+// used, so a fixture that stops measuring what it says it measures fails as itself.
+function paragraph (words) {
+  const per = Math.max(6, Math.ceil((words + 1) / (BRIEF_CAP - 2)));
+  const out = [];
+  let line = [];
+  for (let i = 0; i < words; i++) {
+    line.push('word');
+    if (line.length === per) { out.push(line.join(' ')); line = []; }
+  }
+  if (line.length) out.push(line.join(' '));
+  return out.join(NL);
+}
+{
+  const p = paragraph(CAP + 1);
+  const ls = p.split(NL);
+  ok('the paragraph fixture stays inside the line cap, so these cases test the prose rule '
+   + 'and not the line rule wearing its name',
+    ls.length <= BRIEF_CAP && Math.max.apply(null, ls.map(function (l) { return l.length; })) <= MAX_WIDTH);
+}
+{
+  const r = run(project({ warm: warm({ brief: paragraph(CAP) }), findings: 3 }));
+  ok('a prose block exactly at the borrowed limit passes', r.code === 0);
+}
+{
+  const r = run(project({ warm: warm({ brief: paragraph(CAP + 1) }), findings: 3 }));
+  ok('a prose block one word over the borrowed limit fails', r.code === 1);
+  ok('and reports the size of the block it refused', r.out.indexOf('largest is ' + (CAP + 1)) !== -1);
+  ok('and says the hook orders this text printed verbatim', /printed verbatim/.test(r.out));
+}
+{
+  // THE SAME WORD COUNT, IN BULLETS. This is the assertion that proves the rule is satisfiable by
+  // writing better and NOT by cutting content, which is the whole design of the limit it borrows.
+  // Without it the pair above is indistinguishable from a length cap wearing a different name.
+  const bullets = paragraph(CAP + 1).split(NL).map(function (l) { return '- ' + l; }).join(NL);
+  const r = run(project({ warm: warm({ brief: bullets }), findings: 3 }));
+  ok('the same content in point form passes, so the rule is not a length cap', r.code === 0);
+  ok('and reports zero prose with the words counted as point form',
+     /largest 0, with \d+ word\(s\) in point form/.test(r.out));
+}
+{
+  // A single bullet run through with a paragraph underneath. Point form ANYWHERE must not launder
+  // the prose beside it, which is the failure mode a naive "does it contain a bullet" test invites.
+  const mixed = '- a real bullet' + NL + paragraph(CAP + 1);
+  const r = run(project({ warm: warm({ brief: mixed }), findings: 3 }));
+  ok('one bullet does not launder a paragraph below it', r.code === 1);
+}
+{
+  // THE PREDICATE NAMES FIVE POINT-FORM SHAPES AND ONLY BULLETS WERE EXERCISED, so four of them
+  // could stop counting and this suite would not notice.
+  //
+  // THE FIRST VERSION OF THIS BLOCK WAS THREE SHORT LINES AND PROVED NOTHING. Mutating shapeOf so
+  // headings stopped counting returned DELTA ZERO: the heading's three words became prose, three
+  // is under the cap, and the case passed for a reason that had nothing to do with the shape. Each
+  // marker now carries more words than the cap allows, so if its shape stops being recognised the
+  // words land in the prose total and the case goes red by itself. One marker per case, so they
+  // fail alone rather than as a group.
+  [['heading', '# '], ['table row', '| '], ['quote', '> '], ['numbered item', '1. ']].forEach(function (pair) {
+    const line = pair[1] + paragraph(CAP + 1).split(NL).join(' ' + pair[1]);
+    const r = run(project({ warm: warm({ brief: line.split(' ' + pair[1]).join(NL + pair[1]) }), findings: 3 }));
+    ok('a ' + pair[0] + ' counts as point form, so ' + (CAP + 1) + ' words in that shape pass',
+       r.code === 0);
+  });
+}
+
+// --- shape: the brief may not open with throat-clearing -------------------------------------------
+//
+// THE BORROWED PREDICATE REFUSES ON TWO THINGS AND THE FIRST VERSION OF THIS RULE READ ONE. The
+// reply instrument fails on a long prose block OR on an opening line of throat-clearing, so
+// reading only the block left the identical defect reachable one field over: a brief opening
+// "Let me walk you through where we are" scored ZERO prose, passed here, and was then ordered
+// printed verbatim as the first line of the session's first reply, where the release gate refuses
+// it with no override. Found by review, not by this suite, which is why both fixtures exist now.
+{
+  const r = run(project({ warm: warm({ brief: '* Let me walk you through where we are.' + NL + '* A second point.' }), findings: 3 }));
+  ok('a brief opening with throat-clearing fails even with zero prose', r.code === 1);
+  ok('and says the hook makes it the reply opening line', /first thing the session says/.test(r.out));
+  // ANCHORED TO THE FAIL LINE, because the passing branch prints the opening line too and an
+  // unanchored match was green under the mutation that deletes the whole refusal. An assertion
+  // satisfied by the output of the case it is not testing is not an assertion.
+  ok('and quotes the offending opening line back on the failure itself',
+     /FAIL[^\n]*Let me walk you through/.test(r.out));
+}
+// AND THE SAME CASE IN THE FORMAT THE BRIEF IS ACTUALLY WRITTEN IN, which is the one the fixture
+// above could not reach. The borrowed predicate stripped asterisk, underscore and hash and NOT
+// the hyphen, so the case above passed through the one marker that worked while the live brief,
+// eleven hyphen bullets, was immune. The suite certified a branch the artefact never takes: this
+// rule was green for three sittings and could not have fired on any real brief.
+{
+  const r = run(project({ warm: warm({ brief: '- Let me walk you through where we are.' + NL + '- A second point.' }), findings: 3 }));
+  ok('a HYPHEN-bulleted brief opening with throat-clearing fails, which is the brief format', r.code === 1);
+  ok('and the hyphen case is quoted on the failure line too',
+     /FAIL[^\n]*Let me walk you through/.test(r.out));
+}
+{
+  const r = run(project({ warm: warm({ brief: '- The board runs one initiative at a time.' + NL + '- Nothing is in flight.' }), findings: 3 }));
+  ok('a brief that leads with the answer passes', r.code === 0);
+}
+
 // --- the standing content rule -------------------------------------------------------------------
+// TWO CODE POINTS, TWO FIXTURES, BECAUSE ONE FIXTURE NAMED THE RULE AND PROVED HALF OF IT. This
+// block used to carry the U+2014 case alone while the changelog published that U+2015 HORIZONTAL
+// BAR is counted alongside it. The assertion name read as a guarantee over a branch no fixture
+// entered, so no mutation of the second character could ever redden it, and the checker really
+// did miss it: it tested indexOf on one code point instead of reading the borrowed predicate.
 {
   const r = run(project({ warm: warm({ brief: 'We are working on the thing — and it matters.' }), findings: 3 }));
-  ok('an em-dash in the founder brief fails', r.code === 1);
+  ok('a U+2014 em-dash in the founder brief fails', r.code === 1);
   ok('and calls it a hard content failure', /hard content failure/.test(r.out));
+  // The reason matters as much as the verdict: a brief is printed verbatim and cannot be edited
+  // afterwards, which is why this refuses at the document rather than at the transcript.
+  ok('and says why it cannot be fixed after the fact', /cannot be fixed after the fact/.test(r.out));
+}
+{
+  const r = run(project({ warm: warm({ brief: 'We are working on the thing ― and it matters.' }), findings: 3 }));
+  ok('a U+2015 horizontal bar in the founder brief fails too, which is the half that was published and not enforced',
+     r.code === 1);
+  // THIS ASSERTION WAS FALSIFIED BY ITS OWN MUTATION AND RESTATED RATHER THAN REWORDED. It first
+  // matched /carries no em-dash/, which the PASSING branch also prints, as "ok  the founder brief
+  // carries no em-dash". So it was satisfied by the exact branch it exists to exclude, and
+  // reverting the checker to the shipped indexOf returned delta 1 where two assertions should
+  // have gone red. It now matches wording only the refusal can produce.
+  ok('and it is the em-dash rule that refuses it, not some other rule reaching the same exit code',
+     /found 1, which is a hard content failure/.test(r.out));
 }
 
 // --- the board, direction one: large work in progress must be named ----------------------------------
@@ -584,7 +726,7 @@ function warm (opts) {
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 86;
+const EXPECTED_ASSERTIONS = 107;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

@@ -75,14 +75,19 @@ function ledgerOf (root) {
   const r = run(['--root', root, '--set', 'session-start']);
   const led = ledgerOf(root);
   ok('a clean run exits 0', r.code === 0);
-  ok('every check in the set gets a row', led.checks['board-audit'] && led.checks['board-doctor'] &&
-    led.checks['comment-shape'] && led.checks['roster-count'] && led.checks['hook-wiring']);
+  // Named against the session-start set as it stands. Six checks left it for the deep set,
+  // which nothing gates on, so naming them here would assert a membership that is gone.
+  ok('every check in the set gets a row', led.checks['board-audit'] && led.checks['roster-count'] &&
+    led.checks['published-counts'] && led.checks['governance-core'] && led.checks['releases-page']);
   ok('the row carries the instrument own exit code and not a verdict about it',
     led.checks['board-audit'].exit === 0 && led.checks['board-audit'].status === 'ok');
   ok('the row carries the command line it was actually run as, so a reader can run it again',
     /board\.js audit$/.test(led.checks['board-audit'].cmd || ''));
+  // governance-core, because greenTree stubs board.js, comment-shape, roster-count,
+  // hook-registration and build-releases and nothing else. health-report used to serve here
+  // and is no longer in this set.
   ok('an instrument this install does not carry is recorded absent and never ok',
-    led.checks['health-report'].status === 'absent');
+    led.checks['governance-core'].status === 'absent');
   // Counted from the ledger, never typed: a literal goes stale the next time a check joins the set.
   const absent = Object.keys(led.checks).filter(k => led.checks[k].status === 'absent').length;
   ok('and the summary says how many were absent rather than reporting a clean run',
@@ -121,8 +126,8 @@ function ledgerOf (root) {
 }
 {
   const root = greenTree();
-  run(['--root', root, '--set', 'session-start']);
-  const g = run(['--root', root, '--gate', 'session-start']);
+  run(['--root', root, '--set', 'deep']);
+  const g = run(['--root', root, '--gate', 'deep']);
   ok('an absent instrument does NOT refuse the gate, because a legitimate partial install ' +
     'that can never satisfy it would be locked out for good', g.code === 0);
   ok('and it is named in the summary, so a partial run is never read as a clean one',
@@ -232,18 +237,20 @@ function ledgerOf (root) {
 /* Mutation: drop the unproved branch in runOne and this records ok, which is the exact claim
    the reshape of this design exists to refuse. */
 {
+  // Against the deep set, because that is where health-report lives now. The claim being
+  // proved is about the unproved MECHANISM, which is a property of runOne and not of a set.
   const root = greenTree();
   put(root, 'studio.ps1', 'Write-Host "stub health report"\n');
-  const r = run(['--root', root, '--set', 'session-start']);
+  const r = run(['--root', root, '--set', 'deep']);
   const led = ledgerOf(root);
   ok('an instrument whose exit code carries no information is recorded unproved, never ok',
     led.checks['health-report'].status === 'unproved');
   ok('with the reason on the row rather than in someone memory',
     /always exits zero/.test(led.checks['health-report'].why || ''));
   ok('it does not refuse, because it is a permanent property of that instrument',
-    run(['--root', root, '--gate', 'session-start']).code === 0);
+    run(['--root', root, '--gate', 'deep']).code === 0);
   ok('and it is not counted among the checks that passed',
-    /not machine-readable/.test(run(['--root', root, '--gate', 'session-start']).out));
+    /not machine-readable/.test(run(['--root', root, '--gate', 'deep']).out));
   ok('the run itself is not failed by it', r.code === 0);
 }
 
@@ -287,6 +294,29 @@ function ledgerOf (root) {
   run(['--root', root, '--set', 'session-start']);
   const s = run(['--root', root, '--show']);
   ok('--show prints the record and what is stale', s.code === 0 && /board-audit/.test(s.out));
+}
+
+/* A FLAG PRESENT WITH NOTHING AFTER IT USED TO CHOOSE THE DEFAULT, AND FOR --gate THAT MEANT
+ * RUNNING. flagOf returns its fallback when the flag is last on the line, so `--gate` alone read
+ * as no gate at all: the program fell through, RAN the session-start set, OVERWROTE the ledger it
+ * had just been asked to read back, and returned 0. Somebody gating a release got a green zero
+ * from a run that gated nothing, and the row proving the previous state was gone.
+ *
+ * THE EXIT CODE IS THE WEAKER HALF OF THIS AND IS DELIBERATELY NOT THE ONLY ASSERTION, because a
+ * tool can refuse and still have written first. The second one is about the file, which is where
+ * the actual damage was.
+ *
+ * Mutation: delete the loop in main() that refuses, and the first two go red.
+ */
+{
+  const root = greenTree();
+  const r = run(['--root', root, '--gate']);
+  ok('a --gate with nothing after it is a usage error, never a silent run of the default set',
+    r.code === 2);
+  ok('and it writes no ledger, so the record it was asked to read back is still there to read',
+    !fs.existsSync(path.join(root, '.board', 'checks.json')));
+  ok('a --set with nothing after it is the same, because the default set is the one thing you '
+    + 'were ruling out by naming another', run(['--root', root, '--set']).code === 2);
 }
 
 /* THE RECORD CANNOT BE LOOSENED BY HAND, and none of this was covered until a gate found it.
@@ -361,7 +391,7 @@ function ledgerOf (root) {
   put(root, 'tools/check-hook-registration.js',
       'process.stdout.write("note  two hooks of ours are registered nowhere\\n");\n' +
       'process.exit(3);\n');
-  const r = run(['--root', root, '--set', 'session-start']);
+  const r = run(['--root', root, '--set', 'deep']);
   ok('AN INSTRUMENT WITH A NOTICE AND NO REFUSAL IS REPORTED AS ADVISORY, not as a pass',
     /ADVISORY\s+hook-wiring/.test(r.out));
   ok('and it does not refuse, so a notice can never lock anybody out',
@@ -380,10 +410,11 @@ function ledgerOf (root) {
   put(root, 'tools/check-hook-registration.js',
       'process.stdout.write("note  two hooks of ours are registered nowhere\\n");\n' +
       'process.exit(3);\n');
-  run(['--root', root, '--set', 'session-start']);
-  const g = run(['--root', root, '--gate', 'session-start']);
-  ok('AN ADVISORY ROW DOES NOT REFUSE THE GATE. This check is in the release set, so refusing on '
-   + 'one would mean a single unregistered hook stopped a release', g.code === 0);
+  run(['--root', root, '--set', 'deep']);
+  const g = run(['--root', root, '--gate', 'deep']);
+  ok('AN ADVISORY ROW DOES NOT REFUSE THE GATE. This check sat in the release set when the rule '
+   + 'was written, where refusing on one would have meant a single unregistered hook stopped a '
+   + 'release', g.code === 0);
   ok('and it is not reported as a record that was edited by hand, which sends the reader to the '
    + 'wrong file entirely', !/edited by hand/.test(g.out));
   ok('and it is COUNTED as advisory in the summary and named with what it said, so it is not '
@@ -402,11 +433,11 @@ function ledgerOf (root) {
   put(root, 'tools/check-hook-registration.js',
       'process.stdout.write("note  two hooks of ours are registered nowhere\\n");\n' +
       'process.exit(3);\n');
-  run(['--root', root, '--set', 'session-start']);
+  run(['--root', root, '--set', 'deep']);
   const led = ledgerOf(root);
   led.checks['hook-wiring'].tree = 'git:deadbeefdeadbeef';
   put(root, '.board/checks.json', JSON.stringify(led, null, 2) + '\n');
-  const g = run(['--root', root, '--gate', 'session-start']);
+  const g = run(['--root', root, '--gate', 'deep']);
   ok('A ROW REFUSED AS STALE IS NOT ALSO LISTED AS ADVISORY. One row, one verdict: the refusal is '
    + 'what the gate acted on and a second label beside it is not a detail, it is a contradiction',
     /recorded against a different tree/.test(g.out) && !/ADVISORY\s+hook-wiring/.test(g.out));
@@ -418,12 +449,12 @@ function ledgerOf (root) {
    advisory list test in doGate and both go red. */
 {
   const root = greenTree();
-  run(['--root', root, '--set', 'session-start']);
+  run(['--root', root, '--set', 'deep']);
   const led = ledgerOf(root);
   led.checks['comment-shape'].status = 'advisory';
   led.checks['comment-shape'].exit = 1;
   put(root, '.board/checks.json', JSON.stringify(led, null, 2) + '\n');
-  const g = run(['--root', root, '--gate', 'session-start']);
+  const g = run(['--root', root, '--gate', 'deep']);
   ok('A CHECK WITH NO ADVISORY RESULT OF ITS OWN CANNOT BE MADE ADVISORY BY WRITING THE WORD INTO '
    + 'THE RECORD. It carried a real refusal and the gate would have waved it through', g.code === 1);
   ok('and it is reported as a record that does not hold up rather than as an advisory result',
@@ -453,7 +484,56 @@ function ledgerOf (root) {
     !!doc.advisory && doc.advisory.indexOf(3) !== -1);
 }
 
-const EXPECTED_ASSERTIONS = 69;
+/* THE SETS FIELD IS AN ARGUMENT AND NOTHING ASSERTED IT, WHICH IS HOW ONE LIVED WRONG FOR EIGHT
+   SITTINGS. releases-page ran in the release set alone, so every wind-down wrote a release note
+   into the changelog, left the published page behind, and the only thing watching did not run
+   again until somebody published. Reverting sets to ['release'] left this suite at 69 passed
+   0 failed, so the fix that closed it was worth exactly nothing to any instrument.
+   The advisory escape is asserted beside it for the reason the neighbouring block records: this
+   check moved into the set a reader runs FIRST, and a reader who runs the method without
+   publishing a site has no page and no dated changelog, which is an absence and not a drift.
+   Mutation: drop 'session-start' from sets and the first goes red; drop advisory:[3] and the
+   second does. Both run, both delta 1. */
+{
+  const defs = T.definitions('C:' + path.sep + 'somewhere' + path.sep + 'startup_studio');
+  const rp = defs.filter(d => d.name === 'releases-page')[0];
+  ok('releases-page runs at session start and not only at release, because the commit that '
+   + 'breaks the published page is a wind-down and a wind-down never runs the release set',
+    !!rp && rp.sets.indexOf('session-start') !== -1 && rp.sets.indexOf('release') !== -1);
+  ok('and a tree with no page or nothing dated to hold it to is advisory rather than a lockout',
+    !!rp && !!rp.advisory && rp.advisory.indexOf(3) !== -1);
+}
+
+/* ST-219 d1 SPLIT REPLY SHAPE IN TWO AND THE SPLIT IS THE WHOLE FIX, so it is asserted rather
+   than described. The wind-down keeps the ABSOLUTE count, because that number is read into the
+   compliance table and a slip a session recovered from still happened; the release judges a
+   RECENT window, because a sent reply cannot be unsent and one slip in the first minute had
+   blocked four of the last five releases. Two NAMES rather than one name with two argument sets,
+   because the gate keys the ledger on the name and a windowed pass would otherwise overwrite the
+   absolute row, which is the record disappearing through the fix meant to preserve it.
+   Mutations, each delta 1: put 'release' back on reply-shape; delete reply-shape-recent; drop the
+   --recent argument from its build; give the absolute one a --recent argument. */
+{
+  const defs = T.definitions('C:' + path.sep + 'somewhere' + path.sep + 'startup_studio');
+  const abs = defs.filter(d => d.name === 'reply-shape')[0];
+  const win = defs.filter(d => d.name === 'reply-shape-recent')[0];
+  const argsOf = d => d.build({ abs: 'w' }, { abs: 't' }).args;
+  ok('the absolute reply-shape check is in the wind-down set and NOT in the release set, so a '
+   + 'windowed pass can never stand in for the record the compliance table reads',
+    !!abs && abs.sets.indexOf('wind-down') !== -1 && abs.sets.indexOf('release') === -1);
+  ok('and it is still absolute, carrying no window argument of its own',
+    !!abs && argsOf(abs).indexOf('--recent') === -1);
+  // The windowed row has LEFT the release set. It refused a release over a single banned
+  // character in the session's own replies, with no override, and blocked four of the last
+  // five. What the claim below still protects is the separation: it keeps its own name and
+  // its own ledger entry, so a windowed pass can never be written over the absolute record.
+  ok('the windowed row keeps its own name and stands in neither gating set',
+    !!win && win.sets.indexOf('release') === -1 && win.sets.indexOf('wind-down') === -1);
+  ok('and the windowed row actually passes a window, which is the only thing that makes it differ',
+    !!win && argsOf(win).indexOf('--recent') !== -1);
+}
+
+const EXPECTED_ASSERTIONS = 78;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

@@ -134,7 +134,7 @@
  * shapes land on the same character whether the path was resolved or not, so the slash
  * assertion stays green with the resolving removed.
  */
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -171,12 +171,41 @@ function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAI
 const junk = [];
 let n = 0;
 
+// EVERY FIXTURE ROOT IS A GIT REPOSITORY, AND ITS FIRST COMMIT IS DATED BEFORE THE DISPATCH.
+// The tree half asks git what has landed since the first reviewer was dispatched, so a bare
+// temp directory answers "not a repository" and every one of the twenty-two assertions that
+// expect a PASS would have gone advisory instead. They were RESTATED rather than loosened
+// (S134): they need a project that looks like a project, and they were never about git.
+// The date is fixed and earlier than dispatch()'s fixed timestamp, so nothing here depends on
+// what the clock says while the suite runs, which is the defect that makes a suite pass in the
+// morning and fail at night.
+const BEFORE_DISPATCH = '2026-09-01T00:00:00Z';
+function git (root, args, at) {
+  const env = Object.assign({}, process.env, {
+    GIT_AUTHOR_DATE: at || BEFORE_DISPATCH,
+    GIT_COMMITTER_DATE: at || BEFORE_DISPATCH,
+    GIT_CONFIG_GLOBAL: path.join(root, 'no-such-gitconfig'),
+    GIT_CONFIG_SYSTEM: path.join(root, 'no-such-gitconfig')
+  });
+  return spawnSync('git', ['-C', root, '-c', 'user.name=fixture', '-c', 'user.email=f@x',
+    '-c', 'commit.gpgsign=false'].concat(args), { encoding: 'utf8', env: env, windowsHide: true });
+}
+// A commit landing at a stated moment, for the fixtures about the tree moving under a review.
+function commitAt (w, at, subject) {
+  fs.writeFileSync(path.join(w.root, 'moved-' + (n++) + '.txt'), subject + '\n', 'utf8');
+  git(w.root, ['add', '-A'], at);
+  return git(w.root, ['commit', '-m', subject], at);
+}
 function world () {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'gate-dispatch-' + process.pid + '-' + (n++) + '-'));
   junk.push(d);
   const home = path.join(d, 'home');
   const root = path.join(d, 'work');
   fs.mkdirSync(root, { recursive: true });
+  git(root, ['init', '-q']);
+  fs.writeFileSync(path.join(root, 'seed.txt'), 'seed\n', 'utf8');
+  git(root, ['add', '-A']);
+  git(root, ['commit', '-q', '-m', 'seed']);
   return { dir: d, home: home, root: root };
 }
 function transcriptDir (w) {
@@ -184,11 +213,20 @@ function transcriptDir (w) {
   fs.mkdirSync(p, { recursive: true });
   return p;
 }
-function dispatch (role) {
+// A DEFAULT PROMPT THAT SATISFIES THE METHOD MARKER, so the twenty-seven assertions about
+// something else entirely -- truncated lines, tool renames, null content, flag fallbacks -- go
+// on testing what they are named for rather than the marker. Every one of them went red when the
+// marker landed and every one was RESTATED rather than deleted (S134): they need A PASSING
+// DIRECTOR, they were never about how the director qualifies. The marker gets its own fixtures
+// below, where the prompt is stated explicitly in both directions.
+function dispatch (role, prompt, at) {
+  const p = prompt === undefined
+    ? (role === 'studio-director' ? 'method review of this session' : 'review the change')
+    : prompt;
   return JSON.stringify({
     type: 'assistant',
-    timestamp: '2026-09-06T04:00:09.953Z',
-    message: { content: [{ type: 'tool_use', name: 'Agent', input: { subagent_type: role } }] }
+    timestamp: at === undefined ? '2026-09-06T04:00:09.953Z' : at,
+    message: { content: [{ type: 'tool_use', name: 'Agent', input: { subagent_type: role, prompt: p } }] }
   });
 }
 function world_with (w, lines) { session(w, 's1', lines); return w; }
@@ -208,10 +246,19 @@ function dangling (dir, name) {
   }
   return false;
 }
-function run (w, extra) {
+// A fixture must NAME the session it is pretending to be, because the tool asks the host which
+// session is running rather than ranking transcripts by modification time. s1 is the default
+// because world_with writes exactly that; cases about choosing BETWEEN sessions pass their own.
+function baseEnv () {
+  const e = Object.assign({}, process.env);
+  delete e.CLAUDE_CODE_SESSION_ID;
+  return e;
+}
+function run (w, extra, id) {
   const args = [TOOL, '--root', w.root, '--home', w.home].concat(extra || []);
+  const env = Object.assign(baseEnv(), { CLAUDE_CODE_SESSION_ID: id === undefined ? 's1' : id });
   try {
-    return { code: 0, out: execFileSync('node', args, { stdio: ['pipe', 'pipe', 'pipe'] }).toString() };
+    return { code: 0, out: execFileSync('node', args, { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() };
   } catch (e) {
     return { code: e.status, out: ((e.stdout || '') + (e.stderr || '')).toString() };
   }
@@ -301,7 +348,7 @@ function run (w, extra) {
   const w = world();
   const made = dangling(transcriptDir(w), 'a-vanished.jsonl');
   session(w, 'z-real', [dispatch('qa-tester'), dispatch('studio-director')]);
-  const r = run(w);
+  const r = run(w, [], 'z-real');
   ok('a session listed and then gone before it can be measured is skipped rather than fatal',
     made && r.code === 0);
   ok('and the real session beside it is still the one read, so the skip did not lose the answer',
@@ -315,8 +362,8 @@ function run (w, extra) {
   const r = run(w);
   ok('a directory where NO session can be measured is advisory, not a refusal',
     made && r.code === 3);
-  ok('and it says nothing could be stat-ed rather than that no review ran',
-    /could be stat-ed/.test(r.out) && !/NO REVIEW RAN/.test(r.out));
+  ok('and it says the session could not be read rather than that no review ran',
+    /could not be read/.test(r.out) && !/NO REVIEW RAN/.test(r.out));
   ok('and it stops there rather than falling through and saying it cannot tell a second time',
     (r.out.match(/CANNOT TELL/g) || []).length === 1);
 }
@@ -331,6 +378,11 @@ function run (w, extra) {
 {
   const w = world();
   session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  // In process, so the stripping done for children does not apply and the real id would name a
+  // transcript outside the fixture. Restored afterwards whatever happens, because every case
+  // below shares this process.
+  const realId = process.env.CLAUDE_CODE_SESSION_ID;
+  process.env.CLAUDE_CODE_SESSION_ID = 's1';
   let rv = 'threw';
   try { rv = require('./check-gate-dispatch.js').main(['--root', w.root, '--home', w.home, '--quiet']); }
   catch (e) { rv = 'threw'; }
@@ -341,6 +393,10 @@ function run (w, extra) {
   let rv2 = 'threw';
   try { rv2 = require('./check-gate-dispatch.js').main(['--root', w2.root, '--home', w2.home, '--quiet']); }
   catch (e) { rv2 = 'threw'; }
+  finally {
+    if (realId === undefined) delete process.env.CLAUDE_CODE_SESSION_ID;
+    else process.env.CLAUDE_CODE_SESSION_ID = realId;
+  }
   ok('and it returns one when it refuses, so the two are told apart by value and not by exit code',
     rv2 === 1);
 }
@@ -353,7 +409,10 @@ function run (w, extra) {
   const w = world();
   session(w, 's1', [dispatch('code-reviewer'), dispatch('security-reviewer')]);
   const r = run(w);
-  ok('a session that reviewed the WORK and not the METHOD refuses', r.code === 1);
+  // The claim is unchanged and the consequence is not. The tool still separates a session that
+  // reviewed the work from one that also reviewed the method; 4 says so without refusing.
+  ok('a session that reviewed the WORK and not the METHOD is reported, and does not refuse',
+     r.code === 4);
   ok('and it says which half is missing rather than that no review ran at all',
     /NO METHOD REVIEW RAN/.test(r.out) && !/NO REVIEW RAN/.test(r.out));
   ok('and it names what to start, so the refusal is actionable rather than final',
@@ -385,28 +444,54 @@ function run (w, extra) {
     /mobile-qa 1/.test(r.out) && /studio-director 1/.test(r.out));
 }
 
-// --- the newest session is the one that is read -----------------------------------------------
+// --- the session the HOST names is the one that is read ---------------------------------------
 // Sorts second AND is written second, so name, creation and metadata order all disagree with
-// modification order. Both directions are asserted. See the header.
+// modification order. That opposition used to prove mtime won; it now proves the id does, which
+// is a stronger claim from the same fixture: every other ranking points at a different file.
+// Both directions are asserted, and the no-id case is asserted too, because falling back to the
+// newest file is the defect and a fallback would be invisible in a fixture with one session.
 {
   const w = world();
   session(w, 'a-oldest', [dispatch('qa-tester')], 1000000);
   session(w, 'm-newest', [dispatch('pm')], 3000000);
   session(w, 'z-middle', [dispatch('code-reviewer')], 2000000);
-  const r = run(w);
-  ok('a reviewer in an OLDER session does not clear the current one', r.code === 1);
-  ok('and the session it read is the newest by modification time, not the first or last listed',
+  const r = run(w, [], 'm-newest');
+  ok('a reviewer in ANOTHER session does not clear the one being measured', r.code === 1);
+  ok('and the session it read is the one the host named, not the first or last listed',
     /m-newest\.jsonl/.test(r.out));
+  const older = run(w, [], 'a-oldest');
+  // THE VERDICT IS NOT THE CLAIM HERE, and asserting it would hide the one that is: a-oldest
+  // carries a qa-tester and no director, so it refuses whichever file is read. What is asserted
+  // is WHICH FILE was read, and that it is not the one every incidental order points at.
+  ok('and naming the OLDEST file reads that one, though it is newest by nothing',
+    /a-oldest\.jsonl/.test(older.out) && !/m-newest\.jsonl/.test(older.out));
+  const nameless = run(w, [], '');
+  ok('with no session id it is CANNOT TELL at 3 and never a silent fall back to the newest file',
+    nameless.code === 3 && /CANNOT TELL/.test(nameless.out));
+  // THE SAME LINES, REPORTED SILENT BY THE SAME HARNESS, ASSERTED HERE RATHER THAN BASELINED.
+  // The last of them is the one that matters most: delete the return and control carries on with
+  // no file, dispatchesIn produces its own CANNOT TELL, and the exit code is 3 either way, so
+  // nothing but a count of the message can tell a returned refusal from a fallen-through one.
+  ok('and it says it will not guess the session from the newest file',
+    /deliberately NOT/.test(nameless.out));
+  ok('and it prints WHERE it looked, because the derivation is the likeliest thing to be wrong',
+    /Looked in:/.test(nameless.out));
+  ok('and it says CANNOT TELL exactly ONCE, so the refusal returned rather than falling through',
+    (nameless.out.match(/CANNOT TELL/g) || []).length === 1);
+  const gone = run(w, [], 'a-session-that-is-not-here');
+  ok('a session id naming no transcript here says no verdict is offered, and stops there',
+    gone.code === 3 && /no verdict is offered/.test(gone.out) &&
+    (gone.out.match(/CANNOT TELL/g) || []).length === 1);
 }
 {
   const w = world();
   session(w, 'a-oldest', [dispatch('pm')], 1000000);
   session(w, 'm-newest', [dispatch('mobile-qa'), dispatch('studio-director')], 3000000);
   session(w, 'z-middle', [dispatch('tech-lead')], 2000000);
-  const r = run(w);
-  ok('and a reviewer in the NEWEST session passes, so the rule is a rule and not an accident',
+  const r = run(w, [], 'm-newest');
+  ok('and a reviewer in the NAMED session passes, so the rule is a rule and not an accident',
     r.code === 0);
-  ok('and that pass names the newest session too, so it passed for the right file',
+  ok('and that pass names the session it read too, so it passed for the right file',
     /m-newest\.jsonl/.test(r.out));
 }
 
@@ -430,6 +515,7 @@ function run (w, extra) {
   const w = world();
   session(w, 's1', [JSON.stringify({
     type: 'assistant',
+    timestamp: '2026-09-06T04:00:09.953Z',
     message: { content: [{ type: 'tool_use', name: 'Task', input: { subagent_type: 'content-reviewer' } }] }
   }), dispatch('studio-director')]);
   ok('the older name for the dispatch tool is recognised, so a rename is not a silent miss',
@@ -514,6 +600,7 @@ function run (w, extra) {
   const w = world();
   session(w, 's1', [JSON.stringify({
     type: 'assistant',
+    timestamp: '2026-09-06T04:00:09.953Z',
     message: { content: [null, { type: 'tool_use', name: 'Agent', input: { subagent_type: 'qa-tester' } }] }
   }), dispatch('studio-director')]);
   const r = run(w);
@@ -523,6 +610,7 @@ function run (w, extra) {
   const w = world();
   session(w, 's1', [JSON.stringify({
     type: 'assistant',
+    timestamp: '2026-09-06T04:00:09.953Z',
     message: {
       content: [
         { type: 'tool_use', name: 'Agent' },
@@ -596,7 +684,7 @@ function run (w, extra) {
   // THE SHAPE PRODUCTION ACTUALLY USES, which until this existed nothing exercised. See header.
   const w = world();
   session(w, 's1', [dispatch('qa-tester'), dispatch('studio-director')]);
-  const env = Object.assign({}, process.env, { USERPROFILE: w.home, HOME: w.home });
+  const env = Object.assign(baseEnv(), { USERPROFILE: w.home, HOME: w.home, CLAUDE_CODE_SESSION_ID: 's1' });
   let code = 0, out = '';
   try { out = execFileSync('node', [TOOL, '--root', w.root], { env: env, stdio: ['pipe', 'pipe', 'pipe'] }).toString(); }
   catch (e) { code = e.status; out = ((e.stdout || '') + (e.stderr || '')).toString(); }
@@ -608,7 +696,7 @@ function run (w, extra) {
   const w = world();
   session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
   let code = 0, out = '';
-  try { out = execFileSync('node', [TOOL, '--home', w.home], { cwd: w.root, stdio: ['pipe', 'pipe', 'pipe'] }).toString(); }
+  try { out = execFileSync('node', [TOOL, '--home', w.home], { cwd: w.root, stdio: ['pipe', 'pipe', 'pipe'], env: Object.assign(baseEnv(), { CLAUDE_CODE_SESSION_ID: 's1' }) }).toString(); }
   catch (e) { code = e.status; out = ((e.stdout || '') + (e.stderr || '')).toString(); }
   ok('and with --root omitted the project root falls back to the working directory',
     code === 0 && /code-reviewer 1/.test(out));
@@ -628,13 +716,369 @@ function run (w, extra) {
     r.code === 1 && /NO REVIEW RAN/.test(r.out));
 }
 
+// --- the method half needs the PROMPT as well as the NAME ------------------------------------
+// The board's focus rule gives the method role a second job, reporting in-flight breaches. From
+// that moment the
+// NAME stops meaning "a method review happened", because the same name now covers an errand. The
+// marker sits on the REVIEW and not on the errand so a forgotten marker refuses rather than
+// clears: a gate that fails open on an omission is the hole this closes, not a fix for it.
+// Mutation that proves the pair: drop the .filter on METHOD_REVIEW_MARKER in main() and the
+// errand assertions below go red while every other assertion in this file stays green.
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', 'report the WIP breaches on the board')]);
+  const r = run(w);
+  // 4, not 1. The method half is ADVISORY now: this branch still fires and still names the
+  // errand, and what changed is that it reports rather than refusing a release.
+  ok('a director started ONLY for an errand does not satisfy the method half', r.code === 4);
+  ok('and it says the director WAS started, so the reader is not sent hunting for a defect in the tool',
+    /studio-director was started 1 time\(s\)/.test(r.out));
+  ok('and it calls that dispatch an ERRAND rather than a missing agent',
+    /ERRAND/.test(r.out));
+  // WHICH TRANSCRIPT WAS READ IS A FACT AND NOT ADVICE, so unlike the explanatory lines around it
+  // this one is asserted. A reader told a review is missing has to be able to check the session
+  // the tool actually looked at: this project keeps several transcripts per day and reading the
+  // wrong one is the worst false pass this file has ever shipped. Deleting the line left the suite
+  // green until this existed.
+  ok('and it names the transcript it read, so the reader can check the right session',
+    new RegExp('Session: ' + 's1\\.jsonl').test(r.out));
+  // RESTATED, NOT DELETED (S134). This assertion encoded the first remedy, which told the reader to
+  // put the phrase anywhere in the prompt. That remedy was itself the hole: an errand disclaiming
+  // the phrase cleared the gate, so the fix had to name WHERE the phrase goes.
+  ok('and it names the remedy precisely enough to be followed, which means naming the FIRST LINE',
+    /Open the FIRST LINE of that prompt/.test(r.out) && /"method review"/.test(r.out));
+  ok('and it does NOT tell them to start a director they can see they already started',
+    !/Start one of: studio-director/.test(r.out));
+}
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', 'do a method review of this session')]);
+  const r = run(w);
+  ok('a director asked for a method review satisfies the method half', r.code === 0);
+}
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', 'METHOD REVIEW: did we follow the process')]);
+  const r = run(w);
+  ok('the marker is case-insensitive, because a prompt written in capitals is still the ask',
+    r.code === 0);
+}
+{
+  // The realistic shape once the director has two jobs: it is dispatched for both in one session.
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'),
+    dispatch('studio-director', 'report the WIP breaches'),
+    dispatch('studio-director', 'method review before the release')]);
+  const r = run(w);
+  ok('an errand and a review in the same session passes, because the review is what is required',
+    r.code === 0);
+}
+{
+  // FAIL CLOSED, stated as its own assertion because it is the whole design choice. A dispatch
+  // carrying no prompt at all is the shape every fixture in this file had before the split, and
+  // reading it as a review would mean the marker could be skipped by omitting a field.
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', '')]);
+  const r = run(w);
+  ok('a director dispatch with NO prompt is an errand and not a review, so the marker fails closed',
+    r.code === 4 && /ERRAND/.test(r.out));
+}
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('security-reviewer')]);
+  const r = run(w);
+  ok('with no director at all the message is the OTHER one, naming what to start',
+    r.code === 4 && /Start one of: studio-director/.test(r.out) && !/ERRAND/.test(r.out));
+  ok('and that message now names the marker too, so following it actually clears the gate',
+    /open its prompt with "method review"/.test(r.out));
+}
+{
+  // THE HOLE THE FIRST VERSION OF THIS MARKER LEFT OPEN, found by the method reviewer it was built
+  // for. A substring match cannot tell a MENTION from an ASK, and the more conscientious the author
+  // the more likely they trip it: an errand prompt that carefully disclaims itself contains the
+  // phrase, so the disclaimer cleared the gate. All three of these counted as a method review
+  // before the first-line-and-not-negated rule went in.
+  const disclaimed = [
+    'Report the in-flight breach. This is an errand, NOT a method review.',
+    'You are being dispatched for a WIP breach report, not for a method review.',
+    'Report breaches. Do not do a method review.'
+  ];
+  disclaimed.forEach((prompt, i) => {
+    const w = world();
+    session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', prompt)]);
+    const r = run(w);
+    ok('an errand that DISCLAIMS being a method review is still an errand (' + (i + 1) + ' of 3)',
+       r.code === 4 && /ERRAND/.test(r.out));
+  });
+}
+{
+  // WHERE the phrase sits is the other half of the rule. A prompt says what it is for on its first
+  // line; a mention three paragraphs down is a mention.
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'),
+    dispatch('studio-director', 'Report the WIP breaches on the board.\nWhile you are there, a method review would be nice.')]);
+  const r = run(w);
+  ok('the phrase buried below the first line does not make an errand a review',
+     r.code === 4 && /ERRAND/.test(r.out));
+}
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'),
+    dispatch('studio-director', 'Do a method review of this session.\nDo NOT fix anything you find.')]);
+  const r = run(w);
+  ok('but a negation AFTER the ask is just an instruction, and the review still counts',
+     r.code === 0);
+}
+{
+  // A count alone stopped being an answer the moment the name had two jobs, and --list is the one
+  // command a person runs to find out what a session started.
+  const w = world();
+  session(w, 's1', [dispatch('qa-tester'),
+    dispatch('studio-director', 'report the WIP breaches'),
+    dispatch('studio-director', 'method review before the release')]);
+  const r = run(w, ['--list']);
+  ok('--list says how many director dispatches were reviews and how many were errands',
+     /studio-director\s+\(1 asked for a method review, 1 errand\)/.test(r.out));
+  ok('and it does not break down the product reviewers, for whom the name is still the whole answer',
+     !/qa-tester.*asked for a method review/.test(r.out) && /qa-tester/.test(r.out));
+}
+{
+  // The marker is the METHOD half's rule and nothing else's. A product reviewer asked to do
+  // anything at all still counts, or this split would have quietly tightened the other half.
+  const w = world();
+  session(w, 's1', [dispatch('qa-tester', 'check the login flow'), dispatch('studio-director')]);
+  const r = run(w);
+  ok('a product reviewer needs no marker, because the marker exists for the name with two jobs',
+    r.code === 0);
+}
+
+/* --- the marker predicate called directly, which nothing did -----------------------------
+   asksForMethodReview is exported and every case above reaches it through a whole transcript,
+   so its own type guard was proved by nothing: deleting that line left this suite at 98 passed
+   0 failed while the function throws on any prompt that is not a string. The guard is reachable
+   in production, because the prompt comes out of a transcript record where the field can be
+   missing, null or a number, so it is asserted rather than deleted.
+
+   EACH CALL IS WRAPPED AND THE VERDICT IS WHAT IS ASSERTED, not the absence of a crash. An
+   uncaught throw here would kill the whole suite and report no count at all, which reads as a
+   dead run rather than as one red line. */
+{
+  // THE REQUIRE IS INSIDE THE CATCH ON PURPOSE. Hoisting it out of the guard turned five
+  // module-scope constants from COVERED into CRASHED: deleting one makes this file throw at
+  // load, which kills the whole suite and reports no count at all rather than reddening the
+  // assertions that depend on it. A dead run is not a failing run.
+  const verdict = function (p) {
+    try { return require('./check-gate-dispatch.js').asksForMethodReview(p); }
+    catch (e) { return 'threw'; }
+  };
+  ok('a missing prompt is not a method review, and does not throw', verdict(undefined) === false);
+  ok('a null prompt is not a method review, and does not throw', verdict(null) === false);
+  ok('a numeric prompt is not a method review, and does not throw', verdict(42) === false);
+  ok('an empty prompt is not a method review', verdict('') === false);
+  // The other side of the same predicate, so these cannot all pass by the function being broken.
+  ok('and a real ask on the first line still reads as a method review',
+    verdict('This is a method review of the studio.\nDetails below.') === true);
+}
+
 junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 /* Measured: a fatal guard firing part way through the studio suite reported 0 failed
    and exit 0, having run 22 of 214, so a count of failures cannot see an assertion that
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 79;
+// --- the tree half: a review is evidence about ONE tree ---------------------------------------
+// The incident these are written from is real and is in check-gate-dispatch.js's own header: two
+// gates dispatched at 07:52, a SECOND session committing into the same repository at 07:59:23
+// while both were reading, and nothing anywhere reporting it.
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  const r = run(w);
+  ok('with no commit since the dispatch it still passes', r.code === 0);
+  // A PASS THAT SAYS NOTHING IS INDISTINGUISHABLE FROM THE HALF NOT RUNNING. Without this, every
+  // mutation that deletes the tree half leaves the passing fixtures green, because they only ever
+  // asserted the exit code, and exit 0 is what the check returned before the half existed.
+  ok('and it SAYS the tree did not move, so the pass is attributable to the half that made it',
+    /No commit has landed since the first was dispatched at 2026-09-06T04:00:09/.test(r.out));
+}
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  commitAt(w, '2026-09-06T05:00:00Z', 'a second writer lands mid-review');
+  const r = run(w);
+  ok('a commit landing AFTER the reviewers were dispatched refuses', r.code === 1);
+  ok('and it refuses for the tree reason rather than for a missing reviewer',
+    /THE TREE MOVED AFTER THE REVIEW STARTED/.test(r.out));
+  ok('and it NAMES the commit, so the reader can go and look at it rather than take its word',
+    /a second writer lands mid-review/.test(r.out));
+  ok('and it prints the remedy, which is what keeps a closed failure from being a lockout',
+    /Dispatch the reviewers again, after the last commit/.test(r.out));
+  // The refusal is deliberately not an accusation: the session's own commit lands here too, and a
+  // reader who reads it as "somebody else did this" will go looking for a person who does not exist.
+  ok('and it says plainly that it is not an accusation of a second writer',
+    /not an accusation/.test(r.out));
+  // WHICH TRANSCRIPT WAS READ, on the branch that actually refuses a release. The coverage tool
+  // found this line silent here while the identical line on two sibling branches was covered,
+  // which is the sharpest version of the problem: reading an older session of the same project
+  // and refusing on ITS commits is the worst wrong answer this file can give, and the one branch
+  // where being wrong costs a release was the one with nothing asserting where it looked.
+  ok('and the refusal names the transcript it read, on the branch that stops a release',
+    /Session: s1\.jsonl/.test(r.out));
+}
+{
+  // A commit BEFORE the dispatch is the ordinary case and must not refuse, or the check would
+  // refuse every session that has ever committed anything.
+  const w = world();
+  commitAt(w, '2026-09-02T00:00:00Z', 'ordinary work, committed before the review');
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  const r = run(w);
+  ok('a commit BEFORE the dispatch does not refuse', r.code === 0);
+}
+{
+  // NOT A GIT REPOSITORY IS A THING IT CANNOT TELL, NEVER A PASS. A reader running the export
+  // outside git must not be told the tree held still, and must not be locked out either.
+  const w = world();
+  fs.rmSync(path.join(w.root, '.git'), { recursive: true, force: true });
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  const r = run(w);
+  ok('a root that is not a git repository reports it cannot tell rather than passing', r.code === 3);
+  ok('and it says so in the words a reader can act on',
+    /CANNOT TELL whether the tree moved/.test(r.out));
+  // THE TWO FACTS THIS ROW IS ACTED ON, asserted because the coverage tool found both lines
+  // silent on THIS branch while the identical lines on the sibling branch were covered. Which
+  // reviewers ran tells a reader whether to re-dispatch or to go looking at their git install,
+  // and WHICH TRANSCRIPT WAS READ is the fact this file singled out as its worst possible false
+  // pass: reporting confidently on somebody else's session.
+  ok('a cannot-tell from an unreadable git still names which reviewers ran',
+    /code-reviewer 1/.test(r.out));
+  ok('and it still names the transcript it read', /Session: s1\.jsonl/.test(r.out));
+}
+{
+  // A dispatch with no timestamp cannot be the start of a window. Same answer, said separately,
+  // because it arrives by a different route and a reader needs to know which one they are in.
+  const w = world();
+  const noStamp = JSON.stringify({
+    type: 'assistant',
+    message: { content: [{ type: 'tool_use', name: 'Agent', input: { subagent_type: 'code-reviewer', prompt: 'review the change' } }] }
+  });
+  const noStampDirector = JSON.stringify({
+    type: 'assistant',
+    message: { content: [{ type: 'tool_use', name: 'Agent', input: { subagent_type: 'studio-director', prompt: 'method review of this session' } }] }
+  });
+  session(w, 's1', [noStamp, noStampDirector]);
+  const r = run(w);
+  ok('dispatches with no timestamp report it cannot tell rather than passing', r.code === 3);
+  ok('and it names the timestamp as the thing that is missing',
+    /carries a timestamp that can be read as a date/.test(r.out));
+}
+
+// --- the remedy has to WORK, not merely be printed ---------------------------------------------
+// THIS IS THE ASSERTION THAT WOULD HAVE CAUGHT THE LOCKOUT, and it did not exist when the lockout
+// shipped. The refusal prints "dispatch the reviewers again, after the last commit". The first
+// version opened the window at the EARLIEST qualifying dispatch in the session, and a transcript
+// is append-only, so performing that remedy added a later entry and could never move the window.
+// A reviewer did exactly what the message said and watched the refusal stand. The assertion that
+// existed asserted the SENTENCE WAS PRINTED, which stayed green through all of it. An assertion
+// about a remedy has to perform the remedy.
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  commitAt(w, '2026-09-06T05:00:00Z', 'a fix committed after the first review');
+  ok('a commit after the first review refuses, which is the state the remedy is printed in',
+    run(w).code === 1);
+  // Perform the printed remedy: dispatch both kinds again, after that commit.
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director'),
+    dispatch('code-reviewer', undefined, '2026-09-06T06:00:00.000Z'),
+    dispatch('studio-director', undefined, '2026-09-06T06:00:01.000Z')]);
+  const after = run(w);
+  ok('and performing that remedy CLEARS it, which is the whole difference between a refusal and a lockout',
+    after.code === 0);
+  ok('and the window has moved to the re-dispatch rather than staying at the first one',
+    /2026-09-06T06:00:00/.test(after.out));
+}
+{
+  // BOTH KINDS HAVE TO BE RE-DISPATCHED. The window opens at the earlier of the two latest, so
+  // re-running only the product reviewer leaves the method reviewer behind the commit and the
+  // refusal correctly stands. Without this, taking the latest of ALL dispatches would pass here.
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  commitAt(w, '2026-09-06T05:00:00Z', 'a fix committed after the first review');
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director'),
+    dispatch('code-reviewer', undefined, '2026-09-06T06:00:00.000Z')]);
+  ok('re-dispatching only ONE kind does not clear it, because the other still read the older tree',
+    run(w).code === 1);
+}
+
+// --- a stamp that cannot be read is not a stamp -------------------------------------------------
+// git log --since ACCEPTS text it cannot parse and quietly treats it as now, so an unreadable
+// timestamp produced an empty window and a green release gate over a tree nobody had looked at.
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer', undefined, 'not-a-date'),
+    dispatch('studio-director', undefined, 'not-a-date')]);
+  commitAt(w, '2026-09-06T05:00:00Z', 'a commit that a working window would have found');
+  const r = run(w);
+  ok('an unreadable timestamp is cannot-tell', r.code === 3);
+  ok('and above all it is NOT a pass, which is what it used to be', r.code !== 0);
+  // THE TWO FACTS A CANNOT-TELL ROW IS ACTED ON, asserted because the coverage tool found both
+  // lines silent. Which reviewers ran tells the reader whether to re-dispatch or to look
+  // elsewhere, and WHICH TRANSCRIPT WAS READ is the one this project singled out last sitting as
+  // the worst false pass this file can ship: reading an older session and reporting on it.
+  ok('and the cannot-tell row still names which reviewers ran', /code-reviewer 1/.test(r.out));
+  ok('and it names the transcript it read, which is the fact a wrong answer here turns on',
+     /Session: s1\.jsonl/.test(r.out));
+  // THE TWO CANNOT-TELL ROUTES MUST NOT READ ALIKE, which is the whole reason they were written
+  // as two branches. This one is "your dispatches carry no readable stamp"; the other is "git
+  // could not be read". A reader fixes those in completely different places, and the sentence
+  // naming which one they are in had no assertion at all.
+  ok('and it says WHICH cannot-tell this is: the stamps, not git',
+     /no dispatch of each kind/.test(r.out));
+}
+{
+  // An empty window is the ordinary case and must produce NO commits. With the redundant early
+  // return gone, this is what holds the field-count guard in place: without it an empty git
+  // result becomes one commit with no hash and refuses a release nothing is wrong with.
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  const r = run(w);
+  ok('an empty git result is no commits, not one blank one', r.code === 0);
+  ok('and it does not claim a commit landed', !/THE TREE MOVED/.test(r.out));
+}
+{
+  // One kind readable and the other not is still cannot-tell: a window needs both ends.
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', undefined, 'not-a-date')]);
+  commitAt(w, '2026-09-06T05:00:00Z', 'a commit that a working window would have found');
+  ok('one kind readable and the other not is still cannot-tell, never a pass', run(w).code === 3);
+}
+
+{
+  // THE HOLE THE ADVISORY CHANGE OPENED, found by the reviewer it was dispatched to. Both method
+  // branches used to RETURN 4, and they sit ABOVE the tree half, so a session with a product
+  // reviewer and a commit landing after it reached a GREEN gate: the question of whether the tree
+  // moved was never asked. While both branches returned 1 the ordering could not matter, because
+  // either way the release was refused. Making one of them advisory made the ordering load bearing.
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer')]);
+  commitAt(w, '2026-09-06T05:00:00Z', 'a commit lands after the only reviewer');
+  const r = run(w);
+  ok('a commit after the PRODUCT reviewer still refuses when no method review ran', r.code === 1);
+  ok('and it refuses for the TREE reason, which is the guard an early return skipped',
+    /THE TREE MOVED AFTER THE REVIEW STARTED/.test(r.out));
+}
+{
+  // The other side of the same rule. A missing method review on a tree that HELD is advisory and
+  // not a refusal, and the window opens at the product reviewer alone, because with the method
+  // half advisory that is the only dispatch still certifying anything.
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer')]);
+  const r = run(w);
+  ok('no method review on a tree that held is advisory rather than a refusal', r.code === 4);
+  ok('and it still names the half that did not run, so the reader can put it on a ticket',
+    /NO METHOD REVIEW RAN/.test(r.out));
+}
+
+const EXPECTED_ASSERTIONS = 141;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

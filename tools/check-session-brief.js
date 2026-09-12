@@ -75,8 +75,38 @@
 var fs = require('fs');
 var path = require('path');
 
+// THE UNIT IS BORROWED RATHER THAN CHOSEN, AND THAT IS THE WHOLE FIX.
+//
+// This file capped the brief in LINES. The instrument that reads what a session actually sent the
+// founder caps an unbroken run of prose in WORDS. Both were right inside their own unit and
+// neither could see the other, so an eleven line brief was simultaneously within its cap and one
+// hundred and seventy one words past a limit of eighty. The session start hook orders that brief
+// printed VERBATIM, so the breach arrived in the first reply of every session, was nobody's
+// writing, and could not be edited away. The word check sits in the release set and has no
+// override, so two of our own instruments disagreeing hard blocked every publish for three
+// sittings.
+//
+// Picking a second number here would have reproduced the defect one level down: a third unit,
+// agreeing with the other two only for as long as somebody remembered to keep it agreeing. So the
+// predicate and the limit are IMPORTED from the instrument that does the refusing. There is one
+// definition of point form and one limit, and they cannot drift, because they are the same object.
+//
+// It also moves WHEN the breach is found. The word check reads a transcript, so it can only fail
+// after the reply is sent, and a sent reply cannot be unsent. This runs at the wind down, against
+// the document, before the brief is ever handed over.
+var replyShape = require('./check-reply-shape.js');
+
 // THE TWO CAPS, ruled by the CEO on 2026-08-31. The whole session-start message fits in 25 lines,
 // and the BRIEF ITSELF fits in 12.
+//
+// ST-197 SPLIT THE MESSAGE ACROSS TWO CHANNELS AND THE ARITHMETIC BELOW DELIBERATELY DID NOT
+// CHANGE. Findings now go to systemMessage, which the CLI paints in warning colour, and the brief
+// goes to hookSpecificOutput.additionalContext, which is neutral and reaches the session. It would
+// have been easy to drop the brief out of the worst-case sum on the ground that it is no longer in
+// the same message. That would be wrong, and it would quietly turn a cap into a check that cannot
+// fail: the cap was ruled on how much a founder READS at a session start, and they read both
+// channels. Two channels is a rendering detail. The 25 stays a budget for the whole of what
+// arrives, and the 12 still fences the brief's share of it.
 //
 // It supersedes a flat 15, which was not wrong so much as set against the wrong population: the 15
 // was measured on a message that was 96 lines of RESUME PROMPT and ZERO findings, so the worst
@@ -403,9 +433,60 @@ function main (argv) {
        'longest ' + Math.max.apply(null, brief.split(/\r?\n/).map(function (l) { return l.length; })));
   }
 
-  // The standing content rule.
-  if (brief.indexOf('—') !== -1) {
-    bad('the founder brief carries no em-dash', 'found one, which is a hard content failure here');
+  // Shape. A line cap does not stop the brief being one dense paragraph, and a paragraph is what
+  // the standing rule forbids. Measured with the borrowed predicate so the two instruments cannot
+  // give different answers about the same text: bullets, numbered items, headings, table rows and
+  // quotes all count as point form and score nothing here, which is what makes this satisfiable
+  // by writing better rather than by cutting content.
+  var shape = replyShape.shapeOf(brief);
+  var proseCap = replyShape.MAX_PROSE_WORDS;
+  if (shape.biggestProseBlock > proseCap) {
+    bad('the founder brief carries no prose block past ' + proseCap + ' word(s)',
+        'largest is ' + shape.biggestProseBlock + '. The hook orders this text printed verbatim, ' +
+        'so a paragraph here is a paragraph in the first reply of every session, and the reply ' +
+        'instrument refuses it there with no override and nothing anyone can edit after the fact.');
+  } else {
+    ok('the founder brief carries no prose block past ' + proseCap + ' word(s)',
+       'largest ' + shape.biggestProseBlock + ', with ' + shape.pointWords + ' word(s) in point form');
+  }
+
+  // THE BORROWED PREDICATE RETURNS TWO MEASURES AND THE FIRST VERSION HERE READ ONLY ONE.
+  //
+  // The instrument this borrows from refuses on a long prose block OR on an opening line that is
+  // throat clearing, and it fails on either. Reading only the block left the second field
+  // reachable through exactly the route the block was closed on: a brief opening "Let me walk you
+  // through where we are" scored a prose block of ZERO, passed here, and was then ordered printed
+  // verbatim as the first line of the session's first reply, where the release gate refuses it
+  // with no override and nobody can edit it after the fact. The same defect, one field over,
+  // inside the fix for it.
+  //
+  // So the rule is not "borrow the limit". It is borrow EVERY measure the other instrument can
+  // refuse on, because a partial borrow reads as a shared definition and is not one.
+  if (shape.throat) {
+    bad('the founder brief does not open with throat-clearing',
+        'the first line is "' + shape.first + '". The hook orders this printed verbatim as the ' +
+        'first thing the session says, so this opening line becomes the reply opening line, and ' +
+        'the reply instrument refuses that as preamble with no override. Lead with the answer.');
+  } else {
+    ok('the founder brief does not open with throat-clearing',
+       shape.first ? 'opens "' + shape.first.slice(0, 40) + '"' : 'empty');
+  }
+
+  // The standing content rule, BORROWED like the other two rather than answered again here.
+  // It used to be brief.indexOf(an em-dash), which is a THIRD definition of the banned character
+  // sitting three lines under a comment saying not to write one. The lender matches two code
+  // points, U+2014 and U+2015 HORIZONTAL BAR, because they are indistinguishable at every size a
+  // reader sees, and the changelog publishes that claim; indexOf on one of them honoured half of
+  // it. Measured rather than reasoned: shapeOf on a U+2015 string returns emDashes 1 and the old
+  // test returned false. So a brief carrying a horizontal bar passed here, was printed VERBATIM by
+  // the hook as the first thing the session said, and refused the release from inside the one
+  // reply nobody can edit. That is the exact failure this file exists to prevent, arriving one
+  // character over. S173 says borrow EVERY measure the lender can refuse on; this is the third.
+  if (shape.emDashes > 0) {
+    bad('the founder brief carries no em-dash',
+        'found ' + shape.emDashes + ', which is a hard content failure here. The hook prints this ' +
+        'brief verbatim as the first thing the session says, and the reply instrument refuses the ' +
+        'banned character with no override, so it cannot be fixed after the fact.');
   } else {
     ok('the founder brief carries no em-dash', 'none');
   }

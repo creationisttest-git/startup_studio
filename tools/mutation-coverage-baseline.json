@@ -9,6 +9,36 @@
       "text": "if (!line || line.indexOf('subagent_type') === -1) continue",
       "count": 1,
       "reason": "Half of a pair, and the pair is proved together rather than apart. This prefilter is what makes the record-is-truthy test below it unreachable: a line must carry the dispatch key to reach the parser, and no line carrying it parses to null. Remove this alone and the truthiness test catches what gets through; remove that alone and this never lets anything reach it. Remove BOTH and the null-line fixture crashes the check at exit 1, measured at 63 passed 2 failed. So it is silent under single deletion and load bearing in fact."
+    },
+    {
+      "text": "process.stdout.write('  Mentioning it further down, or after a \"not\", is how an errand disclaiming\\n')",
+      "count": 1,
+      "reason": "Explanatory prose inside one refusal message, and prose is where this file deliberately stops asserting. The assertions on this branch bind the three things a reader ACTS on: that it refused, that the director WAS started so nobody hunts for a tool defect, that the dispatch was an ERRAND, that the remedy names the FIRST LINE, and which transcript was read. Binding every sentence as well would make the wording unmaintainable and would turn a copy edit into a red suite, which is how a suite teaches people to edit assertions instead of code. Deleting this line removes advice and changes no verdict, no exit code and no fact. Stated as a judgement rather than derived, because whether a sentence is load bearing is not something a mutation can answer."
+    },
+    {
+      "text": "process.stdout.write('  itself used to clear this gate. The ask has to BE the first line.\\n')",
+      "count": 1,
+      "reason": "Explanatory prose inside one refusal message, and prose is where this file deliberately stops asserting. The assertions on this branch bind the three things a reader ACTS on: that it refused, that the director WAS started so nobody hunts for a tool defect, that the dispatch was an ERRAND, that the remedy names the FIRST LINE, and which transcript was read. Binding every sentence as well would make the wording unmaintainable and would turn a copy edit into a red suite, which is how a suite teaches people to edit assertions instead of code. Deleting this line removes advice and changes no verdict, no exit code and no fact. Stated as a judgement rather than derived, because whether a sentence is load bearing is not something a mutation can answer."
+    },
+    {
+      "text": "process.stdout.write('  the method, and one name cannot stand for both.\\n')",
+      "count": 1,
+      "reason": "Explanatory prose inside one refusal message, and prose is where this file deliberately stops asserting. The assertions on this branch bind the three things a reader ACTS on: that it refused, that the director WAS started so nobody hunts for a tool defect, that the dispatch was an ERRAND, that the remedy names the FIRST LINE, and which transcript was read. Binding every sentence as well would make the wording unmaintainable and would turn a copy edit into a red suite, which is how a suite teaches people to edit assertions instead of code. Deleting this line removes advice and changes no verdict, no exit code and no fact. Stated as a judgement rather than derived, because whether a sentence is load bearing is not something a mutation can answer."
+    },
+    {
+      "text": "process.stdout.write('  them counts as one. Dispatching the director to report a breach is not a review of\\n')",
+      "count": 1,
+      "reason": "Explanatory prose inside one refusal message, and prose is where this file deliberately stops asserting. The assertions on this branch bind the three things a reader ACTS on: that it refused, that the director WAS started so nobody hunts for a tool defect, that the dispatch was an ERRAND, that the remedy names the FIRST LINE, and which transcript was read. Binding every sentence as well would make the wording unmaintainable and would turn a copy edit into a red suite, which is how a suite teaches people to edit assertions instead of code. Deleting this line removes advice and changes no verdict, no exit code and no fact. Stated as a judgement rather than derived, because whether a sentence is load bearing is not something a mutation can answer."
+    },
+    {
+      "text": "process.stdout.write('  Whoever made them, the reviewers read a tree that is not the one about to ship,\\n')",
+      "count": 1,
+      "reason": "Explanatory prose inside the tree-moved refusal, and prose is where this file deliberately stops asserting. What a reader ACTS on in this branch is asserted beside it: that it refused, that it refused for the TREE reason rather than a missing reviewer, the hash and subject of every commit that landed, the remedy, that the refusal is not an accusation, and which transcript was read. This sentence adds none of those; it restates why the verdicts are evidence about a different tree. Deleting it changes no verdict, no exit code and no fact a reader can use. Stated as a judgement rather than derived, because whether a sentence is load bearing is not something a mutation can answer."
+    },
+    {
+      "text": "process.stdout.write('  a session committing its own work after dispatching its reviewers lands here too.\\n')",
+      "count": 1,
+      "reason": "The second half of the not-an-accusation sentence, and the FIRST half carries the claim: an assertion holds the words 'not an accusation', which is the thing a reader would otherwise misread as blaming a second writer who does not exist. This line is the example that follows it. Binding the example as well would turn a copy edit into a red suite, which is how a suite teaches people to edit assertions instead of code. Exempted rather than asserted for that reason, and NOT because nobody could think of a fixture."
     }
   ],
   "tools/check-reply-shape.js": [

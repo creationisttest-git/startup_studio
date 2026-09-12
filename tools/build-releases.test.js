@@ -271,6 +271,41 @@ test('two sections on the same date fail rather than colliding on one anchor', f
   throws(function () { B.build(text); }, /two sections dated 2026-08-21/);
 });
 
+// A HEADING THE PARSER REFUSED USED TO VANISH AND THE PAGE STILL REPORTED CURRENT. The date
+// pattern is anchored at both ends, so "## 2026-09-11 (second entry)" matched no release and set
+// the current section to nothing: every line under it was dropped and the build carried on at
+// exit 0. That is not hypothetical. A peer session wrote exactly that heading to get past the
+// duplicate-date refusal above, and its whole entry was about to ship in the public export
+// announced by no page and no release note. It was found by a reviewer reading git log, because no
+// instrument could see a section the parser had skipped.
+//
+// The two peer sessions asked about it both named the same generalisation, independently: the
+// defect is a check that cannot tell "nothing to report" from "I parsed nothing", and the guard
+// has to be a COUNT of what was consumed rather than a pattern for the near miss somebody already
+// thought of. Hence the second test: an unrecognised heading is counted and reported, and it only
+// WARNS, because a reader's changelog may carry structural headings this build knows nothing
+// about and refusing on those is the reader lockout this repository has shipped three times.
+test('a heading that is nearly a date refuses, rather than dropping its section in silence', function () {
+  const text = '## 2026-08-21\n\n**What this gives you.** A.\n\n## 2026-08-21 (second entry)\n\n**What this gives you.** B.\n';
+  throws(function () { B.build(text); }, /nearly a date and matches no release/);
+});
+
+test('an unrecognised heading is counted and warned about rather than silently dropped', function () {
+  const text = '## 2026-08-21\n\n**What this gives you.** A.\n\n## Release five\n\n**What this gives you.** B.\n';
+  const r = B.build(text);
+  if (!r.warnings.some(function (w) { return /Release five/.test(w); })) {
+    throw new Error('no warning named the dropped heading: ' + JSON.stringify(r.warnings));
+  }
+});
+
+test('a structural heading the build knows is not warned about, so the count is not noise', function () {
+  const text = '## 2026-08-21\n\n**What this gives you.** A.\n\n## Earlier\n\nolder notes\n';
+  const r = B.build(text);
+  if (r.warnings.some(function (w) { return /Earlier/.test(w); })) {
+    throw new Error('warned about a structural heading: ' + JSON.stringify(r.warnings));
+  }
+});
+
 test('an em dash reaching the page stops the build and names the line', function () {
   const text = '## 2026-08-21\n\n**What this gives you.** One thing ' + EM_DASH + ' and another.\n';
   const err = throws(function () { B.build(text); }, /em dash/);
@@ -571,6 +606,181 @@ test('no release prose reaches the structured data', function () {
   JSON.parse(block[1]);
 });
 
+/* ---------- whose page is it: the reader's layout, not this one ----------
+
+   THE FAULT THESE ASSERT WAS NEVER TRUE IN THIS REPOSITORY, which is why it shipped. This
+   repository always has studio.config.ps1, a changelog and a page it generated itself, so every
+   path a test could reach from here was already green. The reader who clones the public export
+   gets CHANGELOG.md, releases.html and tools/ together and is told by this project's own
+   non-negotiable rule to write a changelog entry before shipping -- and that read as drift and
+   refused, at every session start, once the check moved into the session-start set.
+
+   So these build a TREE rather than passing flags: the tool is copied into a fixture's tools/
+   directory, because the tool asks about the tree it is installed in. Asserting from here with
+   --changelog and --out would keep resolving against this repository and prove nothing: a
+   published check has to be measured in the layout its reader has. Each case fails alone. */
+
+function readerTree(opts) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rel-reader-'));
+  fs.mkdirSync(path.join(dir, 'tools'));
+  fs.copyFileSync(TOOL, path.join(dir, 'tools', 'build-releases.js'));
+  fs.writeFileSync(path.join(dir, 'CHANGELOG.md'), opts.changelog, 'utf8');
+  if (opts.page !== undefined) fs.writeFileSync(path.join(dir, 'releases.html'), opts.page, 'utf8');
+  if (opts.publisher) {
+    fs.writeFileSync(path.join(dir, 'studio.config.ps1'), '$PublishesReleasesPage = $true\n', 'utf8');
+  }
+  // CONFIGURED BUT NOT OPTED IN. This is the state that had no fixture and no assertion, and the
+  // predicate's first version treated it as the publisher: studio.ps1 refuses to publish without
+  // a configuration, so every reader who uses the tool for their own project is standing here.
+  if (opts.configured) {
+    fs.writeFileSync(path.join(dir, 'studio.config.ps1'), '$LeakPatterns = @()\n', 'utf8');
+  }
+  // DECLARED AND TURNED OFF. Added because a mutation returned DELTA ZERO: loosening the match
+  // from the literal $true to any word left every assertion green, since no fixture had ever
+  // written anything but $true. A declaration that cannot be revoked is not a declaration, and
+  // somebody who sets this to $false has said the opposite of opting in.
+  if (opts.optedOut) {
+    fs.writeFileSync(path.join(dir, 'studio.config.ps1'), '$PublishesReleasesPage = $false\n', 'utf8');
+  }
+  return dir;
+}
+function checkIn(dir) {
+  const r = cp.spawnSync(process.execPath, [path.join(dir, 'tools', 'build-releases.js'), '--check'],
+    { cwd: dir, encoding: 'utf8' });
+  return { code: r.status, err: r.stderr || '', out: r.stdout || '' };
+}
+
+// The reader's own entry, added on top of the shipped changelog, against the shipped page.
+const READER_ENTRY = ['# Changelog', '', '## 2026-09-11', '',
+  '**What this gives you.** My own project shipped its first change.', ''].join('\n');
+
+test('a tree that does not publish the page is advisory when the page disagrees', function () {
+  const dir = readerTree({ changelog: TWO_GOOD, page: B.build(READER_ENTRY).html });
+  const r = checkIn(dir);
+  assert.strictEqual(r.code, 3, 'the reader state must be advisory, not a refusal. Got ' + r.code);
+  assert.ok(/does not publish that page/.test(r.err), 'the reason must name why: ' + r.err);
+});
+
+/* RESTATED AFTER A MUTATION FALSIFIED IT. This first read "advisory must not read as a pass"
+   and asserted only that stdout lacks "is current". Deleting the whole tree-identity guard left
+   it GREEN, because the refusal branch prints nothing to stdout either -- so it was satisfied by
+   the output of the case it exists to exclude and separated nothing. It now names the refusal
+   wording the reader must never see, which is the exact string that comes back when the guard
+   goes. Both directions are asserted so a pass cannot be mistaken for a refusal or the reverse. */
+test('and the reader never sees the refusal wording', function () {
+  const dir = readerTree({ changelog: TWO_GOOD, page: B.build(READER_ENTRY).html });
+  const r = checkIn(dir);
+  assert.ok(!/does not match the changelog/.test(r.err),
+    'the reader got the refusal wording, which is the lockout this scope exists to remove');
+  assert.ok(!/is current/.test(r.out), 'advisory must not read as a pass either');
+});
+
+/* THE OTHER DIRECTION, AND THE ONE THAT MATTERS MORE. A scope that quietly stops the check
+   working here would be worse than the lockout it fixes, because nothing else watches the
+   published page. Same fixture, one extra file. */
+test('DRIFT STAYS RED in a tree that does publish the page', function () {
+  const dir = readerTree({ changelog: TWO_GOOD, page: B.build(READER_ENTRY).html, publisher: true });
+  const r = checkIn(dir);
+  assert.strictEqual(r.code, 1, 'a publishing tree must still refuse on drift. Got ' + r.code);
+  assert.ok(/does not match the changelog/.test(r.err), r.err);
+});
+
+test('a publishing tree whose page is current still passes', function () {
+  const dir = readerTree({ changelog: TWO_GOOD, page: B.build(TWO_GOOD).html, publisher: true });
+  assert.strictEqual(checkIn(dir).code, 0);
+});
+
+/* ABSENCE, which is the split that shipped last sitting and was asserted nowhere. Both were
+   proved by hand on a copy and by no instrument, which is the defect this studio keeps finding
+   in its own fixes rather than in its features. */
+test('no page at all is advisory rather than red', function () {
+  const dir = readerTree({ changelog: TWO_GOOD, publisher: true });
+  const r = checkIn(dir);
+  assert.strictEqual(r.code, 3, 'absence is not drift. Got ' + r.code);
+  assert.ok(/no page at/.test(r.err), r.err);
+});
+
+test('a changelog with no dated section is advisory rather than red', function () {
+  const dir = readerTree({ changelog: '# Changelog\n\nNothing released yet.\n', publisher: true });
+  assert.strictEqual(checkIn(dir).code, 3);
+});
+
+/* ---------- the reader's changelog that does not BUILD, which is the ordinary case ----------
+
+   THE GUARD ABOVE WAS THE RIGHT TEST IN THE WRONG PLACE, and every assertion above it passed
+   because each one handed the fixture a changelog that parses. The reader state that actually
+   happens does not parse. This project's own non-negotiable rule tells them to write a changelog
+   entry before shipping anything; they write one in their own house style, with no
+   "**What this gives you.**" marker, and build() throws before the tree-identity guard can run.
+   Measured in a reader layout before the fix: node tools/run-checks.js --set session-start
+   reported FAILED releases-page exit 1, 3 failed, exit 1. So the remedy printed at every session
+   start told a stranger to rewrite their own changelog to this house's marker. */
+
+const READER_OWN_STYLE = ['# Changelog', '', '## 2026-09-11', '',
+  '- Added a thing.', '- Fixed another thing.', ''].join('\n');
+
+test('a changelog that does not build this page is advisory in a tree that does not publish it', function () {
+  const dir = readerTree({ changelog: READER_OWN_STYLE, page: '<html>ours</html>' });
+  const r = checkIn(dir);
+  assert.strictEqual(r.code, 3, 'the ordinary reader entry must be advisory, not a refusal. Got ' + r.code);
+  assert.ok(/does not publish that page/.test(r.err), 'the reason must name whose tree it is: ' + r.err);
+  assert.ok(!/^ERROR:/m.test(r.err), 'a reader must not be handed a build error for their own file: ' + r.err);
+});
+
+/* THE OTHER DIRECTION, AND IT IS THE REASON THE CHECK EXISTS. A scope that swallowed the build
+   failure everywhere would hide a genuinely broken changelog in the one tree that publishes the
+   page. Same input, one extra file. */
+test('and the same changelog still REFUSES in a tree that does publish the page', function () {
+  const dir = readerTree({ changelog: READER_OWN_STYLE, page: '<html>ours</html>', publisher: true });
+  const r = checkIn(dir);
+  assert.strictEqual(r.code, 1, 'the publisher must still be refused on a changelog that cannot build. Got ' + r.code);
+  assert.ok(/not one release carries/.test(r.err), 'and must be told what is actually wrong: ' + r.err);
+});
+
+/* THE SCOPE IS --check AND NOT THE TOOL. A reader who RUNS the builder asked for a page, so the
+   throw is the answer to their question and they get it in full. Widening the advisory to the
+   write path would have them told nothing was wrong while nothing was written. */
+test('a reader who RUNS the builder still gets the real error', function () {
+  const dir = readerTree({ changelog: READER_OWN_STYLE });
+  const r = cp.spawnSync(process.execPath, [path.join(dir, 'tools', 'build-releases.js')],
+    { cwd: dir, encoding: 'utf8' });
+  assert.strictEqual(r.status, 1, 'someone who asked to build must be told it failed. Got ' + r.status);
+  assert.ok(/not one release carries/.test(r.stderr || ''), r.stderr);
+});
+
+/* ---------- configured is not the same as publishing ----------
+
+   FOUND BY THE PRODUCT GATE, one commit after the fix it reviews. The predicate asked whether
+   studio.config.ps1 exists, and that file means the tool is CONFIGURED, not that this tree
+   publishes our page. Measured one line apart in a reader tree: exit 3 with no config, exit 1
+   with a single leak-pattern line in it. So the refusal the whole scope exists to remove came
+   back for every reader who set the tool up, which is the documented way to use it. */
+
+test('a reader who has CONFIGURED the tool is still not the publisher of this page', function () {
+  const dir = readerTree({ changelog: READER_OWN_STYLE, page: '<html>ours</html>', configured: true });
+  const r = checkIn(dir);
+  assert.strictEqual(r.code, 3, 'a configured tool is not a declaration to publish. Got ' + r.code);
+  assert.ok(/does not publish that page/.test(r.err), r.err);
+});
+
+test('and a configured reader is not refused on DRIFT either', function () {
+  const dir = readerTree({ changelog: TWO_GOOD, page: B.build(READER_ENTRY).html, configured: true });
+  assert.strictEqual(checkIn(dir).code, 3, 'both refusals take the same predicate, so both move together');
+});
+
+/* THE OPT-IN HAS TO BE REACHABLE, or this is a lockout wearing a different hat: someone who DOES
+   publish their own page must be able to say so and get the check back. */
+test('declaring the opt-in turns the check back on for whoever sets it', function () {
+  const dir = readerTree({ changelog: READER_OWN_STYLE, page: '<html>mine</html>', publisher: true });
+  assert.strictEqual(checkIn(dir).code, 1, 'an opted-in tree asked for this check and must get it');
+});
+
+test('the declaration set to $false is an opt OUT, not a word where a value should be', function () {
+  const dir = readerTree({ changelog: READER_OWN_STYLE, page: '<html>ours</html>', optedOut: true });
+  assert.strictEqual(checkIn(dir).code, 3,
+    'turning the declaration off must not read as turning it on. Got ' + checkIn(dir).code);
+});
+
 /* ---------- summary ---------- */
 
 /* Measured: a fatal guard firing part way through the studio suite reported 0 failed
@@ -578,7 +788,7 @@ test('no release prose reaches the structured data', function () {
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 56;
+const EXPECTED_ASSERTIONS = 72;
 const ranBefore = pass + fail;
 test('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

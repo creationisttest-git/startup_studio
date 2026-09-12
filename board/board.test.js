@@ -1025,6 +1025,541 @@ function runCapture(prog, cwd, args, env) {
      docStamp.code !== 0 && /timestamp/.test(docStamp.out));
 }
 
+
+// --- THE RELATION: ONE INITIATIVE, AND THE WORK IN FLIGHT BELONGS TO IT -----------------------
+// The ceiling above is a COUNT and a count cannot tell a small that FINISHES an initiative from
+// one that STARTS a fourth. Everything in this block is about the field that makes that
+// difference expressible, and every refusal is asserted in BOTH directions: a rule that refuses
+// everything passes half of any one-directional test and is useless.
+{
+  const RE = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-relation-'));
+  junk.push(RE);
+  const r = a => {
+    const env = Object.assign({}, process.env, { BOARD_NOW: stamp(), BOARD_HOME: RE });
+    try { return { code: 0, out: execFileSync('node', [TOOL].concat(a), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() }; }
+    catch (e) { return { code: e.status, out: ((e.stdout || '') + (e.stderr || '')).toString() }; }
+  };
+  const tk = ref => { try { return JSON.parse(fs.readFileSync(path.join(RE, 'tickets', ref + '.json'), 'utf8')); } catch (e) { return {}; } };
+
+  r(['init', 'relation']);
+  r(['add', 'the initiative', '--desc', 'fixture', '--size', 'large']);            // RE-001
+  r(['add', 'a second initiative', '--desc', 'fixture', '--size', 'large']);       // RE-002
+  r(['add', 'work belonging to the first', '--desc', 'fixture', '--size', 'small']); // RE-003
+  r(['add', 'unrelated work', '--desc', 'fixture', '--size', 'small']);            // RE-004
+
+  // --- setting the relation, and what it refuses ---------------------------------------------
+  {
+    const put = r(['under', 'RE-003', '--under', 'RE-001', '--by', 'studio']);
+    ok('a small can be put under a large', put.code === 0 && tk('RE-003').parent === 'RE-001');
+
+    const notLarge = r(['under', 'RE-004', '--under', 'RE-003', '--by', 'studio']);
+    ok('a small cannot be put under another small', notLarge.code !== 0);
+    ok('and the refusal says why rather than only that it failed', /not a large|is small/.test(notLarge.out));
+    ok('and the refused ticket was not written', !tk('RE-004').parent);
+
+    const bigUnder = r(['under', 'RE-002', '--under', 'RE-001', '--by', 'studio']);
+    ok('a large cannot be put under a large, so the relation stays two levels deep', bigUnder.code !== 0);
+    ok('and the refused large was not written', !tk('RE-002').parent);
+
+    // SELF-PARENTING IS REFUSED, and the SITE is deliberately not a separate one: a ticket has one
+    // size, only a small may carry a parent and only a large may be one, so --under pointing at
+    // itself is already refused by whichever of those fires first. The BEHAVIOUR is asserted here;
+    // a third refusal underneath the two would be a line no input can reach.
+    const self = r(['under', 'RE-003', '--under', 'RE-003', '--by', 'studio']);
+    ok('a ticket cannot be put under itself', self.code !== 0);
+    ok('and it is still under the large it was under, so a refusal wrote nothing',
+       tk('RE-003').parent === 'RE-001');
+
+    const missing = r(['under', 'RE-004', '--under', 'RE-999', '--by', 'studio']);
+    ok('a parent that is not on the board is refused', missing.code !== 0 && /RE-999/.test(missing.out));
+
+    const noBy = r(['under', 'RE-003', '--under', 'RE-001']);
+    ok('setting the relation names its author, like every other mutation', noBy.code !== 0);
+
+    // CLEARING IT IS THE MUTATION THAT ORPHANS A SMALL, and it was the only one here with no
+    // assertion at all. Asserted on the round trip, because a clear that quietly did nothing and a
+    // clear that worked look identical from the exit code.
+    r(['under', 'RE-004', '--under', 'RE-001', '--by', 'studio']);
+    const cleared = r(['under', 'RE-004', '--under', 'none', '--by', 'studio']);
+    ok('a small can be taken back out of an initiative', cleared.code === 0 && !tk("RE-004").parent);
+    ok('and the ticket history records which initiative it left',
+       (tk('RE-004').history || []).some(h => /removed from RE-001/.test(h.what)));
+    const again = r(['under', 'RE-004', '--under', 'none', '--by', 'studio']);
+    ok('and clearing a ticket that is under nothing refuses rather than reporting success',
+       again.code !== 0);
+  }
+
+  // --- add --under, validated BEFORE the file is written --------------------------------------
+  {
+    const born = r(['add', 'raised under the initiative', '--desc', 'fixture', '--size', 'small', '--under', 'RE-001']);
+    ok('a ticket can be raised under a large in one step', born.code === 0 && tk('RE-005').parent === 'RE-001');
+    ok('and the reply says so, so the relation is visible without opening the ticket',
+       /under RE-001/.test(born.out));
+
+    const before = fs.readdirSync(path.join(RE, 'tickets')).length;
+    const bad = r(['add', 'raised under nothing', '--desc', 'fixture', '--size', 'small', '--under', 'RE-404']);
+    ok('a bad --under refuses the add', bad.code !== 0);
+    // A ticket created and then refused burns a number and leaves an orphan, and the next add
+    // carries on from the higher number as though nothing happened.
+    ok('and NO ticket file was written, so the number is not burnt',
+       fs.readdirSync(path.join(RE, 'tickets')).length === before);
+  }
+
+  // --- the rule itself: while a large is in flight, a small belongs to it ----------------------
+  {
+    r(['assess', 'RE-001', '--verdict', 'build', '--measure', 'the fixture measure', '--by', 'pm']);
+    const start = r(['move', 'RE-001', 'in_progress', '--by', 'studio']);
+    ok('the initiative starts', start.code === 0);
+
+    const child = r(['move', 'RE-003', 'in_progress', '--by', 'studio']);
+    ok('a small UNDER the initiative in flight starts with no override', child.code === 0);
+
+    const stray = r(['move', 'RE-004', 'in_progress', '--by', 'studio']);
+    ok('a small belonging to nothing is refused while an initiative is in flight', stray.code !== 0);
+    ok('and the refusal names the initiative it should be under', /RE-001/.test(stray.out));
+    ok('and it prints the command that fixes it rather than only the rule',
+       /board.js under RE-004 --under RE-001/.test(stray.out));
+    ok('and the refused ticket did not move', tk('RE-004').status === 'backlog');
+
+    // "EVERY SMALL MUST BE UNDER IT" MEANS UNDER THAT LARGE. Reading it as "has a parent" would let
+    // the whole backlog through on a field nobody checked against anything.
+    r(['under', 'RE-004', '--under', 'RE-002', '--by', 'studio']);
+    const wrongParent = r(['move', 'RE-004', 'in_progress', '--by', 'studio']);
+    ok('a small under a DIFFERENT large is refused just as hard as one under nothing',
+       wrongParent.code !== 0);
+    ok('and the refusal says which initiative it belongs to and which is in flight',
+       /RE-004 belongs to RE-002/.test(wrongParent.out) && /RE-001 is the one in flight/.test(wrongParent.out));
+
+    const ledger = path.join(RE, 'overrides.json');
+    ok('a refused start writes no ledger entry', !fs.existsSync(ledger));
+
+    // ITS OWN FLAG, RESTATED RATHER THAN DELETED (S134). These four encoded a single --override
+    // clearing both gates, which burnt two ledger rows off one decision and advanced two hardening
+    // counters, so the assertions went red on the fix and were rewritten to the flag that exists.
+    const ceilingFlag = r(['move', 'RE-004', 'in_progress', '--by', 'studio', '--override', 'wrong gate']);
+    ok('the CEILING flag does not clear the INITIATIVE gate, so one decision excuses one rule',
+       ceilingFlag.code !== 0);
+    const blank = r(['move', 'RE-004', 'in_progress', '--by', 'studio', '--override-initiative', '  ']);
+    ok('an override with a blank reason is refused as hard as none', blank.code !== 0);
+    ok('and still writes no ledger', !fs.existsSync(ledger));
+
+    const forced = r(['move', 'RE-004', 'in_progress', '--by', 'studio', '--override-initiative', 'the founder reprioritised']);
+    ok('an override carrying a reason lets it through', forced.code === 0 && tk('RE-004').status === 'in_progress');
+    let led = [];
+    try { led = JSON.parse(fs.readFileSync(ledger, 'utf8')); } catch (e) { led = []; }
+    // ITS OWN LEDGER, NOT THE CEILING'S. Pooling the two would harden each gate on the other's
+    // history and the count would stop meaning what its message says.
+    ok('the override is recorded under its own gate rather than the ceiling\'s',
+       led.length === 1 && led[0].gate === 'initiative' && led[0].ref === 'RE-004');
+    ok('and the reason is the one that was given', led.length === 1 && led[0].reason === 'the founder reprioritised');
+    ok('and the ticket history carries it too, so the ledger is not the only copy',
+       (tk('RE-004').history || []).some(h => /INITIATIVE OVERRIDDEN/.test(h.what) && /reprioritised/.test(h.what)));
+
+    // WIP HAS TO MARK THE CASE `move` REFUSES, because the one role told to read it and name
+    // breaches is told to read THIS. Naming the initiative alone reads as compliance, and an
+    // override is exactly how such a small ends up in flight. Measured before this pair existed:
+    // removing the marker from wip returned DELTA ZERO across the whole suite.
+    const wipLine = ref => (r(['wip']).out.split(NLT).filter(l => l.indexOf(ref) > -1)[0] || '');
+    ok('wip shows the small that is under the initiative in flight without a warning',
+       /under RE-001/.test(wipLine('RE-003')) && !/INITIATIVE \*\*/.test(wipLine('RE-003')));
+    ok('and it MARKS the one that belongs to a different initiative, rather than printing "under RE-002" as though that were compliance',
+       /WRONG INITIATIVE/.test(wipLine('RE-004')));
+    ok('and it still names which initiative that one belongs to, so the reader can act on it',
+       /under RE-002/.test(wipLine('RE-004')));
+  }
+
+  // --- the ceiling is ONE large ---------------------------------------------------------------
+  {
+    r(['assess', 'RE-002', '--verdict', 'build', '--measure', 'the fixture measure', '--by', 'pm']);
+    const second = r(['move', 'RE-002', 'in_progress', '--by', 'studio']);
+    ok('a SECOND large is refused, because two larges is two initiatives', second.code !== 0);
+    ok('and the refusal states the count against the ceiling', /1\/1/.test(second.out));
+    ok('and it names what is already running', /RE-001/.test(second.out));
+    ok('and the refused large did not move', tk('RE-002').status === 'backlog');
+  }
+
+  // --- an unparented small is fine when NO large is in flight ----------------------------------
+  // 42 of the 57 small starts in this board's life began with no large in flight, so a rule that
+  // refused them would refuse three quarters of the work this studio has actually done.
+  {
+    const AL = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-alone-'));
+    junk.push(AL);
+    const a = args => {
+      const env = Object.assign({}, process.env, { BOARD_NOW: stamp(), BOARD_HOME: AL });
+      try { return { code: 0, out: execFileSync('node', [TOOL].concat(args), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() }; }
+      catch (e) { return { code: e.status, out: ((e.stdout || '') + (e.stderr || '')).toString() }; }
+    };
+    a(['init', 'alone']);
+    a(['add', 'a small on its own', '--desc', 'fixture', '--size', 'small']);
+    const solo = a(['move', 'AL-001', 'in_progress', '--by', 'studio']);
+    ok('an unparented small starts freely when no large is in flight, with no override',
+       solo.code === 0);
+    ok('and no ledger entry was written for it, because nothing was overridden',
+       !fs.existsSync(path.join(AL, 'overrides.json')));
+  }
+
+  // --- a large is not finished until its work is -----------------------------------------------
+  {
+    const early = r(['close', 'RE-001', '--as', 'done', '--by', 'studio']);
+    ok('a large cannot be closed as done while work under it is still open', early.code !== 0);
+    ok('and the refusal NAMES the open tickets rather than counting them',
+       /RE-003/.test(early.out) && /RE-005/.test(early.out));
+    ok('and the initiative did not close', tk('RE-001').status === 'in_progress');
+
+    // Parking or killing an initiative is a decision that the rest is not being done, which is a
+    // legitimate ending. Refusing every ending would leave work that cannot be abandoned.
+    const parked = r(['close', 'RE-002', '--as', 'parked', '--by', 'studio', '--reason', 'not now']);
+    ok('a large CAN still be parked with a reason while work sits under it', parked.code === 0);
+
+    r(['close', 'RE-003', '--as', 'done', '--by', 'studio']);
+    r(['close', 'RE-005', '--as', 'done', '--by', 'studio']);
+    const late = r(['close', 'RE-001', '--as', 'done', '--by', 'studio']);
+    ok('and once its work is closed the initiative closes', late.code === 0 && tk('RE-001').status === 'done');
+  }
+}
+
+// --- EVICTION IS ONE COMMAND OR IT IS NOTHING --------------------------------------------------
+// Both leads said build it atomic or not at all, and there was no transaction, journal, rollback
+// or detector anywhere in this file before it. What makes the claim true is the ORDER: the journal
+// is written before the first ticket moves and removed after the last one, so its existence is
+// exactly the window in which the board is part way through.
+{
+  const EV = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-evict-'));
+  junk.push(EV);
+  const e = a => {
+    const env = Object.assign({}, process.env, { BOARD_NOW: stamp(), BOARD_HOME: EV });
+    try { return { code: 0, out: execFileSync('node', [TOOL].concat(a), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() }; }
+    catch (err) { return { code: err.status, out: ((err.stdout || '') + (err.stderr || '')).toString() }; }
+  };
+  const tk = ref => { try { return JSON.parse(fs.readFileSync(path.join(EV, 'tickets', ref + '.json'), 'utf8')); } catch (x) { return {}; } };
+  const journal = path.join(EV, 'evict.journal.json');
+
+  e(['init', 'evict']);
+  e(['add', 'the initiative', '--desc', 'fixture', '--size', 'large']);                        // EV-001
+  e(['add', 'work under it', '--desc', 'fixture', '--size', 'small', '--under', 'EV-001']);    // EV-002
+  e(['add', 'more work under it', '--desc', 'fixture', '--size', 'small', '--under', 'EV-001']); // EV-003
+  e(['add', 'work never started', '--desc', 'fixture', '--size', 'small', '--under', 'EV-001']); // EV-004
+  e(['assess', 'EV-001', '--verdict', 'build', '--measure', 'the fixture measure', '--by', 'pm']);
+  e(['move', 'EV-001', 'in_progress', '--by', 'studio']);
+  e(['move', 'EV-002', 'in_progress', '--by', 'studio']);
+  e(['move', 'EV-003', 'in_progress', '--by', 'studio']);
+
+  {
+    const small = e(['evict', 'EV-002', '--reason', 'x', '--by', 'studio']);
+    ok('a small cannot be evicted, because eviction moves an initiative and its work together',
+       small.code !== 0 && /plain move/.test(small.out));
+
+    const noReason = e(['evict', 'EV-001', '--by', 'studio']);
+    ok('eviction without a reason is refused', noReason.code !== 0);
+    ok('and nothing moved, so a refused eviction is not a partial one',
+       tk('EV-001').status === 'in_progress' && tk('EV-002').status === 'in_progress');
+    ok('and no journal was left behind by the refusal', !fs.existsSync(journal));
+
+    const gone = e(['evict', 'EV-001', '--reason', 'the founder reprioritised', '--by', 'studio']);
+    ok('an initiative is evicted with its work in one command', gone.code === 0);
+    ok('the initiative went to backlog', tk('EV-001').status === 'backlog');
+    ok('and so did every ticket that was in flight under it',
+       tk('EV-002').status === 'backlog' && tk('EV-003').status === 'backlog');
+    ok('and the reason is on every one of them, so no ticket ends up unexplained',
+       [tk('EV-001'), tk('EV-002'), tk('EV-003')].every(t =>
+         (t.history || []).some(h => /evicted from in_progress/.test(h.what) && /reprioritised/.test(h.what))));
+    // A ticket that was never started has nothing to evict, and moving it would silently mark
+    // work as having been in flight when it never was.
+    ok('a ticket under it that was NOT in flight is untouched', tk('EV-004').status === 'backlog');
+    ok('and it carries no eviction entry, so the record does not claim it moved',
+       !(tk('EV-004').history || []).some(h => /evicted/.test(h.what)));
+    // LAST, AND ONLY ON SUCCESS. While this file exists the eviction is unfinished.
+    ok('the journal is gone once the eviction completed', !fs.existsSync(journal));
+    ok('the relation itself survives eviction, so the initiative can simply be restarted',
+       tk('EV-002').parent === 'EV-001');
+  }
+
+  // --- the detector: a board part way through an eviction refuses to be written to --------------
+  // The journal is planted directly, which is what a killed process leaves behind. Nothing else
+  // can produce this state, and a guarantee nobody can put the board into is a guarantee nobody
+  // has watched work.
+  {
+    fs.writeFileSync(journal, JSON.stringify({
+      started_at: '2026-01-01 00:00:00', by: 'studio', initiative: 'EV-001',
+      reason: 'interrupted', tickets: [{ ref: 'EV-001', was: 'in_progress' }, { ref: 'EV-002', was: 'in_progress' }]
+    }, null, 2) + '\n');
+
+    const write = e(['note', 'EV-004', 'a note', '--by', 'studio']);
+    ok('a WRITING command refuses while an eviction is unfinished', write.code !== 0);
+    ok('and it names the initiative and where the journal is', /EV-001/.test(write.out) && /journal/i.test(write.out));
+    ok('and it prints the way out, so the refusal has a remedy',
+       /evict --rollback/.test(write.out));
+
+    // Bricking the reading commands would leave the operator with a broken board and no way to
+    // look at it, which is the state this refusal exists to make visible.
+    const read = e(['wip']);
+    ok('a READING command still works, because a half-evicted board is what you need to see',
+       read.code === 0);
+    const doc = e(['doctor']);
+    ok('doctor reports the unfinished eviction as a fault', doc.code !== 0 && /did not finish/.test(doc.out));
+    ok('and doctor names the remedy where the reader is actually looking',
+       /evict --rollback/.test(doc.out));
+
+    const back = e(['evict', '--rollback', '--by', 'studio']);
+    ok('rollback is the one write that passes, because it is the way out', back.code === 0);
+    ok('and it restored the recorded status rather than guessing',
+       tk('EV-001').status === 'in_progress' && tk('EV-002').status === 'in_progress');
+    ok('and the journal is gone, so the board is no longer part way through', !fs.existsSync(journal));
+    ok('and writing works again', e(['note', 'EV-004', 'a note', '--by', 'studio']).code === 0);
+  }
+
+
+
+  // --- THE THREE THINGS THE CODE GATE FOUND, EACH WITH THE FIXTURE THAT WAS MISSING ------------
+  // Every one of these was a HIGH finding against the first version of this command, and every one
+  // was invisible to the fixtures that existed. They are grouped so the next reader can see that
+  // the eviction's guarantees are three separate claims and not one.
+  {
+    const HV = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-high-'));
+    junk.push(HV);
+    const h = a => {
+      const env = Object.assign({}, process.env, { BOARD_NOW: stamp(), BOARD_HOME: HV });
+      try { return { code: 0, out: execFileSync('node', [TOOL].concat(a), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() }; }
+      catch (err) { return { code: err.status, out: ((err.stdout || '') + (err.stderr || '')).toString() }; }
+    };
+    const htk = ref => { try { return JSON.parse(fs.readFileSync(path.join(HV, 'tickets', ref + '.json'), 'utf8')); } catch (x) { return {}; } };
+    const hJournal = path.join(HV, 'evict.journal.json');
+
+    h(['init', 'high']);
+    h(['add', 'the initiative', '--desc', 'fixture', '--size', 'large']);                      // HI-001
+    h(['add', 'in flight', '--desc', 'fixture', '--size', 'small', '--under', 'HI-001']);      // HI-002
+    h(['add', 'sitting in uat', '--desc', 'fixture', '--size', 'small', '--under', 'HI-001']); // HI-003
+    h(['add', 'already done', '--desc', 'fixture', '--size', 'small', '--under', 'HI-001']);   // HI-004
+    h(['assess', 'HI-001', '--verdict', 'build', '--measure', 'the fixture measure', '--by', 'pm']);
+    h(['move', 'HI-001', 'in_progress', '--by', 'studio']);
+    h(['move', 'HI-002', 'in_progress', '--by', 'studio']);
+    h(['move', 'HI-003', 'in_progress', '--by', 'studio']);
+    h(['move', 'HI-003', 'uat', '--by', 'qa-tester', '--notes', 'checked the thing']);
+    h(['move', 'HI-004', 'in_progress', '--by', 'studio']);
+    h(['close', 'HI-004', '--as', 'done', '--by', 'studio']);
+
+    ok('the fixture really does have a child past in_progress, or the next assertion proves nothing',
+       htk('HI-003').status === 'uat' && htk('HI-004').status === 'done');
+
+    const gone = h(['evict', 'HI-001', '--reason', 'the founder reprioritised', '--by', 'studio']);
+    ok('an eviction succeeds with a child sitting beyond in_progress', gone.code === 0);
+    // THE HIGH FINDING. Scoped to in_progress, this child stayed in uat, the initiative went to
+    // backlog, and `audit` said no loose ends -- a board left inconsistent on the SUCCESS path with
+    // no failure anywhere, while the published claim said everything goes out together.
+    ok('a child sitting in uat goes out WITH the initiative rather than being left behind',
+       htk('HI-003').status === 'backlog');
+    ok('and a child that had already ENDED is left alone, because there is nothing to withdraw',
+       htk('HI-004').status === 'done');
+    const aud = h(['audit']);
+    ok('and the board really is clean afterwards, which is the claim that was false',
+       aud.code === 0 && /no loose ends/.test(aud.out));
+  }
+  {
+    // A COMPLETED EVICTION MUST NOT BE ROLLED BACK. Removal of the journal was the only thing that
+    // said "finished", so an unlink that failed for any ordinary reason on this platform left a
+    // correct eviction indistinguishable from an interrupted one -- and the single remedy the
+    // refusal prints would then faithfully undo what the founder asked for, and report success.
+    const CM = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-committed-'));
+    junk.push(CM);
+    const c = a => {
+      const env = Object.assign({}, process.env, { BOARD_NOW: stamp(), BOARD_HOME: CM });
+      try { return { code: 0, out: execFileSync('node', [TOOL].concat(a), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() }; }
+      catch (err) { return { code: err.status, out: ((err.stdout || '') + (err.stderr || '')).toString() }; }
+    };
+    const ctk = ref => { try { return JSON.parse(fs.readFileSync(path.join(CM, 'tickets', ref + '.json'), 'utf8')); } catch (x) { return {}; } };
+    const cJournal = path.join(CM, 'evict.journal.json');
+
+    c(['init', 'committed']);
+    c(['add', 'the initiative', '--desc', 'fixture', '--size', 'large']);
+    c(['add', 'its work', '--desc', 'fixture', '--size', 'small', '--under', 'CO-001']);
+    c(['assess', 'CO-001', '--verdict', 'build', '--measure', 'the fixture measure', '--by', 'pm']);
+    c(['move', 'CO-001', 'in_progress', '--by', 'studio']);
+    c(['move', 'CO-002', 'in_progress', '--by', 'studio']);
+    c(['evict', 'CO-001', '--reason', 'the founder reprioritised', '--by', 'studio']);
+
+    // This is what a failed unlink leaves: the eviction happened, the marker says so, the file is
+    // still there. Planted, because a lock or a scanner cannot be arranged inside a test.
+    fs.writeFileSync(cJournal, JSON.stringify({
+      started_at: '2026-01-01 00:00:00', by: 'studio', initiative: 'CO-001', state: 'committed',
+      reason: 'the founder reprioritised',
+      tickets: [{ ref: 'CO-001', was: 'in_progress' }, { ref: 'CO-002', was: 'in_progress' }]
+    }, null, 2) + '\n');
+
+    const roll = c(['evict', '--rollback', '--by', 'studio']);
+    ok('rolling back a COMPLETED eviction reverses nothing', roll.code === 0 &&
+       ctk('CO-001').status === 'backlog' && ctk('CO-002').status === 'backlog');
+    ok('and it says so rather than reporting a rollback it did not do',
+       /had already COMPLETED/.test(roll.out) && /nothing was reversed/.test(roll.out));
+    ok('and it clears the leftover journal, so the board is not locked over a finished act',
+       !fs.existsSync(cJournal) && c(['note', 'CO-002', 'a note', '--by', 'studio']).code === 0);
+  }
+  {
+    // A JOURNAL NAMING A TICKET THAT IS NOT THERE used to throw ENOENT outside every try, so the
+    // one documented recovery crashed with a raw stack, kept the journal, and repeated forever.
+    const MS = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-missing-'));
+    junk.push(MS);
+    const m = a => {
+      const env = Object.assign({}, process.env, { BOARD_NOW: stamp(), BOARD_HOME: MS });
+      try { return { code: 0, out: execFileSync('node', [TOOL].concat(a), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() }; }
+      catch (err) { return { code: err.status, out: ((err.stdout || '') + (err.stderr || '')).toString() }; }
+    };
+    m(['init', 'missing']);
+    m(['add', 'a ticket', '--desc', 'fixture', '--size', 'small']);
+    fs.writeFileSync(path.join(MS, 'evict.journal.json'), JSON.stringify({
+      started_at: '2026-01-01 00:00:00', by: 'studio', initiative: 'MI-001', reason: 'interrupted',
+      tickets: [{ ref: 'MI-001', was: 'in_progress' }, { ref: 'MI-404', was: 'in_progress' }]
+    }, null, 2) + '\n');
+    const roll = m(['evict', '--rollback', '--by', 'studio']);
+    ok('a rollback over a ticket that is no longer there DIAGNOSES rather than crashing',
+       roll.code !== 0 && /could NOT be fully rolled back/.test(roll.out));
+    ok('and it names the file it could not read, which a stack trace never did',
+       /MI-404/.test(roll.out));
+    ok('and it keeps the journal, because that board really is part way through',
+       fs.existsSync(path.join(MS, 'evict.journal.json')));
+    ok('and it points at the ticket history as the other copy of the record', /history/.test(roll.out));
+  }
+
+  // --- THE ORDERING, WHICH IS THE ONLY THING THAT MAKES ANY OF THIS ATOMIC -------------------
+  // Everything above passes just as happily with the journal written AFTER the tickets move, and
+  // that was MEASURED rather than assumed: moving the write below the loop left this suite at 233
+  // passed, 0 failed. A mutation returning delta zero has falsified the COMMENT beside it and not
+  // the tool (S168), so the claim "written before the first ticket moves" needed an assertion that
+  // an out-of-order journal cannot satisfy.
+  //
+  // THE FAILURE IS REAL RATHER THAN SIMULATED. One ticket file is made read-only, so the tool
+  // reads it fine and the write throws EPERM part way down the list. That is the shape of every
+  // interruption this can actually suffer: some tickets moved, one did not.
+  //
+  // WHAT THE ASSERTION USES, AND WHAT IT PROVES. It reads the HANDLED-FAILURE message, which
+  // names how many had moved and whether they were put back. That message is only reachable if the
+  // journal existed when the failure was handled, because the recovery reads the journal and then
+  // removes it. Written after the loop, the journal never exists at that moment and the recovery
+  // cannot complete, so the message never appears. Asserting on the message rather than on the
+  // absence of a crash is deliberate: a crash and a finding leave the same exit code, so "it was
+  // not killed" would stay green while the tool died (S156).
+  {
+    const OD = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-order-'));
+    junk.push(OD);
+    const o = a => {
+      const env = Object.assign({}, process.env, { BOARD_NOW: stamp(), BOARD_HOME: OD });
+      try { return { code: 0, out: execFileSync('node', [TOOL].concat(a), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() }; }
+      catch (err) { return { code: err.status, out: ((err.stdout || '') + (err.stderr || '')).toString() }; }
+    };
+    const otk = ref => { try { return JSON.parse(fs.readFileSync(path.join(OD, 'tickets', ref + '.json'), 'utf8')); } catch (x) { return {}; } };
+    const oJournal = path.join(OD, 'evict.journal.json');
+
+    o(['init', 'order']);
+    o(['add', 'the initiative', '--desc', 'fixture', '--size', 'large']);                        // OR-001
+    o(['add', 'first child', '--desc', 'fixture', '--size', 'small', '--under', 'OR-001']);      // OR-002
+    o(['add', 'second child', '--desc', 'fixture', '--size', 'small', '--under', 'OR-001']);     // OR-003
+    o(['assess', 'OR-001', '--verdict', 'build', '--measure', 'the fixture measure', '--by', 'pm']);
+    o(['move', 'OR-001', 'in_progress', '--by', 'studio']);
+    o(['move', 'OR-002', 'in_progress', '--by', 'studio']);
+    o(['move', 'OR-003', 'in_progress', '--by', 'studio']);
+
+    const locked = path.join(OD, 'tickets', 'OR-003.json');
+    fs.chmodSync(locked, 0o444);
+    const broke = o(['evict', 'OR-001', '--reason', 'interrupted by a read-only file', '--by', 'studio']);
+    fs.chmodSync(locked, 0o666);
+
+    ok('an eviction that cannot write every ticket FAILS rather than reporting success',
+       broke.code !== 0);
+    ok('and it REACHED its own failure handler, which it can only do over a journal that already existed',
+       /eviction of OR-001 FAILED/.test(broke.out));
+    ok('and the handler finished, putting back everything that had moved',
+       /every one of them was put back/.test(broke.out));
+    ok('and it says how many had moved, so the reader is not left guessing at the damage',
+       /of 3 had moved/.test(broke.out));
+    ok('the tickets that HAD moved really are back in flight, so a failed eviction is not a partial one',
+       otk('OR-001').status === 'in_progress' && otk('OR-002').status === 'in_progress');
+    ok('and the one that could not be written never moved either',
+       otk('OR-003').status === 'in_progress');
+    ok('the rollback is recorded on the tickets it touched rather than only announced',
+       (otk('OR-001').history || []).some(h => /rolled back/.test(h.what)));
+    // A refusal that outlives the fault is one people delete files to escape. The board is
+    // consistent again, so it must accept writes again.
+    ok('and with the rollback complete the journal is gone and writing works again',
+       !fs.existsSync(oJournal) && o(['note', 'OR-002', 'a note', '--by', 'studio']).code === 0);
+  }
+
+  // ABSENT and CORRUPT are different answers. Read as absent, a damaged journal would let every
+  // command carry on over a half-evicted board, which is the exact failure the override ledger
+  // was hardened against.
+  {
+    fs.writeFileSync(journal, '{ this is not json');
+    const write = e(['note', 'EV-004', 'another note', '--by', 'studio']);
+    ok('a CORRUPT journal refuses too, rather than reading as no eviction at all', write.code !== 0);
+    ok('and it says the journal itself is the thing that is unreadable',
+       /unreadable/.test(write.out));
+    const roll = e(['evict', '--rollback', '--by', 'studio']);
+    ok('rollback refuses on a corrupt journal rather than guessing what to restore', roll.code !== 0);
+    ok('and it points at the ticket history as the other copy of the record',
+       /history/.test(roll.out));
+
+    // THIS BRANCH SHIPPED AS A LOOP AND THE ASSERTIONS ABOVE COULD NOT SEE IT, because each one
+    // checked that a refusal happened and that a sentence was printed. Every writer sent the
+    // reader to `evict --rollback`; rollback refuses here, and sent them to `move`, which is a
+    // writer; and `doctor`, the one command whose own comment says it is where a reader looks
+    // when the board is odd, told them to restore the journal from git. .gitignore excludes the
+    // journal, so that remedy is impossible by construction. Three printed ways out and the loop
+    // terminated only for a reader who ignored all of them.
+    //
+    // So these assertions do what S178 says: they PERFORM the remedy and check it arrives, rather
+    // than checking that the remedy was mentioned. The last one is the whole finding, because a
+    // refusal that cannot be escaped is not a refusal, it is a brick.
+    const doc = e(['doctor']);
+    ok('doctor reports the corrupt journal, because that is where a reader actually looks',
+       doc.code !== 0 && /unreadable/.test(doc.out));
+    ok('and doctor no longer offers restoring it from git, which .gitignore makes impossible',
+       /CANNOT be restored from git/.test(doc.out));
+    ok('and both refusals name deleting the file FIRST, because every other writer is refused '
+       + 'while it exists, so any repair step printed before that one cannot be taken',
+       /DELETE THE FILE FIRST/.test(doc.out) && /DELETE THIS FILE FIRST/.test(roll.out));
+
+    fs.unlinkSync(journal);
+    const after = e(['note', 'EV-004', 'the escape works', '--by', 'studio']);
+    ok('and PERFORMING that remedy really does free the board, which is the assertion this branch '
+       + 'never had: writing works again the moment the file is gone', after.code === 0);
+    const none = e(['evict', '--rollback', '--by', 'studio']);
+    ok('and with no journal at all, rollback says there is nothing to undo',
+       none.code !== 0 && /no unfinished eviction/.test(none.out));
+  }
+}
+
+// --- THE LOOP THE WALK HAS TO SURVIVE ----------------------------------------------------------
+// Unreachable through the commands -- only a small carries a parent and only a large can be one --
+// and entirely reachable on DISK, which is what doctor exists for. Written as files rather than
+// through the tool, because that is the only way this state occurs.
+//
+// AND THE ASSERTION IS ON THE VERDICT, NEVER ON SURVIVAL. Without the seen-set the walk recurses
+// until node throws, and node exits 1 on an uncaught throw while this tool exits 1 on a finding,
+// so "it was not killed" stays green while the tool crashes and proves nothing (S156).
+{
+  const LP = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-loop-'));
+  junk.push(LP);
+  const l = a => {
+    const env = Object.assign({}, process.env, { BOARD_NOW: stamp(), BOARD_HOME: LP });
+    try { return { code: 0, out: execFileSync('node', [TOOL].concat(a), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() }; }
+    catch (e) { return { code: e.status, out: ((e.stdout || '') + (e.stderr || '')).toString() }; }
+  };
+  l(['init', 'loop']);
+  l(['add', 'one half of the loop', '--desc', 'fixture', '--size', 'large']);
+  l(['add', 'the other half', '--desc', 'fixture', '--size', 'large']);
+  for (const [ref, parent] of [['LO-001', 'LO-002'], ['LO-002', 'LO-001']]) {
+    const p = path.join(LP, 'tickets', ref + '.json');
+    const t = JSON.parse(fs.readFileSync(p, 'utf8'));
+    t.parent = parent;
+    fs.writeFileSync(p, JSON.stringify(t, null, 2) + '\n');
+  }
+  const aud = l(['audit']);
+  ok('a parent loop on disk is REPORTED rather than walked forever',
+     /is its own ancestor/.test(aud.out));
+  ok('and the audit reached a verdict, which is the only thing that tells a finding from a crash',
+     /AUDIT  2 live tickets/.test(aud.out));
+  ok('and it names both halves of the loop, not just the one it happened to reach first',
+     /LO-001: is its own ancestor/.test(aud.out) && /LO-002: is its own ancestor/.test(aud.out));
+}
+
 junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 fs.rmSync(SANDBOX, { recursive: true, force: true });
 /* Measured: a fatal guard firing part way through the studio suite reported 0 failed
@@ -1032,7 +1567,7 @@ fs.rmSync(SANDBOX, { recursive: true, force: true });
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 163;
+const EXPECTED_ASSERTIONS = 264;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

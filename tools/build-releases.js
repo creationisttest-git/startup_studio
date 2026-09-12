@@ -435,6 +435,49 @@ function build(changelogText, options) {
     throw new Error('no dated releases found. Expected headings of the form "## 2026-08-21".');
   }
 
+  // A SECTION THE PARSER REFUSED USED TO VANISH IN SILENCE AND THE PAGE STILL REPORTED CURRENT.
+  // The date pattern is anchored at both ends, so a heading that is NEARLY a date matched no
+  // release and set the current section to nothing: every line under it was dropped and the build
+  // carried on. A peer session wrote "## 2026-09-11 (second entry)" to get past the duplicate-date
+  // refusal below, and its whole entry was about to ship in the public export announced by no page
+  // and no release note, while --check returned 0. A parser that stops looking and reports clean
+  // is the defect this repository has now paid for three times, and it was found by a reviewer
+  // reading git log rather than by any instrument.
+  //
+  // THE REFUSAL IS DELIBERATELY NARROW. Only a heading that OPENS with something date shaped and
+  // is not exactly a date can trip it, so "## Earlier" and "## How to test" are untouched and a
+  // reader keeping their own headings is not locked out of their own changelog.
+  // THE SECOND HALF IS A TOTAL RATHER THAN A PATTERN, and it came from the peer session whose
+  // entry this caught. A pattern only finds the near miss somebody has already thought of; asking
+  // instead whether every heading in the file was CONSUMED by a section finds the ones nobody has.
+  // It warns rather than refusing, because a reader's changelog may carry structural headings this
+  // build knows nothing about, and refusing on those is the reader lockout this repository has
+  // shipped three times. The near miss above still refuses, because that one is never deliberate.
+  const STRUCTURAL = ['Earlier', 'How to test'];
+  const nearMiss = [];
+  const unconsumed = [];
+  let fenced = false;
+  for (const line of String(changelogText).split(/\r?\n/)) {
+    if (/^\s{0,3}(```|~~~)/.test(line)) { fenced = !fenced; continue; }
+    if (fenced) continue;
+    const h2 = /^##\s+(\S.*?)\s*$/.exec(line);
+    if (!h2) continue;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(h2[1])) continue;
+    if (/^\d{4}-\d{2}-\d{2}/.test(h2[1])) { nearMiss.push(h2[1]); continue; }
+    if (STRUCTURAL.indexOf(h2[1]) === -1) unconsumed.push(h2[1]);
+  }
+  if (unconsumed.length) {
+    warnings.push('WARNING: ' + unconsumed.length + ' heading(s) matched no release and were ' +
+      'dropped from the page, the first being "## ' + unconsumed[0] + '". If that is a release, ' +
+      'give it a date heading. If it is not, this is only telling you it is not on the page.');
+  }
+  if (nearMiss.length) {
+    throw new Error('the heading "## ' + nearMiss[0] + '" is nearly a date and matches no ' +
+      'release, so everything under it would be dropped from the page and from the release note ' +
+      'without a word. Write it as "## ' + nearMiss[0].slice(0, 10) + '" and merge it into any ' +
+      'section already carrying that date, because two sections cannot share one.');
+  }
+
   const seen = new Set();
   for (const s of sections) {
     if (seen.has(s.date)) {
@@ -518,6 +561,35 @@ function checkSitemap(sitemapPath, newestDate) {
   return [];
 }
 
+/**
+ * WHOSE TREE IS THIS, ASKED AS AN OPT-IN RATHER THAN INFERRED.
+ *
+ * THE FIRST VERSION OF THIS ASKED THE WRONG QUESTION AND A REVIEWER CAUGHT IT. It tested whether
+ * studio.config.ps1 exists, on the reasoning that the file is the private half of the publisher
+ * and is deliberately absent from the publish manifest. What that file actually means is that the
+ * tool is CONFIGURED AT ALL: studio.ps1 refuses to publish anything without it, so every reader
+ * who sets the tool up for their own project has one, and the refusal this predicate exists to
+ * remove came straight back for them. Measured one line apart in a reader tree: exit 3 without
+ * the file, exit 1 with a single leak-pattern line in it.
+ *
+ * SO IT IS DECLARED RATHER THAN DEDUCED. No inference from a file's presence can separate "this
+ * tree publishes our releases page" from "this tree uses our tool", because every publisher is
+ * also a user. A key nobody sets by accident can. Absent, the page and the changelog beside it
+ * are treated as somebody else's artefacts, which is the safe direction: the cost of being wrong
+ * that way is an advisory row here, and the cost of being wrong the other way is a refusal in a
+ * stranger's repository that they cannot clear.
+ *
+ * It is a FUNCTION rather than two copies of one existsSync, because this predicate now decides
+ * two different refusals and a partial borrow reads as a shared definition without being one
+ * (S173). Change the evidence here and both sites move together.
+ */
+function publishesThisPage() {
+  const cfg = path.join(ROOT, 'studio.config.ps1');
+  let text;
+  try { text = fs.readFileSync(cfg, 'utf8'); } catch (e) { return false; }
+  return /^[^\S\r\n]*\$PublishesReleasesPage[^\S\r\n]*=[^\S\r\n]*\$true\b/mi.test(text);
+}
+
 function main(argv) {
   const args = argv.slice(2);
   if (args.indexOf('--help') !== -1 || args.indexOf('-h') !== -1) {
@@ -538,15 +610,60 @@ function main(argv) {
   const check = args.indexOf('--check') !== -1;
   const strict = args.indexOf('--strict') !== -1;
 
+  // EXIT 3 IS NOTHING TO COMPARE AGAINST, AND IT IS NOT A PASS.
+  //
+  // This check moved into the set every reader runs at session start, and until it did, the only
+  // caller was a release in this repository where a changelog and a page both certainly exist.
+  // Someone who clones the public export to run the METHOD and not the WEBSITE has neither, and a
+  // check with only 0 and 1 turns that ordinary state into a red row at every session start with
+  // no remedy except generating a page for a site they do not publish. That is the lockout class
+  // this project has now shipped three times, each time by moving a check to a wider audience
+  // without asking what the wider audience's tree looks like.
+  //
+  // The distinction the exit codes draw is DRIFT versus ABSENCE. A page that exists and disagrees
+  // with the changelog is a finding and stays exit 1. A page that was never generated, or a
+  // changelog with nothing dated in it yet, is not a disagreement between two things: there is
+  // only one thing. The cost is stated rather than hidden: deleting releases.html in THIS
+  // repository now reports advisory instead of red. That is accepted because the file is tracked,
+  // so git reports it, and the publish regenerates it regardless.
   if (!fs.existsSync(changelogPath)) {
-    process.stderr.write('ERROR: no changelog at ' + changelogPath + '\n');
-    return 1;
+    process.stderr.write('NOTHING TO COMPARE: no changelog at ' + changelogPath +
+      '. This project publishes no releases page, so there is nothing to hold to it.\n');
+    return 3;
   }
 
   let result;
   try {
     result = build(fs.readFileSync(changelogPath, 'utf8'), { strict: strict });
   } catch (err) {
+    if (/no dated releases found/.test(err.message)) {
+      process.stderr.write('NOTHING TO COMPARE: ' + err.message +
+        ' A changelog with no dated section yet is a project that has not released, not a fault.\n');
+      return 3;
+    }
+    // A READER'S CHANGELOG THAT CANNOT PRODUCE OUR PAGE IS NOT A FAULT IN THEIR TREE.
+    //
+    // The whose-tree guard below was the right test in the wrong place. build() throws before it
+    // can ever run, so the guard could only save a reader whose changelog parsed. The ordinary
+    // reader state does not parse: this project's own non-negotiable rule tells them to write a
+    // changelog entry before shipping, they write one in their own house style with no
+    // "**What this gives you.**" block, and build() throws "not one release carries" at exit 1.
+    // That reached them at EVERY session start, in a published artefact, with a remedy telling
+    // them to rewrite their own changelog. Measured in a reader layout: session-start reported
+    // FAILED releases-page exit 1, 3 failed, exit 1.
+    //
+    // ONLY IN --check, AND ONLY IN SOMEBODY ELSE'S TREE. A reader who RUNS the builder asked for
+    // a page and gets the real error at exit 1, because then the throw is the answer to their
+    // question. Here nobody asked: the check is comparing two files, and in a tree that does not
+    // publish this page there is nothing it has standing to compare.
+    if (check && !publishesThisPage()) {
+      process.stderr.write('NOTHING TO COMPARE: your changelog does not build this studio\'s ' +
+        'releases page (' + err.message + '), and this tree does not publish that page -- ' +
+        'studio.config.ps1 is absent, so the page came with the export rather than being ' +
+        'generated here. Your changelog is yours. If you do want to publish your own releases ' +
+        'page, run: node tools/build-releases.js\n');
+      return 3;
+    }
     process.stderr.write('ERROR: ' + err.message + '\n');
     return 1;
   }
@@ -557,12 +674,49 @@ function main(argv) {
   for (const w of warnings) process.stderr.write('WARNING: ' + w + '\n');
 
   if (check) {
-    const existing = fs.existsSync(outPath) ? fs.readFileSync(outPath, 'utf8') : null;
+    // ABSENT IS NOT STALE. Reading a missing file as an empty string made "never generated" and
+    // "generated and now wrong" the same red row, and only the second is a disagreement.
+    if (!fs.existsSync(outPath)) {
+      process.stderr.write('NOTHING TO COMPARE: no page at ' + outPath +
+        '. Generate one with: node tools/build-releases.js\n');
+      return 3;
+    }
+    const existing = fs.readFileSync(outPath, 'utf8');
     if (existing === result.html) {
       process.stdout.write('releases.html is current: ' + result.releases.length +
         ' releases.\n');
       return 0;
     }
+
+    // WHOSE PAGE IS THIS. The exit-3 split above separated DRIFT from ABSENCE and that was the
+    // wrong axis, because the reader state that actually happens is DRIFT and it reached exit 1.
+    //
+    // The public manifest ships CHANGELOG.md, releases.html and tools/ together, and this
+    // project's own non-negotiable rule tells every reader to write a changelog entry before
+    // shipping anything. So a reader following the method adds a dated section to a changelog
+    // that arrived with OUR generated page beside it, and the two legitimately disagree. That
+    // read as drift and refused, at every session start, for as long as they kept using the
+    // method. The only documented remedy regenerates the page, which writes this studio's own
+    // marketing domain into their repository -- measured at 36 occurrences becoming 37.
+    //
+    // AND THE TWO STATES ARE IDENTICAL ON DISK. A reader's drift and ours are the same two files
+    // in the same relation; nothing inside either file can tell them apart. The distinguishing
+    // fact is whose tree it is, so that is what is asked. studio.config.ps1 is the private half
+    // of the publisher: it holds the deploy hook and the leak samples, it is deliberately absent
+    // from the publish manifest, and it exists only in the tree that actually publishes this
+    // page. Absent, the page is somebody else's artefact and holding it to a changelog they now
+    // own is a claim we have no standing to make.
+    //
+    // ADVISORY AND NOT SILENT. Exit 3 still prints, still shows in the row, and still names the
+    // remedy for a reader who DOES want to publish their own page. What it does not do is refuse.
+    if (!publishesThisPage()) {
+      process.stderr.write('NOTHING TO COMPARE: releases.html disagrees with the changelog, but ' +
+        'this tree does not publish that page -- studio.config.ps1 is absent, so the page came ' +
+        'with the export rather than being generated here. Your changelog is yours and the page ' +
+        'is ours. If you do publish your own releases page, run: node tools/build-releases.js\n');
+      return 3;
+    }
+
     process.stderr.write('ERROR: releases.html does not match the changelog. ' +
       'Run: node tools/build-releases.js\n');
     return 1;

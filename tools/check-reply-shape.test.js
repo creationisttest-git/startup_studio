@@ -52,7 +52,7 @@ const TOOL = path.join(__dirname, 'check-reply-shape.js')
 const { projectDirName } = require('./check-gate-dispatch.js')
 const { shapeOf, main } = require('./check-reply-shape.js')
 
-const EXPECTED_ASSERTIONS = 62
+const EXPECTED_ASSERTIONS = 96
 
 let pass = 0
 let fail = 0
@@ -86,9 +86,22 @@ function session (w, name, lines) {
   return p
 }
 
+// THE REAL SESSION ID MUST NEVER REACH A FIXTURE. The tool now asks the host which session is
+// running, and the host has told this very process an answer: the id of the session executing
+// the suite. Inherited into a child, it names a transcript that exists on this machine and not
+// in the fixture, so every case came back CANNOT TELL for a reason nothing to do with its claim.
+// It is stripped here, once, rather than remembered at thirty call sites.
+function baseEnv () {
+  const e = Object.assign({}, process.env)
+  delete e.CLAUDE_CODE_SESSION_ID
+  return e
+}
+
 function run (args, env) {
   const opts = { stdio: ['pipe', 'pipe', 'pipe'] }
-  if (env) opts.env = env
+  if (!env) env = baseEnv()
+  if (!('CLAUDE_CODE_SESSION_ID' in env)) env.CLAUDE_CODE_SESSION_ID = 's1'
+  opts.env = env
   if (env && env.__cwd) { opts.cwd = env.__cwd; delete env.__cwd }
   try {
     const out = execFileSync(process.execPath, [TOOL].concat(args), opts).toString()
@@ -98,7 +111,14 @@ function run (args, env) {
   }
 }
 
-function at (w, args) { return run(['--root', w.root, '--home', w.home].concat(args || [])) }
+// The tool selects on CLAUDE_CODE_SESSION_ID rather than on modification time, so a fixture
+// must NAME the session it is pretending to be. The default is s1 because almost every case
+// writes exactly one session called s1; cases about choosing BETWEEN sessions pass their own.
+function at (w, args, id) {
+  const env = baseEnv()
+  if (id !== undefined) env.CLAUDE_CODE_SESSION_ID = id
+  return run(['--root', w.root, '--home', w.home].concat(args || []), env)
+}
 
 // One body of text, rendered two ways. This pair is the tool's central claim and nothing else
 // in this file matters as much: same words, same count, opposite verdicts.
@@ -161,6 +181,61 @@ const asBullets = BODY.map((wd, i) => (i % 8 === 0 ? '\n- ' + wd : wd)).join(' '
     "You're absolutely right about that.", 'I apologise for the confusion.', "Here's a summary of the run."]
   ok('every throat-clearing shape in the list is detected', openers.every(o => shapeOf(o).throat === true))
   ok('a plain sentence is not detected as throat-clearing', shapeOf('The suite is red on one line.').throat === false)
+}
+// THE EM-DASH, WHICH WAS THE OTHER HOLE, AND IT WAS WIDER THAN THE ONE THAT FOUND IT. The ban is
+// permanent, retroactive and named in the governance core, and this check read every reply in the
+// session without once counting the banned character. A method reviewer caught one by hand and
+// reported one; the instrument, once it could count, found FOUR across two replies in the same
+// session. A rule enforced by hand is enforced at whatever rate the hand is having a good day.
+{
+  ok('an em-dash in a sentence is counted', shapeOf('The suite passed — matches.').emDashes === 1)
+  ok('several in one reply are all counted', shapeOf('One — two — three — done.').emDashes === 3)
+  ok('clean point form carries none', shapeOf('- suite 2062 tests, 0 failed').emDashes === 0)
+  // U+2015 is visually identical at every size a reader sees, so a check that refuses one and
+  // passes the other is a check with a documented way around it.
+  ok('the horizontal bar U+2015 counts with the em-dash',
+     shapeOf('The suite passed ― matches.').emDashes === 1)
+  // The en-dash is a different character and is NOT the banned one. Counting it would refuse
+  // page ranges and score counts, which the rule never asked for.
+  ok('an en-dash is not the banned character', shapeOf('Pages 3–5 of the guide.').emDashes === 0)
+  ok('a plain hyphen is not an em-dash', shapeOf('The check-reply-shape tool is fine.').emDashes === 0)
+  // THE DESIGN DECISION, and the reason it is a test rather than a comment. Pasting a tool's
+  // output that contains an em-dash is quoting evidence, which the rules explicitly ask for.
+  // Refusing a session for showing its working is the fastest way to teach everybody to stop
+  // pasting the numbers, which costs more than the dashes it saves.
+  ok('an em-dash inside a fenced block is quoted evidence and is not counted',
+     shapeOf('What it printed:\n\n```\nFAIL — 3 replies over\n```\n').emDashes === 0)
+  ok('but one outside the fence in the same reply still is',
+     shapeOf('```\nquoted — output\n```\n\nMy own sentence — written.\n').emDashes === 1)
+  // THE FENCE EXCLUSION IS THE RIGHT DEFAULT AND A REAL HOLE, BOTH, which is why the in-fence
+  // count is kept and printed rather than discarded. A method reviewer named it: quoted tool
+  // output is evidence and refusing on it teaches sessions to stop pasting numbers, but a fenced
+  // PARAGRAPH still reaches the founder carrying the banned character. Same shape as the prose
+  // share this tool already reports without refusing on, so it uses that pattern rather than a
+  // new one. It becomes a refusal when somebody watching the number decides it should.
+  ok('em-dashes inside a fence are counted SEPARATELY rather than discarded',
+     shapeOf('Outside — one.\n\n```\nquoted — two — three\n```\n').fencedEmDashes === 2)
+  ok('and the two counts do not contaminate each other',
+     shapeOf('Outside — one.\n\n```\nquoted — two — three\n```\n').emDashes === 1)
+}
+// THE HYPHEN BULLET, WHICH WAS THE HOLE. Every marker in the strip set had a fixture and the one
+// this studio's own brevity rule produces did not, so preamble behind a hyphen was invisible to
+// this check AND to check-session-brief.js, which borrows this predicate. Both markers are
+// asserted here so the pair cannot drift apart again.
+{
+  const bare = 'Let me walk you through where we are.'
+  ok('preamble is seen through a hyphen bullet, the marker this studio writes',
+     shapeOf('- ' + bare).throat === true)
+  ok('and through an asterisk bullet, so the two markers agree',
+     shapeOf('* ' + bare).throat === true)
+  ok('a hyphen bullet that leads with the answer is still clean',
+     shapeOf('- 600 passed, 0 failed. The gate is green.').throat === false)
+}
+{
+  const w = world()
+  session(w, 's1.jsonl', [reply('- Let me walk you through where we are.\n- A second point.')])
+  const r = at(w, [])
+  ok('a reply opening with a hyphen-bulleted preamble refuses end to end', r.code === 1)
 }
 
 // --- what counts as point form ------------------------------------------------------------
@@ -248,10 +323,49 @@ const asBullets = BODY.map((wd, i) => (i % 8 === 0 ? '\n- ' + wd : wd)).join(' '
   fs.utimesSync(path.join(transcriptDir(w), 'a-oldest.jsonl'), new Date(now - 30000), new Date(now - 30000))
   fs.utimesSync(path.join(transcriptDir(w), 'z-middle.jsonl'), new Date(now - 20000), new Date(now - 20000))
   fs.utimesSync(mid, new Date(now), new Date(now))
-  const r = at(w, [])
-  ok('the newest session is chosen by modification time, not by name or by write order', r.code === 0)
+  // The fixture opposes every incidental order on purpose: 'm-newest' is newest by mtime and
+  // middle by name, 'a-oldest' is first by name, 'z-middle' is last. Ask for a-oldest and the
+  // ONLY way to return it is the session id, because every other ranking points elsewhere.
+  const byId = at(w, [], 'a-oldest')
+  ok('the session NAMED BY THE HOST is chosen, even when another file is newer', byId.code === 1)
+  const newestOne = at(w, [], 'm-newest')
+  ok('and naming the newest file returns that one, so selection follows the id either way',
+    newestOne.code === 0)
+  const nameless = run(['--root', w.root, '--home', w.home],
+    Object.assign(baseEnv(), { CLAUDE_CODE_SESSION_ID: '' }))
+  ok('with no session id it is CANNOT TELL at 3 and NEVER a silent fall back to the newest file',
+    nameless.code === 3 && /CANNOT TELL/.test(nameless.out))
+  ok('and it says why rather than leaving the reader to guess what it could not do',
+    /not set/.test(nameless.out))
+  // EACH PHRASE BELONGS TO A DIFFERENT LINE OF THAT MESSAGE. A harness reported them SILENT:
+  // deleting any one left the suite green, because the assertion above is satisfied by the line
+  // that survives. A refusal's reason is the only thing a reader can act on, so it is asserted
+  // in the pieces it is actually written in.
+  ok('and it says it will not guess, which is the part that stops this being a silent fallback',
+    /deliberately NOT/.test(nameless.out))
+  ok('and it names the peer session as the reason, which is why the rule exists at all',
+    /peer session working in the same repository/.test(nameless.out))
+  ok('and it says CANNOT TELL exactly ONCE, so the refusal returns rather than falling through',
+    (nameless.out.match(/CANNOT TELL/g) || []).length === 1)
+  const gone = at(w, [], 'a-session-that-is-not-here')
+  ok('a session id naming no transcript here is CANNOT TELL too, not the nearest file',
+    gone.code === 3)
+  ok('and it says no verdict is offered, rather than implying it looked and found nothing',
+    /no verdict is offered/.test(gone.out))
   const all = at(w, ['--all'])
-  ok('and --all reads every session rather than only the newest', all.code === 1)
+  ok('and --all still reads every session rather than only one', all.code === 1)
+}
+
+{
+  const w = world()
+  transcriptDir(w)
+  session(w, 's1.jsonl', [reply('- clean')])
+  session(w, 's1-and-more.jsonl', [reply(asProse)])
+  const exact = at(w, [], 's1')
+  ok('a session id matches the WHOLE basename and not a prefix of a longer one', exact.code === 0)
+  const longer = at(w, [], 's1-and-more')
+  ok('and the longer name still selects itself, so this is exactness and not an ordering',
+    longer.code === 1)
 }
 
 // --- cannot tell, which must never refuse ------------------------------------------------
@@ -298,14 +412,14 @@ const asBullets = BODY.map((wd, i) => (i % 8 === 0 ? '\n- ' + wd : wd)).join(' '
 {
   const w = world()
   session(w, 's1.jsonl', [reply(asProse)])
-  const env = Object.assign({}, process.env, { USERPROFILE: w.home, HOME: w.home })
+  const env = Object.assign(baseEnv(), { USERPROFILE: w.home, HOME: w.home })
   const r = run(['--root', w.root], env)
   ok('THE PRODUCTION PATH: --home omitted falls back to the home directory and still refuses', r.code === 1)
 }
 {
   const w = world()
   session(w, 's1.jsonl', [reply(asProse)])
-  const env = Object.assign({}, process.env, { __cwd: w.root })
+  const env = Object.assign(baseEnv(), { __cwd: w.root })
   const r = run(['--home', w.home], env)
   ok('--root omitted falls back to the working directory and still refuses', r.code === 1)
 }
@@ -413,7 +527,7 @@ const asBullets = BODY.map((wd, i) => (i % 8 === 0 ? '\n- ' + wd : wd)).join(' '
 {
   const w = world()
   const dir = transcriptDir(w)
-  const link = path.join(dir, 'gone.jsonl')
+  const link = path.join(dir, 's1.jsonl')
   let made = false
   const target = path.join(w.dir, 'no-such-target')
   try { fs.symlinkSync(target, link, 'junction'); made = true } catch (e) { /* fall through */ }
@@ -421,17 +535,79 @@ const asBullets = BODY.map((wd, i) => (i % 8 === 0 ? '\n- ' + wd : wd)).join(' '
   ok('a dangling transcript entry can be produced on this machine, by junction or by symlink', made)
   const r = at(w, [])
   ok('and a directory where every entry is dangling is CANNOT TELL, never a refusal', r.code === 3)
-  ok('and it says no session could be measured, not that the directory was missing',
-    /no session in the transcript directory could be measured/.test(r.out))
+  ok('and it names the session it could not read, rather than reporting a missing directory',
+    /s1\.jsonl: the session could not be read/.test(r.out))
 }
 
 {
   const w = world()
   session(w, 's1.jsonl', [reply('- clean')])
+  // In process, so it reads THIS suite's environment and the stripping done for children does
+  // not apply. The real id is put back afterwards whatever happens, because every case below
+  // runs in the same process and would otherwise be measured against a fixture name.
+  const realId = process.env.CLAUDE_CODE_SESSION_ID
+  process.env.CLAUDE_CODE_SESSION_ID = 's1'
   let returned = null
   try { returned = main(['--root', w.root, '--home', w.home, '--quiet']) } catch (e) { returned = 'threw: ' + e.message }
+  finally {
+    if (realId === undefined) delete process.env.CLAUDE_CODE_SESSION_ID
+    else process.env.CLAUDE_CODE_SESSION_ID = realId
+  }
   ok('main RETURNS zero to a caller, which is what makes its final return testable at all',
     returned === 0)
+}
+
+// --- the recent window, ST-219 d1 ---------------------------------------------------------------
+// A slip cannot be unsent, so under the absolute rule one em-dash in the first minute condemned
+// every reply after it and blocked four of the last five releases. The release now judges the
+// last N replies while the wind-down keeps counting every one. Both halves are asserted here,
+// because a window that quietly stopped REPORTING the slip would be the worse of the two defects.
+const DASH = '—'
+function dashSession (w, name, before, after) {
+  const lines = []
+  for (let i = 0; i < before; i++) lines.push(reply('- a slip ' + DASH + ' here'))
+  for (let i = 0; i < after; i++) lines.push(reply('- clean line'))
+  return session(w, name, lines)
+}
+{
+  const w = world()
+  dashSession(w, 's1.jsonl', 1, 5)
+  const abs = run(['--root', w.root, '--home', w.home, '--quiet'])
+  ok('with no window the slip still refuses, so the default is unchanged', abs.code === 1)
+
+  const win = run(['--root', w.root, '--home', w.home, '--recent', '3'])
+  ok('a session that stopped is judged on its recent replies and passes', win.code === 0)
+  // THE HALF THAT KEEPS THIS HONEST. If a windowed pass ever prints the spotless wording, a
+  // recovered session and a session that never slipped read identically in the one line most
+  // readers see, and the record is gone from the only place it was visible.
+  ok('and the pass says the session slipped earlier rather than claiming it never did',
+    /Earlier in this session: 1 em-dash/.test(win.out))
+  ok('and the whole-session count is still printed above the window',
+    /1 em-dash\(es\) across 1 repl\(ies\), outside fenced blocks/.test(win.out))
+  ok('and it names the window it actually judged', /JUDGED ON THE LAST 3 repl\(ies\) of 6/.test(win.out))
+}
+{
+  // A window WIDER than the session cannot age anything out, which is what stops --recent being
+  // a way of switching the check off on a short session.
+  const w = world()
+  dashSession(w, 's1.jsonl', 1, 2)
+  ok('a window wider than the session still refuses, because nothing has aged out',
+    run(['--root', w.root, '--home', w.home, '--recent', '50', '--quiet']).code === 1)
+  // And the slip must still be INSIDE a window that reaches it.
+  ok('a slip inside the window still refuses',
+    run(['--root', w.root, '--home', w.home, '--recent', '3', '--quiet']).code === 1)
+}
+{
+  const w = world()
+  session(w, 's1.jsonl', [reply('- clean')])
+  ok('a window of zero is a usage error, not a way of switching the check off while it prints',
+    run(['--root', w.root, '--home', w.home, '--recent', '0']).code === 2)
+  ok('a window with no number after it is a usage error',
+    run(['--root', w.root, '--home', w.home, '--recent', '--quiet']).code === 2)
+  // Replies from different sessions have no order between them, so "the last twenty" would be
+  // twenty replies chosen by an alphabet. Refused rather than approximated.
+  ok('a window across every session is a usage error, because those replies have no order',
+    run(['--root', w.root, '--home', w.home, '--recent', '5', '--all']).code === 2)
 }
 
 for (const d of junk) { try { fs.rmSync(d, { recursive: true, force: true }) } catch (e) { /* a temp dir */ } }

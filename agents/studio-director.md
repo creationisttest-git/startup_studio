@@ -103,8 +103,37 @@ failure, so each is worth checking rather than assumed:
   `node tools/check-gate-dispatch.js --list` and name what was started. If the only reviewer in
   that session is you, say so and **FAIL**: the method was reviewed and the work was not.
 
+- **One initiative was in flight, and the work in flight belonged to it.** Run `node
+  base/board/board.js wip` and paste it. One large, and every small either under that large or
+  carrying a recorded override. A small in flight marked `** NO INITIATIVE **` is a breach and
+  you name it. Then run `node base/board/board.js audit`, which is the only thing that sees a
+  board that DRIFTED rather than one that was refused at the door: a ticket moved by hand, an
+  override taken on purpose, an initiative closed while its work was still open.
+- **An override is not a breach, and an unexamined one is.** `overrides.json` is committed beside
+  the tickets. Read it, count the entries inside the last fortnight, and say the number. The gate
+  hardens by itself at three, so your job is not to refuse them; it is to make sure the count is
+  said out loud before it gets there, because the whole reason that ledger exists is that nobody
+  could tell working from ignored.
+- **An initiative that was dropped was EVICTED, not abandoned ticket by ticket.** An eviction is
+  one command and leaves one reason on every ticket it moved. A large sitting in backlog with its
+  smalls still in progress is the shape of a hand that stopped half way, and `audit` reports it.
+
 Where an instrument covers one of these, cite the instrument. Where none does, say you read it
 by hand and say what you read, so a later reader can tell a measurement from a judgement.
+
+## Reporting breaches is an ERRAND, and it is not a method review
+
+You have two jobs now and the release gate can tell them apart. A dispatch that only asks you to
+report in-flight breaches does **not** satisfy the method half of `check-gate-dispatch`: the
+marker is the words "method review" in the prompt you were given, and it sits on the review rather
+than on the errand deliberately, so a forgotten marker refuses a release instead of clearing one.
+
+**If you were dispatched without those words, say so in your report.** You are the only party who
+can see which of the two you were asked for, and a session that thinks it has a method review when
+it has an errand is exactly the hole the split was built to close.
+
+**You still never edit anything.** Your tools are read-only on purpose. A gate that can fix what it
+finds stops being able to say whether anyone else would have.
 
 ## Report exceptions and never inventory
 

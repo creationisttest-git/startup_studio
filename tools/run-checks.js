@@ -71,7 +71,9 @@ const path = require('path')
 const crypto = require('crypto')
 const { spawnSync } = require('child_process')
 
-const SETS = ['session-start', 'wind-down', 'release']
+// 'deep' is the set nothing gates on. A check lives here when it has earned its keep as a
+// diagnostic but has not earned a place in the path between writing code and testing it.
+const SETS = ['session-start', 'wind-down', 'release', 'deep']
 const LEDGER_VERSION = 1
 const WALK_CAP = 20000
 
@@ -182,14 +184,19 @@ function definitions (root) {
     },
     {
       name: 'board-doctor',
-      sets: ['session-start', 'release'],
+      // Out of session-start: it exits 1 in a tree that has never run init, so a fresh clone of
+      // the published export reported it red before the reader touched anything.
+      sets: ['release'],
       where: ['base/board/board.js', 'board/board.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, 'doctor'] }),
       about: 'no ticket file is corrupt, duplicated or disagreeing with its own name'
     },
     {
       name: 'comment-shape',
-      sets: ['session-start', 'release'],
+      // Refused ONCE across 79 committed ledger versions, and that refusal was this repository
+      // raising its own baseline with its own new comments. It polices comments about tickets,
+      // which no reader of the published tool ever reads, and it sat in front of every release.
+      sets: ['deep'],
       where: ['tools/check-comment-shape.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
       about: 'no comment in published code speaks to the session that wrote it'
@@ -202,8 +209,20 @@ function definitions (root) {
       about: 'every published page states the number of roles the roster actually holds'
     },
     {
-      name: 'hook-wiring',
+      name: 'published-counts',
       sets: ['session-start', 'release'],
+      where: ['tools/check-published-counts.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
+      // Exit 3 is a tree holding neither board.js nor reference.html, which is not a studio
+      // install at all. Without this the check is red for good on a layout it has no standing to
+      // refuse on, which is the lockout this repository has now shipped three times (S133, S151).
+      advisory: [3],
+      about: 'the in-flight ceiling and the glossary size on the published pages are the numbers those things actually are'
+    },
+    {
+      name: 'hook-wiring',
+      // Never refused across 76 committed ledger versions.
+      sets: ['deep'],
       where: ['tools/check-hook-registration.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, '--quiet'] }),
       advisory: [3],
@@ -215,13 +234,19 @@ function definitions (root) {
       where: ['tools/check-gate-dispatch.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
       // Exit 3 is no readable transcript, which a legitimate install can never clear. Exit 1 is a
-      // transcript read and holding no reviewer, which is a finding and refuses. Keep them apart.
-      advisory: [3],
+      // transcript read and holding no PRODUCT reviewer, which is a finding and refuses.
+      // Exit 4 is a transcript holding a product reviewer but no method review. That is now
+      // advisory by the founder's instruction: the method gate reports, it does not block a
+      // release. Its findings reach a ticket instead. Keep all three apart.
+      advisory: [3, 4],
       about: 'a review agent was started in the session that is about to release'
     },
     {
       name: 'mutation-coverage',
-      sets: ['release'],
+      // Thirty minutes per run, in the path between a built change and a testable one. Its
+      // findings are real but they are never urgent: the two open at the time of this change
+      // were fragments of a diagnostic message. A slow check belongs on a schedule, not a gate.
+      sets: ['deep'],
       where: ['tools/check-mutation-coverage.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
       // Minutes, not milliseconds: one full suite run per line. Hence release and not session start.
@@ -229,7 +254,8 @@ function definitions (root) {
     },
     {
       name: 'decision-keys',
-      sets: ['session-start'],
+      // Never refused across 58 committed ledger versions.
+      sets: ['deep'],
       where: ['tools/check-decision-keys.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
       advisory: [3],
@@ -251,7 +277,9 @@ function definitions (root) {
     },
     {
       name: 'doc-shape',
-      sets: ['session-start'],
+      // Polices the shape of state documents. Every refusal it has recorded was this project
+      // failing to keep its own paperwork small, which is a symptom rather than a control.
+      sets: ['deep'],
       where: ['tools/check-document-shape.js'],
       // Run on the directory HOLDING this one, the same reach argument governance-core makes:
       // a document with no shape is a property of the other projects, and this repository is the
@@ -274,14 +302,48 @@ function definitions (root) {
     },
     {
       name: 'releases-page',
-      sets: ['release'],
+      // SESSION-START AS WELL AS RELEASE, AND THE RELEASE SET ALONE IS WHAT MADE IT WORSE THAN
+      // USELESS. Every wind-down writes a release note into the changelog and does not rebuild the
+      // page, so the page goes stale at the exact commit that makes it stale, and the only set that
+      // would notice does not run again until somebody publishes. It has already cost a run: the
+      // page was found drifted at HEAD, confirmed by running the suite against a clean archive of
+      // HEAD rather than assumed, and that failure took the whole PowerShell run down with it.
+      // The check compares two files already in the tree, wants no network and no git, and costs
+      // about fifty milliseconds, so nothing was being bought by leaving it out.
+      sets: ['release', 'session-start'],
       where: ['tools/build-releases.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, '--check'] }),
+      // Exit 3 is a tree with no page or no dated changelog to hold it to, which is the ordinary
+      // state of someone running the method without publishing the website. Every neighbouring
+      // check carries the same escape for the same reason, and this one did not until it was
+      // moved into the set a reader runs first.
+      advisory: [3],
       about: 'the published releases page matches the changelog it is generated from'
     },
     {
+      name: 'changelog-leak',
+      // WIND-DOWN, AND DELIBERATELY NOT THE WHOLE SCAN AND NOT EVERY SET. The authoritative leak
+      // scan reads the entire publish manifest, lives in the PowerShell suite and at the publish,
+      // and stays exactly where it is. What moves here is one file, because the schedule is the
+      // defect: a changelog entry is WRITTEN at the wind-down by the session most likely to be
+      // quoting another project by name, and nothing read it until somebody ran a five-minute
+      // suite or attempted a publish. That window is a whole sitting and it has now closed on a
+      // real name three times. ST-208 is the warning against the wider fix: moving a slow, broadly
+      // scoped check into the set every reader runs is how a lockout ships.
+      sets: ['wind-down', 'release'],
+      where: ['tools/check-changelog-leak.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs, '--root', root] }),
+      // Exit 3 is the ordinary reader: the rules live in studio.config.ps1, which is the private
+      // half of the publisher and is absent from the publish manifest on purpose, so a copy of the
+      // export has no rules to apply. It says it cannot tell rather than reporting clean over an
+      // empty list, and it never refuses for want of a file it was never given.
+      advisory: [3],
+      about: 'CHANGELOG.md names no private project, checked when the entry is written rather than at the publish'
+    },
+    {
       name: 'resume-pointer',
-      sets: ['wind-down'],
+      // Never refused across 69 committed ledger versions.
+      sets: ['deep'],
       where: [warm],
       needs: ['tools/check-resume-pointer.js'],
       build: (f, t) => ({ exe: process.execPath, args: [t.abs, f.abs, '--quiet'] }),
@@ -289,7 +351,8 @@ function definitions (root) {
     },
     {
       name: 'session-brief',
-      sets: ['wind-down'],
+      // Never refused across 69 committed ledger versions.
+      sets: ['deep'],
       where: [warm],
       needs: ['tools/check-session-brief.js'],
       build: (f, t) => ({ exe: process.execPath, args: [t.abs, f.abs, '--quiet'] }),
@@ -298,7 +361,14 @@ function definitions (root) {
     },
     {
       name: 'reply-shape',
-      sets: ['wind-down', 'release'],
+      // ST-219 d1 SPLIT THIS IN TWO, AND THE TWO ROWS ARE THE WHOLE POINT. This one keeps the
+      // ABSOLUTE count and stays in the wind-down, where the number is READ into the compliance
+      // table: a slip a session recovered from still happened and the record must not lose it.
+      // The release runs `reply-shape-recent` below instead. They are separate NAMES rather than
+      // one name with different arguments, because the gate keys the ledger on the name, so a
+      // windowed pass would otherwise overwrite the absolute row and the record would be gone
+      // through the very change meant to preserve it.
+      sets: ['wind-down'],
       // ANCHORED ON THE TOOL, NOT ON CLAUDE.md, BECAUSE CLAUDE.md DOES NOT PUBLISH. This check
       // reads the session TRANSCRIPTS and nothing in the repository, so CLAUDE.md was never the
       // artefact it is about; it was a stand-in, and it is not in PUBLIC_MANIFEST, so on every
@@ -309,6 +379,31 @@ function definitions (root) {
       build: (f, t) => ({ exe: process.execPath, args: [t.abs, '--root', root, '--quiet'] }),
       advisory: [3],
       about: 'the replies this session actually sent are point form and lead with the answer'
+    },
+    {
+      name: 'reply-shape-recent',
+      // Refused a release over a single banned character in the session own replies, and by
+      // this project record it blocked four of the last five releases. Nothing a customer
+      // reads was ever at stake. The absolute count stays recorded at the wind-down.
+      sets: ['deep'],
+      // WHY THE RELEASE ASKS A NARROWER QUESTION THAN THE WIND-DOWN. This check reads a
+      // transcript, and a sent reply cannot be unsent, so under the absolute rule one slip in the
+      // first minute condemned every reply after it however clean. That blocked FOUR of the last
+      // five releases. Measured before this was built: across 50 stored sittings, 43 of 50 would
+      // still have breached inside their first five replies, so moving the release to the front
+      // of a sitting was worth two sittings in fifty and was NOT built. What the numbers did
+      // support is that a session which STOPS can recover: the eleventh sitting held 45
+      // consecutive clean replies after its slip and still could not publish.
+      //
+      // TWENTY IS THE NUMBER AND IT IS A JUDGEMENT, NOT A DERIVATION. Long enough that a session
+      // cannot slip and immediately publish, short enough to be reachable in one sitting; the
+      // median sitting here writes 55 replies. Said plainly rather than dressed up as a finding.
+      // The wind-down row above still counts every slip, so nothing is hidden by this passing.
+      where: ['tools/check-reply-shape.js'],
+      needs: ['tools/check-reply-shape.js'],
+      build: (f, t) => ({ exe: process.execPath, args: [t.abs, '--root', root, '--recent', '20', '--quiet'] }),
+      advisory: [3],
+      about: 'the session has stopped breaching reply shape, judged on its last twenty replies'
     },
     {
       name: 'context-budget',
@@ -327,7 +422,9 @@ function definitions (root) {
     },
     {
       name: 'health-report',
-      sets: ['session-start', 'release'],
+      // Never refused across 79 committed ledger versions, and it cannot: it always exits zero.
+      // It was 3,351ms of the 4,065ms the session-start set took, for a row no gate can read.
+      sets: ['deep'],
       where: ['studio.ps1'],
       build: f => ({ exe: 'powershell', args: ['-NoProfile', '-File', f.abs, '-Doctor'], env: { STUDIO_SAFE: '1' } }),
       // Measured: it exits 0 on a tree with drift and on a tree without, so the code carries
@@ -465,7 +562,7 @@ function doRun (root, file, setName, quiet) {
       : r.status === 'unproved' ? r.why
         : r.status === 'advisory' ? r.why
           : 'exit ' + r.exit + ', ' + r.ms + 'ms'
-    say(quiet, '  ' + r.status.toUpperCase().padEnd(9) + def.name.padEnd(16) + detail)
+    say(quiet, '  ' + r.status.toUpperCase().padEnd(9) + def.name.padEnd(17) + detail)
   }
 
   // The tree is re-read after the run. Anything written while an instrument was reading it
@@ -579,7 +676,7 @@ function doShow (root, file) {
   for (const n of names) {
     const r = led.data.checks[n]
     const fresh = r.tree === now ? '' : '  STALE'
-    process.stdout.write('  ' + String(r.status).toUpperCase().padEnd(9) + n.padEnd(16) +
+    process.stdout.write('  ' + String(r.status).toUpperCase().padEnd(9) + n.padEnd(17) +
       (r.at || '') + '  ' + (r.ms || 0) + 'ms' + fresh + '\n')
   }
   process.stdout.write('\n')
@@ -595,6 +692,22 @@ function main (argv) {
   const quiet = has(argv, 'quiet')
 
   if (has(argv, 'show')) return doShow(root, file)
+
+  // A FLAG WITH NO VALUE USED TO CHOOSE THE DEFAULT SILENTLY, AND FOR --gate THAT MEANT RUNNING.
+  // flagOf returns its fallback when the flag is last on the line, so `--gate` alone read as no
+  // gate at all: the program fell through, RAN the session-start set, OVERWROTE the ledger it was
+  // being asked to read back, and returned 0. Someone gating a release got a green zero from a run
+  // that gated nothing, and the ledger row proving the old state was gone. `--set` alone is the
+  // same shape one command over: you name a set, get a different one, and nothing says so.
+  // Present-but-empty is a usage error. It is never a default, because the default is what the
+  // reader was trying not to get by typing the flag.
+  for (const name of ['gate', 'set']) {
+    if (has(argv, name) && flagOf(argv, name, null) === null) {
+      process.stderr.write('run-checks: --' + name + ' needs a value: ' +
+        SETS.concat(name === 'gate' ? ['all'] : []).join(', ') + '\n')
+      return 2
+    }
+  }
 
   const gate = flagOf(argv, 'gate', null)
   if (gate !== null) {

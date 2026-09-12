@@ -383,7 +383,7 @@ and `unknown` is a gap.
 | UAT without test notes | the board's own history |
 | Done without a measure | the measure field on the ticket |
 | Loose ends | anything the CEO raised this session that did not become a ticket or a backlog row |
-| In-flight ceiling | count of large items In Progress. Two large and three small is the ceiling |
+| In-flight ceiling | count of large items In Progress. One large and three small is the ceiling, and every small in flight belongs to that large |
 | State is durable | **measured, not judged.** The commit hash from `git show --stat`, or the count of lines `git status --short` still reports uncommitted |
 
 Record each as `ok`, `n/a`, or a gap with an **owner and a review date**.

@@ -1,6 +1,6 @@
 {
   "what": "Per published code file: named comment lines, counted comment ratio and control lines, as tools/check-comment-shape.js defines them. Written only by that tool. The check refuses when any value differs from this record: the wrong way outright, the right way until this record is rewritten, so the record is never slack.",
-  "written": "2026-09-10",
+  "written": "2026-09-12",
   "new_file_cap": 5,
   "overrides": [
     {
@@ -994,26 +994,738 @@
       "from": 15.6,
       "to": 19.8,
       "reason": "ST-195. Four files gained control comments because both release gates failed and every finding had to be recorded where the next reader of the code will see it rather than only on the ticket. build-releases.js: why gathering EVERY value block is load bearing, with the measured loss, 144 published list items against 168 in the changelog, and why --check could not see it. check-document-shape.js: why every generic filename was removed from the scoping list, with the reader measurement that proved the lockout, and why the transitive walk and the scoping fix are the same fix rather than two. Both test files: why the out-of-scope fixture must IMPORT something generically named, since the version that imported nothing made the scoping branch unreachable and certified the lockout as safe. Each of these is a defect that shipped once and would read as an arbitrary rule without its cause attached."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 2,
+      "to": 4,
+      "reason": "ST-197. Two files rose and both are the same change. studio.ps1: the brief moves from the warning-coloured systemMessage to the neutral additionalContext channel, and the comment records WHY ST-193 reasoned itself into the wrong fix, that its premise 'systemMessage is the ONLY founder-facing channel a SessionStart hook has' was false with the counterexample 800 lines up the same file in Invoke-Recall. Without that the next session reads a plain channel switch and reinstates the disclaimer. It also records the empty-string defect this change created and caught by running the hook, where a joined value of empty string emitted systemMessage of empty string, and an empty warning-coloured line is still a warning-coloured line. tools/check-session-brief.js: one named line stating that the 25-line cap deliberately still spans BOTH channels, because dropping the brief out of the worst-case sum would have turned a cap ruled on how much a founder READS into a check that cannot fail."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 29.6,
+      "to": 30.3,
+      "reason": "ST-197. Two files rose and both are the same change. studio.ps1: the brief moves from the warning-coloured systemMessage to the neutral additionalContext channel, and the comment records WHY ST-193 reasoned itself into the wrong fix, that its premise 'systemMessage is the ONLY founder-facing channel a SessionStart hook has' was false with the counterexample 800 lines up the same file in Invoke-Recall. Without that the next session reads a plain channel switch and reinstates the disclaimer. It also records the empty-string defect this change created and caught by running the hook, where a joined value of empty string emitted systemMessage of empty string, and an empty warning-coloured line is still a warning-coloured line. tools/check-session-brief.js: one named line stating that the 25-line cap deliberately still spans BOTH channels, because dropping the brief out of the worst-case sum would have turned a cap ruled on how much a founder READS into a check that cannot fail."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-session-brief.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "ST-197. Two files rose and both are the same change. studio.ps1: the brief moves from the warning-coloured systemMessage to the neutral additionalContext channel, and the comment records WHY ST-193 reasoned itself into the wrong fix, that its premise 'systemMessage is the ONLY founder-facing channel a SessionStart hook has' was false with the counterexample 800 lines up the same file in Invoke-Recall. Without that the next session reads a plain channel switch and reinstates the disclaimer. It also records the empty-string defect this change created and caught by running the hook, where a joined value of empty string emitted systemMessage of empty string, and an empty warning-coloured line is still a warning-coloured line. tools/check-session-brief.js: one named line stating that the 25-line cap deliberately still spans BOTH channels, because dropping the brief out of the worst-case sum would have turned a cap ruled on how much a founder READS into a check that cannot fail."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-session-brief.js",
+      "field": "ratio",
+      "from": 25.1,
+      "to": 26.6,
+      "reason": "ST-197. Two files rose and both are the same change. studio.ps1: the brief moves from the warning-coloured systemMessage to the neutral additionalContext channel, and the comment records WHY ST-193 reasoned itself into the wrong fix, that its premise 'systemMessage is the ONLY founder-facing channel a SessionStart hook has' was false with the counterexample 800 lines up the same file in Invoke-Recall. Without that the next session reads a plain channel switch and reinstates the disclaimer. It also records the empty-string defect this change created and caught by running the hook, where a joined value of empty string emitted systemMessage of empty string, and an empty warning-coloured line is still a warning-coloured line. tools/check-session-brief.js: one named line stating that the 25-line cap deliberately still spans BOTH channels, because dropping the brief out of the worst-case sum would have turned a cap ruled on how much a founder READS into a check that cannot fail."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-published-counts.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 6.2,
+      "reason": "Two new instruments landed and one existing one gained a threshold. check-published-counts.js and its suite are new files whose headers carry the reason a hand-kept published number needs an owner at all, plus the two directions the check refuses in and why a tree holding neither source of truth is advisory rather than a lockout; both open above the five per cent cap that applies to a file with no record yet. session-budget.js rose because its threshold moved from call count to weighted spend and the three measured per-call figures that justify the number are written beside it. session-budget.test.js rose because four blocks were restated rather than deleted when the behaviour they pinned was removed, and each carries the mutation that reddens it. run-checks.js gained one control line, the advisory-exit-3 note on the new check."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-published-counts.test.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 9,
+      "reason": "Two new instruments landed and one existing one gained a threshold. check-published-counts.js and its suite are new files whose headers carry the reason a hand-kept published number needs an owner at all, plus the two directions the check refuses in and why a tree holding neither source of truth is advisory rather than a lockout; both open above the five per cent cap that applies to a file with no record yet. session-budget.js rose because its threshold moved from call count to weighted spend and the three measured per-call figures that justify the number are written beside it. session-budget.test.js rose because four blocks were restated rather than deleted when the behaviour they pinned was removed, and each carries the mutation that reddens it. run-checks.js gained one control line, the advisory-exit-3 note on the new check."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 12,
+      "to": 12.2,
+      "reason": "Two new instruments landed and one existing one gained a threshold. check-published-counts.js and its suite are new files whose headers carry the reason a hand-kept published number needs an owner at all, plus the two directions the check refuses in and why a tree holding neither source of truth is advisory rather than a lockout; both open above the five per cent cap that applies to a file with no record yet. session-budget.js rose because its threshold moved from call count to weighted spend and the three measured per-call figures that justify the number are written beside it. session-budget.test.js rose because four blocks were restated rather than deleted when the behaviour they pinned was removed, and each carries the mutation that reddens it. run-checks.js gained one control line, the advisory-exit-3 note on the new check."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/session-budget.js",
+      "field": "ratio",
+      "from": 14.8,
+      "to": 23.5,
+      "reason": "Two new instruments landed and one existing one gained a threshold. check-published-counts.js and its suite are new files whose headers carry the reason a hand-kept published number needs an owner at all, plus the two directions the check refuses in and why a tree holding neither source of truth is advisory rather than a lockout; both open above the five per cent cap that applies to a file with no record yet. session-budget.js rose because its threshold moved from call count to weighted spend and the three measured per-call figures that justify the number are written beside it. session-budget.test.js rose because four blocks were restated rather than deleted when the behaviour they pinned was removed, and each carries the mutation that reddens it. run-checks.js gained one control line, the advisory-exit-3 note on the new check."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/session-budget.test.js",
+      "field": "ratio",
+      "from": 10.1,
+      "to": 17.5,
+      "reason": "Two new instruments landed and one existing one gained a threshold. check-published-counts.js and its suite are new files whose headers carry the reason a hand-kept published number needs an owner at all, plus the two directions the check refuses in and why a tree holding neither source of truth is advisory rather than a lockout; both open above the five per cent cap that applies to a file with no record yet. session-budget.js rose because its threshold moved from call count to weighted spend and the three measured per-call figures that justify the number are written beside it. session-budget.test.js rose because four blocks were restated rather than deleted when the behaviour they pinned was removed, and each carries the mutation that reddens it. run-checks.js gained one control line, the advisory-exit-3 note on the new check."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "board/board.js",
+      "field": "ratio",
+      "from": 25.8,
+      "to": 28.9,
+      "reason": "ST-196: the initiative relation, its six refusals and atomic eviction each carry the defect they exist for, and the eviction journal needs its ordering argued where a reader will meet it"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "ratio",
+      "from": 2.5,
+      "to": 10.3,
+      "reason": "ST-196: the initiative relation, its six refusals and atomic eviction each carry the defect they exist for, and the eviction journal needs its ordering argued where a reader will meet it"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 5.4,
+      "to": 6.8,
+      "reason": "ST-196: the initiative relation, its six refusals and atomic eviction each carry the defect they exist for, and the eviction journal needs its ordering argued where a reader will meet it"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "board/board.js",
+      "field": "ratio",
+      "from": 28.9,
+      "to": 30.7,
+      "reason": "The four files that gained the initiative relation and the gate split: board.js and its suite carry the six refusals and the eviction journal, whose ORDERING has to be argued where a reader meets it because a mutation proved the naive version returned delta zero; check-gate-dispatch.js and its suite carry why the marker sits on the review rather than the errand, which is the direction that fails safely. One reason for four files because it is the same change, and a reason true of only one of them would be the box-ticked reason the override ledger warns about"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "ratio",
+      "from": 10.3,
+      "to": 14.6,
+      "reason": "The four files that gained the initiative relation and the gate split: board.js and its suite carry the six refusals and the eviction journal, whose ORDERING has to be argued where a reader meets it because a mutation proved the naive version returned delta zero; check-gate-dispatch.js and its suite carry why the marker sits on the review rather than the errand, which is the direction that fails safely. One reason for four files because it is the same change, and a reason true of only one of them would be the box-ticked reason the override ledger warns about"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 6.8,
+      "to": 7.7,
+      "reason": "The four files that gained the initiative relation and the gate split: board.js and its suite carry the six refusals and the eviction journal, whose ORDERING has to be argued where a reader meets it because a mutation proved the naive version returned delta zero; check-gate-dispatch.js and its suite carry why the marker sits on the review rather than the errand, which is the direction that fails safely. One reason for four files because it is the same change, and a reason true of only one of them would be the box-ticked reason the override ledger warns about"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-session-brief.js",
+      "field": "ratio",
+      "from": 26.6,
+      "to": 29,
+      "reason": "Two instruments disagreed about the founder brief in different units and hard-blocked every release. The refusal in check-session-brief.js carries why the limit is borrowed rather than redeclared, its tests carry why the same content in bullets must pass, and run-checks.js carries why the page check was worse than useless in the release set alone. All three are the reason a reader would otherwise delete the rule as noise."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-session-brief.test.js",
+      "field": "ratio",
+      "from": 18.8,
+      "to": 19.2,
+      "reason": "Two instruments disagreed about the founder brief in different units and hard-blocked every release. The refusal in check-session-brief.js carries why the limit is borrowed rather than redeclared, its tests carry why the same content in bullets must pass, and run-checks.js carries why the page check was worse than useless in the release set alone. All three are the reason a reader would otherwise delete the rule as noise."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 12.2,
+      "to": 13.2,
+      "reason": "Two instruments disagreed about the founder brief in different units and hard-blocked every release. The refusal in check-session-brief.js carries why the limit is borrowed rather than redeclared, its tests carry why the same content in bullets must pass, and run-checks.js carries why the page check was worse than useless in the release set alone. All three are the reason a reader would otherwise delete the rule as noise."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/build-releases.js",
+      "field": "ratio",
+      "from": 11.2,
+      "to": 13.5,
+      "reason": "Two review gates found the borrow was half done and the wiring fix was a reader lockout. build-releases.js carries why an absent page is not a stale page and what the exit codes now separate. check-session-brief.js carries why every measure the other instrument refuses on has to be borrowed, not just the one in view. Its tests carry three assertions falsified by mutation and why each was fixed rather than reworded, including one that returned delta zero because the fixture read the same constant it tested. run-checks carries why a field nobody asserted lived wrong for eight sittings."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-session-brief.js",
+      "field": "ratio",
+      "from": 29,
+      "to": 29.9,
+      "reason": "Two review gates found the borrow was half done and the wiring fix was a reader lockout. build-releases.js carries why an absent page is not a stale page and what the exit codes now separate. check-session-brief.js carries why every measure the other instrument refuses on has to be borrowed, not just the one in view. Its tests carry three assertions falsified by mutation and why each was fixed rather than reworded, including one that returned delta zero because the fixture read the same constant it tested. run-checks carries why a field nobody asserted lived wrong for eight sittings."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-session-brief.test.js",
+      "field": "ratio",
+      "from": 19.2,
+      "to": 21.1,
+      "reason": "Two review gates found the borrow was half done and the wiring fix was a reader lockout. build-releases.js carries why an absent page is not a stale page and what the exit codes now separate. check-session-brief.js carries why every measure the other instrument refuses on has to be borrowed, not just the one in view. Its tests carry three assertions falsified by mutation and why each was fixed rather than reworded, including one that returned delta zero because the fixture read the same constant it tested. run-checks carries why a field nobody asserted lived wrong for eight sittings."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 13.2,
+      "to": 13.7,
+      "reason": "Two review gates found the borrow was half done and the wiring fix was a reader lockout. build-releases.js carries why an absent page is not a stale page and what the exit codes now separate. check-session-brief.js carries why every measure the other instrument refuses on has to be borrowed, not just the one in view. Its tests carry three assertions falsified by mutation and why each was fixed rather than reworded, including one that returned delta zero because the fixture read the same constant it tested. run-checks carries why a field nobody asserted lived wrong for eight sittings."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 9.2,
+      "to": 10.4,
+      "reason": "Two review gates found the borrow was half done and the wiring fix was a reader lockout. build-releases.js carries why an absent page is not a stale page and what the exit codes now separate. check-session-brief.js carries why every measure the other instrument refuses on has to be borrowed, not just the one in view. Its tests carry three assertions falsified by mutation and why each was fixed rather than reworded, including one that returned delta zero because the fixture read the same constant it tested. run-checks carries why a field nobody asserted lived wrong for eight sittings."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/build-releases.js",
+      "field": "ratio",
+      "from": 13.5,
+      "to": 16,
+      "reason": "Two reader-facing lockouts fixed. The releases-page check gained a tree-identity scope and a comment saying why a reader's drift and ours are the same bytes; its suite gained six cases built as a reader's tree rather than as flags, because the fault was never true in this repository. The reply-shape strip set gained the hyphen with the corpus measurement written beside it."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/build-releases.test.js",
+      "field": "ratio",
+      "from": 6.9,
+      "to": 10,
+      "reason": "Two reader-facing lockouts fixed. The releases-page check gained a tree-identity scope and a comment saying why a reader's drift and ours are the same bytes; its suite gained six cases built as a reader's tree rather than as flags, because the fault was never true in this repository. The reply-shape strip set gained the hyphen with the corpus measurement written beside it."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-reply-shape.js",
+      "field": "ratio",
+      "from": 3.8,
+      "to": 7,
+      "reason": "Two reader-facing lockouts fixed. The releases-page check gained a tree-identity scope and a comment saying why a reader's drift and ours are the same bytes; its suite gained six cases built as a reader's tree rather than as flags, because the fault was never true in this repository. The reply-shape strip set gained the hyphen with the corpus measurement written beside it."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-reply-shape.test.js",
+      "field": "ratio",
+      "from": 5.7,
+      "to": 6.4,
+      "reason": "Two reader-facing lockouts fixed. The releases-page check gained a tree-identity scope and a comment saying why a reader's drift and ours are the same bytes; its suite gained six cases built as a reader's tree rather than as flags, because the fault was never true in this repository. The reply-shape strip set gained the hyphen with the corpus measurement written beside it."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-session-brief.test.js",
+      "field": "ratio",
+      "from": 21.1,
+      "to": 21.4,
+      "reason": "Two reader-facing lockouts fixed. The releases-page check gained a tree-identity scope and a comment saying why a reader's drift and ours are the same bytes; its suite gained six cases built as a reader's tree rather than as flags, because the fault was never true in this repository. The reply-shape strip set gained the hyphen with the corpus measurement written beside it."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 7.7,
+      "to": 9.6,
+      "reason": "ST-210. The gate-dispatch suite gained a direct block for the marker predicate, whose own type guard was proved by nothing, with a comment saying why the require sits inside the catch: hoisting it turned five module-scope constants from covered into crashed, because a load-time throw kills the suite instead of reddening the assertions. The mutation baseline gained four reasons for explanatory prose lines in one refusal message."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-reply-shape.js",
+      "field": "ratio",
+      "from": 7,
+      "to": 9,
+      "reason": "ST-210. The gate-dispatch suite gained a direct block for the marker predicate, whose own type guard was proved by nothing, with a comment saying why the require sits inside the catch: hoisting it turned five module-scope constants from covered into crashed, because a load-time throw kills the suite instead of reddening the assertions. The mutation baseline gained four reasons for explanatory prose lines in one refusal message."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-reply-shape.test.js",
+      "field": "ratio",
+      "from": 6.4,
+      "to": 8.8,
+      "reason": "ST-210. The gate-dispatch suite gained a direct block for the marker predicate, whose own type guard was proved by nothing, with a comment saying why the require sits inside the catch: hoisting it turned five module-scope constants from covered into crashed, because a load-time throw kills the suite instead of reddening the assertions. The mutation baseline gained four reasons for explanatory prose lines in one refusal message."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-changelog-leak.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 15.7,
+      "reason": "ST-213, ST-215, ST-212 and ST-217: three new instruments and two repaired ones, all of which explain in comments why a rule exists and what it cost, which is the shape this baseline exists to encourage rather than to punish"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-changelog-leak.test.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 19.1,
+      "reason": "ST-213, ST-215, ST-212 and ST-217: three new instruments and two repaired ones, all of which explain in comments why a rule exists and what it cost, which is the shape this baseline exists to encourage rather than to punish"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "ratio",
+      "from": 14.6,
+      "to": 21.4,
+      "reason": "ST-213, ST-215, ST-212 and ST-217: three new instruments and two repaired ones, all of which explain in comments why a rule exists and what it cost, which is the shape this baseline exists to encourage rather than to punish"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 9.6,
+      "to": 11.7,
+      "reason": "ST-213, ST-215, ST-212 and ST-217: three new instruments and two repaired ones, all of which explain in comments why a rule exists and what it cost, which is the shape this baseline exists to encourage rather than to punish"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-reply-shape.test.js",
+      "field": "ratio",
+      "from": 8.8,
+      "to": 9.9,
+      "reason": "ST-213, ST-215, ST-212 and ST-217: three new instruments and two repaired ones, all of which explain in comments why a rule exists and what it cost, which is the shape this baseline exists to encourage rather than to punish"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-session-brief.js",
+      "field": "ratio",
+      "from": 29.9,
+      "to": 30.4,
+      "reason": "ST-213, ST-215, ST-212 and ST-217: three new instruments and two repaired ones, all of which explain in comments why a rule exists and what it cost, which is the shape this baseline exists to encourage rather than to punish"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-session-brief.test.js",
+      "field": "ratio",
+      "from": 21.4,
+      "to": 22,
+      "reason": "ST-213, ST-215, ST-212 and ST-217: three new instruments and two repaired ones, all of which explain in comments why a rule exists and what it cost, which is the shape this baseline exists to encourage rather than to punish"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 13.7,
+      "to": 14.9,
+      "reason": "ST-213, ST-215, ST-212 and ST-217: three new instruments and two repaired ones, all of which explain in comments why a rule exists and what it cost, which is the shape this baseline exists to encourage rather than to punish"
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "ratio",
+      "from": 21.4,
+      "to": 22.6,
+      "reason": "ST-217: the gate findings were repaired and every repair carries the reason it exists, including two that record a defect the author created and a reviewer found. That is the shape this baseline exists to encourage."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 11.7,
+      "to": 12.2,
+      "reason": "ST-217: the gate findings were repaired and every repair carries the reason it exists, including two that record a defect the author created and a reviewer found. That is the shape this baseline exists to encourage."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-measures.js",
+      "field": "named",
+      "from": 0,
+      "to": 3,
+      "reason": "ST-218 and ST-219. Six files rose because both fixes turn on a reason a reader cannot derive from the code. check-measures.js gained the derivation of what counts as the project record and the reason a commit is judged once rather than once per reference, both of which are the fault being fixed. check-reply-shape.js and run-checks.js carry the measurement that killed the ticket's own proposed fix, 43 of 50 sittings would still have breached in their first five replies, and the reason twenty is a judgement rather than a derivation. The two test files carry restatements of assertions that mutation falsified: three keyed on a total that went red under a mutation with nothing to do with their claim. Every one of those is a why, not a what."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-measures.js",
+      "field": "ratio",
+      "from": 3.8,
+      "to": 10.5,
+      "reason": "ST-218 and ST-219. Six files rose because both fixes turn on a reason a reader cannot derive from the code. check-measures.js gained the derivation of what counts as the project record and the reason a commit is judged once rather than once per reference, both of which are the fault being fixed. check-reply-shape.js and run-checks.js carry the measurement that killed the ticket's own proposed fix, 43 of 50 sittings would still have breached in their first five replies, and the reason twenty is a judgement rather than a derivation. The two test files carry restatements of assertions that mutation falsified: three keyed on a total that went red under a mutation with nothing to do with their claim. Every one of those is a why, not a what."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-measures.test.js",
+      "field": "ratio",
+      "from": 4.3,
+      "to": 8.2,
+      "reason": "ST-218 and ST-219. Six files rose because both fixes turn on a reason a reader cannot derive from the code. check-measures.js gained the derivation of what counts as the project record and the reason a commit is judged once rather than once per reference, both of which are the fault being fixed. check-reply-shape.js and run-checks.js carry the measurement that killed the ticket's own proposed fix, 43 of 50 sittings would still have breached in their first five replies, and the reason twenty is a judgement rather than a derivation. The two test files carry restatements of assertions that mutation falsified: three keyed on a total that went red under a mutation with nothing to do with their claim. Every one of those is a why, not a what."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-reply-shape.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "ST-218 and ST-219. Six files rose because both fixes turn on a reason a reader cannot derive from the code. check-measures.js gained the derivation of what counts as the project record and the reason a commit is judged once rather than once per reference, both of which are the fault being fixed. check-reply-shape.js and run-checks.js carry the measurement that killed the ticket's own proposed fix, 43 of 50 sittings would still have breached in their first five replies, and the reason twenty is a judgement rather than a derivation. The two test files carry restatements of assertions that mutation falsified: three keyed on a total that went red under a mutation with nothing to do with their claim. Every one of those is a why, not a what."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-reply-shape.js",
+      "field": "ratio",
+      "from": 8.8,
+      "to": 11.9,
+      "reason": "ST-218 and ST-219. Six files rose because both fixes turn on a reason a reader cannot derive from the code. check-measures.js gained the derivation of what counts as the project record and the reason a commit is judged once rather than once per reference, both of which are the fault being fixed. check-reply-shape.js and run-checks.js carry the measurement that killed the ticket's own proposed fix, 43 of 50 sittings would still have breached in their first five replies, and the reason twenty is a judgement rather than a derivation. The two test files carry restatements of assertions that mutation falsified: three keyed on a total that went red under a mutation with nothing to do with their claim. Every one of those is a why, not a what."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-reply-shape.test.js",
+      "field": "named",
+      "from": 1,
+      "to": 2,
+      "reason": "ST-218 and ST-219. Six files rose because both fixes turn on a reason a reader cannot derive from the code. check-measures.js gained the derivation of what counts as the project record and the reason a commit is judged once rather than once per reference, both of which are the fault being fixed. check-reply-shape.js and run-checks.js carry the measurement that killed the ticket's own proposed fix, 43 of 50 sittings would still have breached in their first five replies, and the reason twenty is a judgement rather than a derivation. The two test files carry restatements of assertions that mutation falsified: three keyed on a total that went red under a mutation with nothing to do with their claim. Every one of those is a why, not a what."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-reply-shape.test.js",
+      "field": "ratio",
+      "from": 9.9,
+      "to": 11.2,
+      "reason": "ST-218 and ST-219. Six files rose because both fixes turn on a reason a reader cannot derive from the code. check-measures.js gained the derivation of what counts as the project record and the reason a commit is judged once rather than once per reference, both of which are the fault being fixed. check-reply-shape.js and run-checks.js carry the measurement that killed the ticket's own proposed fix, 43 of 50 sittings would still have breached in their first five replies, and the reason twenty is a judgement rather than a derivation. The two test files carry restatements of assertions that mutation falsified: three keyed on a total that went red under a mutation with nothing to do with their claim. Every one of those is a why, not a what."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 14.9,
+      "to": 17,
+      "reason": "ST-218 and ST-219. Six files rose because both fixes turn on a reason a reader cannot derive from the code. check-measures.js gained the derivation of what counts as the project record and the reason a commit is judged once rather than once per reference, both of which are the fault being fixed. check-reply-shape.js and run-checks.js carry the measurement that killed the ticket's own proposed fix, 43 of 50 sittings would still have breached in their first five replies, and the reason twenty is a judgement rather than a derivation. The two test files carry restatements of assertions that mutation falsified: three keyed on a total that went red under a mutation with nothing to do with their claim. Every one of those is a why, not a what."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/run-checks.test.js",
+      "field": "named",
+      "from": 1,
+      "to": 2,
+      "reason": "ST-218 and ST-219. Six files rose because both fixes turn on a reason a reader cannot derive from the code. check-measures.js gained the derivation of what counts as the project record and the reason a commit is judged once rather than once per reference, both of which are the fault being fixed. check-reply-shape.js and run-checks.js carry the measurement that killed the ticket's own proposed fix, 43 of 50 sittings would still have breached in their first five replies, and the reason twenty is a judgement rather than a derivation. The two test files carry restatements of assertions that mutation falsified: three keyed on a total that went red under a mutation with nothing to do with their claim. Every one of those is a why, not a what."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 10.4,
+      "to": 11.5,
+      "reason": "ST-218 and ST-219. Six files rose because both fixes turn on a reason a reader cannot derive from the code. check-measures.js gained the derivation of what counts as the project record and the reason a commit is judged once rather than once per reference, both of which are the fault being fixed. check-reply-shape.js and run-checks.js carry the measurement that killed the ticket's own proposed fix, 43 of 50 sittings would still have breached in their first five replies, and the reason twenty is a judgement rather than a derivation. The two test files carry restatements of assertions that mutation falsified: three keyed on a total that went red under a mutation with nothing to do with their claim. Every one of those is a why, not a what."
+    },
+    {
+      "date": "2026-09-10",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 12.2,
+      "to": 13.4,
+      "reason": "ST-217's last item. check-gate-dispatch.test.js rose because four new assertions each carry the reason the line they cover was silent, and in every case the reason is the same shape and is not derivable from the assertion: the identical line on a sibling branch was already covered, so the gap was invisible to anyone reading the file rather than running the coverage tool. The sharpest of the four says why WHICH TRANSCRIPT WAS READ matters most on the branch that actually refuses a release."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "board/board.js",
+      "field": "ratio",
+      "from": 30.7,
+      "to": 31,
+      "reason": "ST-220 and the product gate: three refusals that printed a remedy nobody could perform. The board journal loop, the leak scanner reading half its own rule list, and a gate option with no value running a different set and reporting success. Each fix carries the defect it came from beside it, which is this project's own rule, and the rise is that text in six files."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "board/board.test.js",
+      "field": "ratio",
+      "from": 22.5,
+      "to": 22.8,
+      "reason": "ST-220 and the product gate: three refusals that printed a remedy nobody could perform. The board journal loop, the leak scanner reading half its own rule list, and a gate option with no value running a different set and reporting success. Each fix carries the defect it came from beside it, which is this project's own rule, and the rise is that text in six files."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-changelog-leak.js",
+      "field": "ratio",
+      "from": 15.7,
+      "to": 21.4,
+      "reason": "ST-220 and the product gate: three refusals that printed a remedy nobody could perform. The board journal loop, the leak scanner reading half its own rule list, and a gate option with no value running a different set and reporting success. Each fix carries the defect it came from beside it, which is this project's own rule, and the rise is that text in six files."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-changelog-leak.test.js",
+      "field": "ratio",
+      "from": 19.1,
+      "to": 20.3,
+      "reason": "ST-220 and the product gate: three refusals that printed a remedy nobody could perform. The board journal loop, the leak scanner reading half its own rule list, and a gate option with no value running a different set and reporting success. Each fix carries the defect it came from beside it, which is this project's own rule, and the rise is that text in six files."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 17,
+      "to": 17.7,
+      "reason": "ST-220 and the product gate: three refusals that printed a remedy nobody could perform. The board journal loop, the leak scanner reading half its own rule list, and a gate option with no value running a different set and reporting success. Each fix carries the defect it came from beside it, which is this project's own rule, and the rise is that text in six files."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 11.5,
+      "to": 13.2,
+      "reason": "ST-220 and the product gate: three refusals that printed a remedy nobody could perform. The board journal loop, the leak scanner reading half its own rule list, and a gate option with no value running a different set and reporting success. Each fix carries the defect it came from beside it, which is this project's own rule, and the rise is that text in six files."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/session-budget.js",
+      "field": "ratio",
+      "from": 23.5,
+      "to": 32.9,
+      "reason": "ST-224 and the gate on the six unreviewed commits: the budget guard bricked a session when its state file was lost, and a backstop stop consumed the first spend stop. Both fixes carry the defect they came from beside them, and four fixtures were restated under S134 because they drove a first call carrying 2.6M weighted, which a real session cannot produce."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/session-budget.test.js",
+      "field": "ratio",
+      "from": 17.5,
+      "to": 21.6,
+      "reason": "ST-224 and the gate on the six unreviewed commits: the budget guard bricked a session when its state file was lost, and a backstop stop consumed the first spend stop. Both fixes carry the defect they came from beside them, and four fixtures were restated under S134 because they drove a first call carrying 2.6M weighted, which a real session cannot produce."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/build-releases.js",
+      "field": "ratio",
+      "from": 16,
+      "to": 17.5,
+      "reason": "ST-225: build-releases dropped a whole section and reported the page current, found in a peer session's commit. The guard and its reason, plus an honest restatement of the bound in session-budget.js after the method gate found the comment claimed more than the code delivers."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/build-releases.test.js",
+      "field": "ratio",
+      "from": 10,
+      "to": 11.6,
+      "reason": "ST-225: build-releases dropped a whole section and reported the page current, found in a peer session's commit. The guard and its reason, plus an honest restatement of the bound in session-budget.js after the method gate found the comment claimed more than the code delivers."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/session-budget.js",
+      "field": "ratio",
+      "from": 32.9,
+      "to": 34.7,
+      "reason": "ST-225: build-releases dropped a whole section and reported the page current, found in a peer session's commit. The guard and its reason, plus an honest restatement of the bound in session-budget.js after the method gate found the comment claimed more than the code delivers."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-changelog-leak.js",
+      "field": "ratio",
+      "from": 21.4,
+      "to": 26.1,
+      "reason": "ST-226: the final product gate found three defects in this sitting's own fixes. The budget guard still walled a session when its state file was readable but not writable, the leak scanner still failed clean on comments and double-quoted values, and two assertions passed under the mutation that should have reddened them. Each fix carries the defect it came from beside it, and one inert branch was DELETED rather than documented under S168."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-changelog-leak.test.js",
+      "field": "ratio",
+      "from": 20.3,
+      "to": 20.7,
+      "reason": "ST-226: the final product gate found three defects in this sitting's own fixes. The budget guard still walled a session when its state file was readable but not writable, the leak scanner still failed clean on comments and double-quoted values, and two assertions passed under the mutation that should have reddened them. Each fix carries the defect it came from beside it, and one inert branch was DELETED rather than documented under S168."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/session-budget.js",
+      "field": "ratio",
+      "from": 34.7,
+      "to": 36.7,
+      "reason": "ST-226: the final product gate found three defects in this sitting's own fixes. The budget guard still walled a session when its state file was readable but not writable, the leak scanner still failed clean on comments and double-quoted values, and two assertions passed under the mutation that should have reddened them. Each fix carries the defect it came from beside it, and one inert branch was DELETED rather than documented under S168."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/session-budget.test.js",
+      "field": "ratio",
+      "from": 21.6,
+      "to": 23.1,
+      "reason": "ST-226: the final product gate found three defects in this sitting's own fixes. The budget guard still walled a session when its state file was readable but not writable, the leak scanner still failed clean on comments and double-quoted values, and two assertions passed under the mutation that should have reddened them. Each fix carries the defect it came from beside it, and one inert branch was DELETED rather than documented under S168."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-measures.js",
+      "field": "ratio",
+      "from": 10.5,
+      "to": 14,
+      "reason": "ST-227: the front door measure was the only instrument here with no recorded escape, which is S180's shape in the check that gates the release. The waiver mechanism and the three properties that stop it becoming a way to ignore the rule, each stated beside the code that enforces it."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-measures.test.js",
+      "field": "ratio",
+      "from": 8.2,
+      "to": 11.1,
+      "reason": "ST-227: the front door measure was the only instrument here with no recorded escape, which is S180's shape in the check that gates the release. The waiver mechanism and the three properties that stop it becoming a way to ignore the rule, each stated beside the code that enforces it."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-measures.js",
+      "field": "ratio",
+      "from": 14,
+      "to": 16.7,
+      "reason": "ST-228: both gates failed the waiver mechanism from ST-227. A waiver could be granted in advance and in bulk, because the commit field was validated only for truthiness and matched as a prefix in both directions. The hardening and the three defects it closes are stated beside the code."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-measures.test.js",
+      "field": "ratio",
+      "from": 11.1,
+      "to": 14,
+      "reason": "ST-228: both gates failed the waiver mechanism from ST-227. A waiver could be granted in advance and in bulk, because the commit field was validated only for truthiness and matched as a prefix in both directions. The hardening and the three defects it closes are stated beside the code."
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/build-releases.js",
+      "field": "ratio",
+      "from": 17.5,
+      "to": 19.5,
+      "reason": "ST-230: the whose-tree predicate and the reader-lockout branch each carry the measurement and the reader state they exist for"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/build-releases.test.js",
+      "field": "ratio",
+      "from": 11.6,
+      "to": 12.9,
+      "reason": "ST-229: sessionTranscript carries the peer-session evidence and the reason there is no fallback; both test files carry why the real session id is stripped"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "ratio",
+      "from": 22.6,
+      "to": 24.7,
+      "reason": "ST-229: sessionTranscript carries the peer-session evidence and the reason there is no fallback; both test files carry why the real session id is stripped"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "named",
+      "from": 1,
+      "to": 2,
+      "reason": "ST-229: sessionTranscript carries the peer-session evidence and the reason there is no fallback; both test files carry why the real session id is stripped"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 13.4,
+      "to": 14.1,
+      "reason": "ST-229: sessionTranscript carries the peer-session evidence and the reason there is no fallback; both test files carry why the real session id is stripped"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-reply-shape.js",
+      "field": "ratio",
+      "from": 11.9,
+      "to": 12.6,
+      "reason": "ST-229: sessionTranscript carries the peer-session evidence and the reason there is no fallback; both test files carry why the real session id is stripped"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-reply-shape.test.js",
+      "field": "ratio",
+      "from": 11.2,
+      "to": 12.1,
+      "reason": "ST-229: sessionTranscript carries the peer-session evidence and the reason there is no fallback; both test files carry why the real session id is stripped"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/build-releases.js",
+      "field": "ratio",
+      "from": 19.5,
+      "to": 20.7,
+      "reason": "ST-234: publishesThisPage carries why the opt-in is declared rather than deduced, and the new assertions carry which mutation found each silent line"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/build-releases.test.js",
+      "field": "ratio",
+      "from": 12.9,
+      "to": 14,
+      "reason": "ST-234: publishesThisPage carries why the opt-in is declared rather than deduced, and the new assertions carry which mutation found each silent line"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 14.1,
+      "to": 14.3,
+      "reason": "ST-234: publishesThisPage carries why the opt-in is declared rather than deduced, and the new assertions carry which mutation found each silent line"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-reply-shape.js",
+      "field": "ratio",
+      "from": 12.6,
+      "to": 12.7,
+      "reason": "ST-234: publishesThisPage carries why the opt-in is declared rather than deduced, and the new assertions carry which mutation found each silent line"
+    },
+    {
+      "date": "2026-09-11",
+      "file": "tools/check-reply-shape.test.js",
+      "field": "ratio",
+      "from": 12.1,
+      "to": 12.3,
+      "reason": "ST-234: publishesThisPage carries why the opt-in is declared rather than deduced, and the new assertions carry which mutation found each silent line"
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "ratio",
+      "from": 24.7,
+      "to": 25.2,
+      "reason": "ST-237. Six checks moved out of the gating sets and the method half of the gate-dispatch refusal became advisory. Each change carries a comment saying what that check ever caught and why it left, which is this project's own rule that a rule without its defect is a rule the next person deletes as noise. The rise IS that record."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 14.3,
+      "to": 14.6,
+      "reason": "ST-237. Six checks moved out of the gating sets and the method half of the gate-dispatch refusal became advisory. Each change carries a comment saying what that check ever caught and why it left, which is this project's own rule that a rule without its defect is a rule the next person deletes as noise. The rise IS that record."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 17.7,
+      "to": 20.3,
+      "reason": "ST-237. Six checks moved out of the gating sets and the method half of the gate-dispatch refusal became advisory. Each change carries a comment saying what that check ever caught and why it left, which is this project's own rule that a rule without its defect is a rule the next person deletes as noise. The rise IS that record."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 13.2,
+      "to": 14.9,
+      "reason": "ST-237. Six checks moved out of the gating sets and the method half of the gate-dispatch refusal became advisory. Each change carries a comment saying what that check ever caught and why it left, which is this project's own rule that a rule without its defect is a rule the next person deletes as noise. The rise IS that record."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "ratio",
+      "from": 25.2,
+      "to": 26.3,
+      "reason": "ST-237 follow-up. The H1 fix carries the missing method review to the end of check-gate-dispatch instead of returning on it, so the tree half still runs. The comments record what the early return skipped and why the ordering became load bearing only once one branch went advisory."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 14.6,
+      "to": 15,
+      "reason": "ST-237 follow-up. The H1 fix carries the missing method review to the end of check-gate-dispatch instead of returning on it, so the tree half still runs. The comments record what the early return skipped and why the ordering became load bearing only once one branch went advisory."
     }
   ],
   "files": {
     "board/board.js": {
-      "nonblank": 900,
-      "comment": 306,
-      "header": 41,
-      "controls": 33,
+      "nonblank": 1440,
+      "comment": 557,
+      "header": 57,
+      "controls": 54,
       "named": 0,
-      "ratio": 25.8,
-      "ratio_all": 34
+      "ratio": 31,
+      "ratio_all": 38.7
     },
     "board/board.test.js": {
-      "nonblank": 948,
-      "comment": 300,
+      "nonblank": 1432,
+      "comment": 406,
       "header": 17,
-      "controls": 49,
+      "controls": 63,
       "named": 0,
-      "ratio": 24.7,
-      "ratio_all": 31.6
+      "ratio": 22.8,
+      "ratio_all": 28.4
     },
     "board/reference/board-cli.js": {
       "nonblank": 279,
@@ -1115,13 +1827,13 @@
       "ratio_all": 21.4
     },
     "studio.ps1": {
-      "nonblank": 2713,
-      "comment": 941,
+      "nonblank": 2755,
+      "comment": 972,
       "header": 36,
       "controls": 102,
-      "named": 2,
-      "ratio": 29.6,
-      "ratio_all": 34.7
+      "named": 4,
+      "ratio": 30.3,
+      "ratio_all": 35.3
     },
     "tools/archive-decisions.js": {
       "nonblank": 191,
@@ -1142,22 +1854,40 @@
       "ratio_all": 26.4
     },
     "tools/build-releases.js": {
-      "nonblank": 536,
-      "comment": 86,
+      "nonblank": 686,
+      "comment": 180,
       "header": 23,
-      "controls": 3,
+      "controls": 15,
       "named": 0,
-      "ratio": 11.2,
-      "ratio_all": 16
+      "ratio": 20.7,
+      "ratio_all": 26.2
     },
     "tools/build-releases.test.js": {
-      "nonblank": 507,
-      "comment": 63,
+      "nonblank": 695,
+      "comment": 135,
       "header": 14,
-      "controls": 14,
+      "controls": 24,
       "named": 0,
-      "ratio": 6.9,
-      "ratio_all": 12.4
+      "ratio": 14,
+      "ratio_all": 19.4
+    },
+    "tools/check-changelog-leak.js": {
+      "nonblank": 245,
+      "comment": 123,
+      "header": 52,
+      "controls": 7,
+      "named": 0,
+      "ratio": 26.1,
+      "ratio_all": 50.2
+    },
+    "tools/check-changelog-leak.test.js": {
+      "nonblank": 309,
+      "comment": 90,
+      "header": 22,
+      "controls": 4,
+      "named": 0,
+      "ratio": 20.7,
+      "ratio_all": 29.1
     },
     "tools/check-comment-shape.js": {
       "nonblank": 543,
@@ -1232,22 +1962,22 @@
       "ratio_all": 33.2
     },
     "tools/check-gate-dispatch.js": {
-      "nonblank": 199,
-      "comment": 72,
-      "header": 67,
-      "controls": 0,
+      "nonblank": 441,
+      "comment": 219,
+      "header": 83,
+      "controls": 20,
       "named": 0,
-      "ratio": 2.5,
-      "ratio_all": 36.2
+      "ratio": 26.3,
+      "ratio_all": 49.7
     },
     "tools/check-gate-dispatch.test.js": {
-      "nonblank": 629,
-      "comment": 179,
+      "nonblank": 1067,
+      "comment": 320,
       "header": 134,
-      "controls": 11,
-      "named": 1,
-      "ratio": 5.4,
-      "ratio_all": 28.5
+      "controls": 26,
+      "named": 2,
+      "ratio": 15,
+      "ratio_all": 30
     },
     "tools/check-governance-core.js": {
       "nonblank": 221,
@@ -1286,22 +2016,22 @@
       "ratio_all": 14
     },
     "tools/check-measures.js": {
-      "nonblank": 235,
-      "comment": 64,
-      "header": 52,
-      "controls": 3,
-      "named": 0,
-      "ratio": 3.8,
-      "ratio_all": 27.2
+      "nonblank": 384,
+      "comment": 134,
+      "header": 59,
+      "controls": 11,
+      "named": 3,
+      "ratio": 16.7,
+      "ratio_all": 34.9
     },
     "tools/check-measures.test.js": {
-      "nonblank": 231,
-      "comment": 42,
+      "nonblank": 406,
+      "comment": 102,
       "header": 12,
-      "controls": 20,
+      "controls": 33,
       "named": 0,
-      "ratio": 4.3,
-      "ratio_all": 18.2
+      "ratio": 14,
+      "ratio_all": 25.1
     },
     "tools/check-mutation-coverage.js": {
       "nonblank": 342,
@@ -1321,23 +2051,41 @@
       "ratio": 6.7,
       "ratio_all": 21
     },
-    "tools/check-reply-shape.js": {
-      "nonblank": 287,
-      "comment": 113,
-      "header": 102,
-      "controls": 0,
+    "tools/check-published-counts.js": {
+      "nonblank": 437,
+      "comment": 107,
+      "header": 78,
+      "controls": 2,
       "named": 0,
-      "ratio": 3.8,
-      "ratio_all": 39.4
+      "ratio": 6.2,
+      "ratio_all": 24.5
+    },
+    "tools/check-published-counts.test.js": {
+      "nonblank": 266,
+      "comment": 55,
+      "header": 13,
+      "controls": 18,
+      "named": 0,
+      "ratio": 9,
+      "ratio_all": 20.7
+    },
+    "tools/check-reply-shape.js": {
+      "nonblank": 386,
+      "comment": 170,
+      "header": 119,
+      "controls": 2,
+      "named": 1,
+      "ratio": 12.7,
+      "ratio_all": 44
     },
     "tools/check-reply-shape.test.js": {
-      "nonblank": 420,
-      "comment": 69,
+      "nonblank": 592,
+      "comment": 123,
       "header": 42,
-      "controls": 3,
-      "named": 1,
-      "ratio": 5.7,
-      "ratio_all": 16.4
+      "controls": 8,
+      "named": 2,
+      "ratio": 12.3,
+      "ratio_all": 20.8
     },
     "tools/check-resume-pointer.js": {
       "nonblank": 167,
@@ -1376,58 +2124,58 @@
       "ratio_all": 21.3
     },
     "tools/check-session-brief.js": {
-      "nonblank": 442,
-      "comment": 201,
+      "nonblank": 520,
+      "comment": 255,
       "header": 71,
-      "controls": 19,
-      "named": 0,
-      "ratio": 25.1,
-      "ratio_all": 45.5
+      "controls": 26,
+      "named": 1,
+      "ratio": 30.4,
+      "ratio_all": 49
     },
     "tools/check-session-brief.test.js": {
-      "nonblank": 564,
-      "comment": 143,
+      "nonblank": 703,
+      "comment": 206,
       "header": 8,
-      "controls": 29,
+      "controls": 43,
       "named": 0,
-      "ratio": 18.8,
-      "ratio_all": 25.4
+      "ratio": 22,
+      "ratio_all": 29.3
     },
     "tools/run-checks.js": {
-      "nonblank": 573,
-      "comment": 142,
+      "nonblank": 685,
+      "comment": 221,
       "header": 64,
-      "controls": 9,
+      "controls": 18,
       "named": 1,
-      "ratio": 12,
-      "ratio_all": 24.8
+      "ratio": 20.3,
+      "ratio_all": 32.3
     },
     "tools/run-checks.test.js": {
-      "nonblank": 434,
-      "comment": 95,
+      "nonblank": 511,
+      "comment": 137,
       "header": 14,
-      "controls": 41,
-      "named": 1,
-      "ratio": 9.2,
-      "ratio_all": 21.9
+      "controls": 47,
+      "named": 2,
+      "ratio": 14.9,
+      "ratio_all": 26.8
     },
     "tools/session-budget.js": {
-      "nonblank": 149,
-      "comment": 52,
+      "nonblank": 256,
+      "comment": 134,
       "header": 26,
-      "controls": 4,
+      "controls": 14,
       "named": 0,
-      "ratio": 14.8,
-      "ratio_all": 34.9
+      "ratio": 36.7,
+      "ratio_all": 52.3
     },
     "tools/session-budget.test.js": {
-      "nonblank": 148,
-      "comment": 26,
+      "nonblank": 325,
+      "comment": 106,
       "header": 4,
-      "controls": 7,
+      "controls": 27,
       "named": 0,
-      "ratio": 10.1,
-      "ratio_all": 17.6
+      "ratio": 23.1,
+      "ratio_all": 32.6
     },
     "tools/session-guard.js": {
       "nonblank": 231,

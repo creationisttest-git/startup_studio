@@ -35,6 +35,18 @@ not assessment, it is looking for permission.
 **The leads only.** `pm`, `tech-lead`, `design-lead`, `content-lead`, `marketing-lead`,
 `operations-lead`. Six voices, one session.
 
+**Dispatch all six with `model: "fable"`.** An assessment is a reasoning and argument job, where
+six disciplines take positions and a verdict gets written; building is code, tools and tests.
+Those are different shapes and there is no reason they want the same model. Pass the model on the
+dispatch itself rather than setting it in the role files: those leads are dispatched for plenty
+of work that is not an assessment, in every project that runs the roster, and a one-word edit to
+`base/agents/<role>.md` would change all of it. Setting it here scopes the choice to the room it
+was decided for. CEO decision, ST-214 d1, 2026-09-10.
+
+**If the model name is refused, dispatch them without it and say so in the verdict.** A skill that
+fails because a model was renamed would take the front door out entirely, and the front door
+existing at all matters more than which model is behind it.
+
 Not the whole squad, deliberately. Seventeen roles assessing every idea is expensive enough
 that it would be skipped within a fortnight, and a gate that gets skipped is worse than no
 gate because it still appears in the documentation.
@@ -57,7 +69,7 @@ If the idea is not clear enough to quote, that is the first finding. Ask.
 Each lead answers only within their own discipline. Nobody speculates outside it.
 
 - **pm.** What problem does this solve, for whom, and what is already on the board that this
-  displaces? Name the trade, because at a ceiling of two large items something else stops.
+  displaces? Name the trade, because at a ceiling of one large item something else stops.
 - **tech-lead.** What does this actually require, what does it depend on that does not exist
   yet, and what does it make harder later? Name the prerequisite that is not a real record in
   the data model, because that is the one that turns a two-day build into a two-week one.

@@ -19,10 +19,17 @@
  * target is zero of the last ten.
  *
  *   WORK IS DECIDED BY WHAT A COMMIT CHANGED, NEVER BY WHAT IT SAYS. A commit touching only the
- *   board is ticket administration: raising one, recording an assessment, parking one, writing
- *   a note. None of that is work passing through the door. Counting it produced three breaches
- *   on the first run of this file where the true answer was zero, and a check that reports a
- *   breach every session is one nobody reads by the second week.
+ *   board and the project's own record is ticket administration: raising one, recording an
+ *   assessment, parking one, writing a note. None of that is work passing through the door.
+ *   Counting it produced three breaches on the first run of this file where the true answer was
+ *   zero, and a check that reports a breach every session is one nobody reads by the second week.
+ *   THE RECORD WAS LEFT OUT OF THAT SET AT FIRST and the same defect came back one file over,
+ *   because raising a ticket also writes the state document. See recordFiles below.
+ *
+ *   A COMMIT IS JUDGED ONCE, NOT ONCE PER REFERENCE. One body of work can name several tickets,
+ *   and the measure is satisfied when any of the named tickets went through the door. Judging
+ *   each reference separately refused a commit for mentioning a ticket it PARKED, which made a
+ *   fuller commit message the thing that failed.
  *
  *   A commit naming NO ticket is reported beside the count and never inside it. Some are the
  *   wind-down and the board state itself, which have no ticket by design, and nothing available
@@ -55,7 +62,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 
 const DEFAULT_COMMITS = 10;
 const WINDOW_DAYS = 14;
@@ -108,14 +115,107 @@ function changedFiles (root, hash) {
   return out.split('\n').map(s => s.trim()).filter(Boolean);
 }
 
-function isWork (root, hash, boardRel) {
-  return changedFiles(root, hash).some(f => f.indexOf(boardRel) !== 0);
+/* THE RECORD IS NOT WORK, AND THE SET-ASIDE USED TO BE ONE FILE TOO NARROW. Raising a ticket
+   writes the board AND the state document the next session reads on the way in, because a ticket
+   nobody can see from the handover is a ticket nobody picks up. This file already sets a
+   board-only commit aside as administration for exactly that reason, and then counted the very
+   same act as work the moment it also touched the document. Measured on the real tree: a6c5b10
+   changed .board/BOARD.md, .board/tickets/ST-218.json and WARM_START.md, nothing else, and was
+   reported as work reaching a commit without its ticket going through the door.
+
+   THE SET IS DERIVED AND NOT HAND-KEPT (S39), from the one convention every project here uses:
+   the state document is whatever CLAUDE.md @-imports from the repository ROOT. A fragment under
+   base/ is a RULE, and editing a rule is work, so only root-level imports count and nothing is
+   exempt by name. A reader whose project imports different documents gets their own answer.
+
+   IT DOES NOT WIDEN THE HIDING PLACE, which is the objection this file's own header raises
+   against exempting anything: a commit is set aside only when its ENTIRE footprint is the board
+   and the record, so bundling a source file into a wind-down commit still counts as work. */
+function recordFiles (root) {
+  const set = new Set(['CLAUDE.md']);
+  let text;
+  try { text = fs.readFileSync(path.join(root, 'CLAUDE.md'), 'utf8'); } catch (e) { return set; }
+  const re = /^@([^\s]+)\s*$/gm;
+  let m;
+  while ((m = re.exec(text))) {
+    const rel = m[1].replace(/\\/g, '/');
+    if (rel.indexOf('/') === -1) set.add(rel);
+  }
+  return set;
+}
+
+function isWork (root, hash, boardRel, record) {
+  return changedFiles(root, hash).some(f =>
+    f.indexOf(boardRel) !== 0 && !(record && record.has(f)));
 }
 
 /* Measured: an entry written at 2026-09-04 05:23 reported a window opening 2026-09-03, because a
    stamp carrying no zone is read as local time while the board writes UTC. */
 function parseStamp (at) {
   return Date.parse(String(at).replace(' ', 'T') + 'Z');
+}
+
+// A WAIVER NAMES A COMMIT AND NOTHING ELSE, WHICH IS THE WHOLE REASON IT CANNOT BECOME A WAY TO
+// IGNORE THIS RULE. A commit that does not exist yet cannot be waived, so nothing here is ever
+// granted in advance: the act has to have happened, and somebody has to have looked at it and
+// written down why it stands.
+//
+// WHY THIS EXISTS AT ALL. Every other instrument in this repository has a recorded escape.
+// comment-shape takes a rise with a reason, published-counts takes a dated exemption,
+// mutation-coverage takes a baseline entry with a reason a stranger can read. This measure was the
+// only one that said no and stopped, and the suite asserts its exit is 0 or 3, so ONE breach
+// anywhere in the commit window blocked every release until that window rolled, including for a
+// fresh session that had done nothing wrong. S180 was written yesterday about exactly that shape,
+// in a different check, and the tell it names was present here too: the sitting that hit this had
+// already recognised the defect, recorded it on each ticket rather than backdating, and corrected
+// it inside the same hour, and the rule refused anyway.
+function waivers (root, boardDir) {
+  const f = path.join(boardDir, 'front-door-waivers.json');
+  // ABSENT AND UNREADABLE ARE DIFFERENT ANSWERS, and swallowing both made an authorised waiver
+  // vanish on a locked file while the run refused with no hint why. overrideMeasure below already
+  // had this shape and this did not.
+  if (!fs.existsSync(f)) return { entries: [] };
+  let raw;
+  try { raw = fs.readFileSync(f, 'utf8'); } catch (e) {
+    return { fault: 'front-door-waivers.json exists and cannot be read (' + e.message + ')' };
+  }
+  let list;
+  try { list = JSON.parse(raw); } catch (e) {
+    return { fault: 'front-door-waivers.json is not readable JSON (' + e.message + ')' };
+  }
+  if (!Array.isArray(list)) return { fault: 'front-door-waivers.json is not a JSON array' };
+  for (const w of list) {
+    if (!w || !w.reason || !w.by) {
+      return { fault: 'every waiver needs commit, reason and by. One has ' + JSON.stringify(w) };
+    }
+    // TRUTHINESS WAS THE ONLY TEST AND THAT IS NOT A COMMIT. A reviewer turned this whole measure
+    // off with one entry: the empty array is truthy, it stringifies to the empty string, and every
+    // hash starts with the empty string, so a single waiver excused every breach for good while
+    // the gate still read advisory and passed. A one-character entry waived nine breaches at once,
+    // and an entry written before its commit existed lay dormant and then waived a commit made 79
+    // commits later. Every one of those is the thing this file's own comment said cannot happen.
+    if (typeof w.commit !== 'string' || !/^[0-9a-f]{7,40}$/.test(w.commit)) {
+      return { fault: 'a waiver names ' + JSON.stringify(w.commit) + ', which is not a commit. ' +
+        'It must be 7 to 40 hexadecimal characters, because a shorter string names a SET of ' +
+        'commits and that set includes commits nobody has written yet.' };
+    }
+    // AND IT MUST RESOLVE TO A REAL OBJECT, which is what makes "the act has to have happened" a
+    // check rather than an argument. It is the only line here that can refuse a waiver written in
+    // advance, because a prefix of the right length still describes a commit that does not exist.
+    const r = spawnSync('git', ['rev-parse', '--verify', '--quiet', w.commit + '^{commit}'],
+      { cwd: root, encoding: 'utf8' });
+    if (r.status !== 0) {
+      return { fault: 'a waiver names ' + w.commit + ', which is not a commit in this repository. ' +
+        'A waiver is granted for something that has already happened, so it cannot be written ' +
+        'ahead of the commit it excuses.' };
+    }
+  }
+  return { entries: list };
+}
+
+function sameCommit (a, b) {
+  const x = String(a); const y = String(b);
+  return x.indexOf(y) === 0 || y.indexOf(x) === 0;
 }
 
 function frontDoorMeasure (root, boardDir, commits) {
@@ -127,6 +227,7 @@ function frontDoorMeasure (root, boardDir, commits) {
     return { fault: 'the commit log cannot be read (' + String(e.message).split('\n')[0] + ')' };
   }
   const boardRel = path.basename(boardDir) + '/';
+  const record = recordFiles(root);
   const offProcess = [];
   const unknownRef = [];
   const noRef = [];
@@ -134,21 +235,57 @@ function frontDoorMeasure (root, boardDir, commits) {
 
   for (const c of log) {
     let work;
-    try { work = isWork(root, c.hash, boardRel); } catch (e) {
+    try { work = isWork(root, c.hash, boardRel, record); } catch (e) {
       return { fault: 'commit ' + c.hash + ' cannot be read (' + String(e.message).split('\n')[0] + ')' };
     }
     if (!work) { admin.push(c); continue; }
     const refs = c.subject.match(pattern);
     if (!refs) { noRef.push(c); continue; }
+    // A COMMIT IS JUDGED ONCE, NOT ONCE PER REFERENCE, AND THE FIRST VERSION PENALISED A COMMIT
+    // FOR BEING CLEAR ABOUT WHAT IT TOUCHED. The measure asks whether WORK reached a commit
+    // without ITS ticket going through the door, and a commit carries one body of work however
+    // many tickets its subject names. Measured on the real tree: 2b0117d closed ST-214, which had
+    // entered in_progress, and in the same commit parked ST-211, which by definition never does.
+    // The parked reference alone was reported as a breach. So naming both tickets was refused and
+    // naming only ST-214 would have passed, for byte-identical work, which is an instrument
+    // rewarding a thinner commit message. One named ticket through the door satisfies it, and the
+    // breach names every ticket on the commit so a reader is not left guessing which one it meant.
+    const known = [];
     for (const ref of refs) {
       const t = readTicket(boardDir, ref);
       if (!t) { unknownRef.push({ commit: c, ref: ref }); continue; }
-      if (!everEnteredInProgress(t)) offProcess.push({ commit: c, ref: ref });
+      known.push({ ref: ref, ticket: t });
+    }
+    if (known.length && !known.some(k => everEnteredInProgress(k.ticket))) {
+      offProcess.push({ commit: c, ref: known.map(k => k.ref).join(', ') });
     }
   }
+  const w = waivers(root, boardDir);
+  if (w.fault) return { fault: w.fault };
+
+  const breaches = [];
+  const waived = [];
+  for (const x of offProcess) {
+    const hit = w.entries.filter(e => sameCommit(x.commit.hash, e.commit))[0];
+    if (hit) waived.push({ commit: x.commit, ref: x.ref, waiver: hit });
+    else breaches.push(x);
+  }
+
+  // A WAIVER THAT HAS OUTLIVED ITS REASON REFUSES, which is the rule mutation-coverage already
+  // applies to its own baseline. Scoped to the window on purpose: once the commit has rolled out
+  // of it the waiver is simply no longer applied, and refusing on that would be a lockout that
+  // arrives on its own with no change to the tree.
+  const stale = w.entries.filter(e =>
+    log.some(c => sameCommit(c.hash, e.commit)) && !waived.some(v => v.waiver === e));
+  if (stale.length) {
+    return { fault: 'a waiver names ' + stale[0].commit + ', which is in the window and is NOT a ' +
+      'breach, so it has outlived what it was granted for. Remove it rather than leaving a ' +
+      'standing exemption nobody can account for.' };
+  }
+
   return {
     examined: log.length, work: log.length - admin.length,
-    offProcess: offProcess, unknownRef: unknownRef, noRef: noRef, admin: admin
+    offProcess: breaches, waived: waived, unknownRef: unknownRef, noRef: noRef, admin: admin
   };
 }
 
@@ -216,11 +353,29 @@ function main (argv) {
     const n = one.offProcess.length;
     say('  target 0 of the last ' + one.examined + ' commits');
     say('  ' + one.work + ' of ' + one.examined + ' changed something outside the board and count as work');
-    say('  ' + n + ' of ' + one.work + ' work commits name a ticket that never entered in_progress');
+    // THE HEADLINE NUMBER USED TO BE TAKEN AFTER WAIVING, so the one line stating the measure's
+    // answer read zero while the next line said four were waived. A check whose own output
+    // disproves its own summary is worse than one that says nothing. The total is the measure; the
+    // waived count is how many of them somebody has accounted for.
+    const waivedN = (one.waived || []).length;
+    say('  ' + (n + waivedN) + ' of ' + one.work + ' work commits name a ticket that never ' +
+      'entered in_progress' + (waivedN ? ', of which ' + waivedN + ' are waived below' : ''));
     for (const x of one.offProcess) say('    BREACH  ' + x.commit.hash + '  ' + x.ref + '  ' + x.commit.subject);
+    // A WAIVED BREACH IS PRINTED, NEVER HIDDEN, AND IT COSTS THE CLEAN EXIT. Reporting it as a
+    // pass would make a waived run indistinguishable from a run with nothing to say, which is the
+    // false pass every check in this repository is written to avoid. Exit 3 is the same advisory
+    // state releases-page uses: the gate accepts it, and no reader can mistake it for zero.
+    if (one.waived && one.waived.length) {
+      say('  ' + one.waived.length + ' breach(es) WAIVED, still counted as breaches and not as a pass:');
+      for (const x of one.waived) {
+        say('    WAIVED  ' + x.commit.hash + '  ' + x.ref + '  by ' + x.waiver.by);
+        say('            ' + x.waiver.reason);
+      }
+      unproved = true;
+    }
     for (const x of one.unknownRef) say('    unknown ticket  ' + x.commit.hash + '  ' + x.ref);
     if (one.admin.length) {
-      say('  ' + one.admin.length + ' touched only the board and are set aside as ticket admin:');
+      say('  ' + one.admin.length + ' touched only the board and the record, set aside as ticket admin:');
       for (const c of one.admin) say('    ' + c.hash + '  ' + c.subject);
     }
     if (one.noRef.length) {
@@ -258,6 +413,6 @@ function main (argv) {
   return 0;
 }
 
-module.exports = { frontDoorMeasure, overrideMeasure, everEnteredInProgress, refPattern, main };
+module.exports = { frontDoorMeasure, overrideMeasure, everEnteredInProgress, refPattern, recordFiles, main };
 
 if (require.main === module) process.exit(main(process.argv.slice(2)));

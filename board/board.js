@@ -15,6 +15,19 @@
  * paragraph somebody is trusted to remember, because a rule nobody can break is the only kind
  * that survives a bad afternoon.
  *
+ * ONE INITIATIVE AT A TIME, AND THE WORK IN FLIGHT BELONGS TO IT. A small can be put UNDER a
+ * large, and that relation is enforced rather than described: one large in progress; while it is
+ * in flight every small starting must belong to it; a large cannot be marked done while its work
+ * is still open; and dropping an initiative moves it and everything under it out together, as one
+ * command with a journal behind it.
+ *
+ * WHY A RELATION AND NOT A SMALLER NUMBER. The ceiling was a COUNT, and a count cannot tell a
+ * small that FINISHES an initiative from one that STARTS a fourth. Measured before any of this was
+ * built: 71 of 74 starts finished without being sent back, median 0.07 days in progress, and the
+ * ceiling had been reached ONCE in the board's life -- so starting was never the defect. The board
+ * still reached 90 backlog items, 73 of which named their initiative in prose that nothing could
+ * read. Tightening the count would have changed none of that.
+ *
  * SINGLE WRITER, DECLARED RATHER THAN ENFORCED. Ticket mutations happen on ONE branch. Two
  * branches can both compute the next ticket number, both write a different filename, and git
  * will merge them without a conflict, so the collision is silent. `doctor` detects a duplicate
@@ -25,7 +38,10 @@
  * not a better tier. The board in your repository is the one every project starts with.
  *
  *   node board.js init <slug> [--assignees a,b,c]
- *   node board.js add "<title>" --desc "..." [--size large|small] [--assignee X]
+ *   node board.js add "<title>" --desc "..." [--size large|small] [--assignee X] [--under <ref>]
+ *   node board.js under <ref> --under <ref>|none --by <role>
+ *   node board.js evict <ref> --reason "..." --by <role>     drop an initiative and its work
+ *   node board.js evict --rollback --by <role>               undo an eviction that did not finish
  *   node board.js list [column]              node board.js show <ref>
  *   node board.js move <ref> <column> --by <role> [--notes "..."]
  *   node board.js assign <ref> <name>|none --by <role>
@@ -100,7 +116,93 @@ const TERMINAL = ['done', 'parked', 'killed'];
 const VERDICTS = ['build', 'kill', 'park'];
 
 // S27's ceiling. Large is more than one session or more than one discipline.
-const CEILING = { large: 2, small: 3 };
+//
+// ONE LARGE, NOT TWO. The founder, in their own words: "2 large and 3 smalls is if they are
+// all unrelated. we should work on only 1 large and all other tickest should be related to that
+// large. assess that and finish that work and finish. no parallel work." The old pair was
+// calibrated for work that has nothing to do with itself; once the smalls in flight must belong
+// to the large in flight, two larges is two initiatives and that is the parallel work the rule
+// forbids.
+//
+// THE SMALL CAP DID NOT MOVE, AND THAT IS DELIBERATE. Three was never the complaint and S164
+// measured that starting was never the defect: 71 of 74 starts finished without being sent back,
+// median 0.07 days in progress, and this ceiling had been reached ONCE in the board's life. What
+// the CEO asked for is the RELATION and one large. Loosening the small cap because the smalls are
+// now related, or tightening it because focus sounds like a smaller number, would both be changes
+// nobody asked for, made on the same day the relation arrives, so neither could be attributed.
+const CEILING = { large: 1, small: 3 };
+
+// ---- the relation ------------------------------------------------------------------------
+//
+// WHY A FIELD AND NOT A CONVENTION. 73 of the 91 backlog tickets already name another ST- ref in
+// their own description, and nothing can read a word of it. A relation written in prose is a
+// relation no refusal can enforce and no audit can count, which is how the board came to hold 90
+// backlog items with no way to tell a small that FINISHES an initiative from one that STARTS a
+// fourth.
+//
+// NO MIGRATION. save() round-trips keys it does not know, so a ticket with no parent is a ticket
+// whose parent is absent, and 195 existing tickets need nothing done to them.
+function parentOf(t) { return (t && typeof t.parent === 'string' && t.parent) ? t.parent : null; }
+
+function childrenOf(ref, all) {
+  return (all || allTickets()).filter(x => parentOf(x) === ref);
+}
+
+// A cycle is unreachable through `add` alone -- a new ticket has no children yet -- and reachable
+// the moment an EXISTING ticket can be re-parented. Guarding only self-parenting would catch the
+// one-step case and let A -> B -> A through, and every walker on this board (children, eviction,
+// the audit) would then run until the stack gave out. The seen-set is what makes the walk
+// terminate, and it is asserted by a fixture rather than argued for here: S156 says an assertion
+// that a process was not KILLED cannot tell a crash from a finding, because both exit 1.
+function ancestorsOf(ref, all) {
+  const byRef = {};
+  for (const x of all) byRef[x.ref] = x;
+  const chain = [];
+  const seen = {};
+  let cur = parentOf(byRef[ref]);
+  while (cur && !seen[cur]) {
+    seen[cur] = true;
+    chain.push(cur);
+    cur = parentOf(byRef[cur]);
+  }
+  return chain;
+}
+
+// THE RELATION IS TWO LEVELS AND STOPS THERE. A small belongs to a large; a large belongs to
+// nothing. The CEO asked for one initiative with its work under it, not a tree, and a tree is the
+// thing that would need a depth rule, a rollup rule and an eviction that recurses.
+//
+// AND THAT IS WHY THERE IS NO SEPARATE SELF-PARENT REFUSAL, WHICH THE TICKET ASKED FOR. Stated
+// plainly rather than shipped as a line nothing can reach: a ticket has ONE size, only a small may
+// carry a parent, and only a large may be one, so `--under` pointing at the ticket itself is
+// already refused by whichever of those two fires first. A third refusal underneath them would be
+// dead code with a confident comment beside it, which is precisely the defect S168 was written for
+// last sitting. The BEHAVIOUR is asserted -- self-parenting is refused, and the fixture says so --
+// while the SITE is not duplicated.
+//
+// THE CYCLE GUARD IS A DIFFERENT MATTER AND IS LOAD BEARING, because ancestorsOf walks what is on
+// DISK rather than what these refusals let through. Ticket files are hand-edited, merged and
+// corrupted here -- `doctor` exists for exactly that -- so a pair of files pointing at each other
+// is a reachable state that no command surface owns. Without the seen-set that walk recurses until
+// node throws, and node exits 1 on an uncaught throw while this tool exits 1 on a finding, so the
+// crash would read as a refusal (S156). It is fixtured by writing the two files directly.
+function requireParentable(t, parentRef, all) {
+  if (t.size !== 'small')
+    die('only a small ticket can be put under a large. ' + t.ref + ' is ' + t.size + '.\n' +
+        '       An initiative does not belong to another initiative. If two larges are really one\n' +
+        '       piece of work, they are one ticket; if they are not, they are two initiatives and\n' +
+        '       ST-196 exists to stop both being in flight.');
+  const p = all.filter(x => x.ref === String(parentRef).toUpperCase())[0];
+  if (!p) die('no ticket ' + parentRef + ' to put ' + t.ref + ' under.');
+  if (p.size !== 'large')
+    die(p.ref + ' is small, so nothing can be put under it. --under names the LARGE this work\n' +
+        '       belongs to. A small that needs smalls under it is a large that was sized wrong.');
+  if (TERMINAL.includes(p.status))
+    die(p.ref + ' is ' + p.status + ', so ' + t.ref + ' cannot be put under it.\n' +
+        '       Work does not join an initiative that has already ended. Reopen ' + p.ref +
+        ' deliberately, or\n       raise this against the initiative that is actually live.');
+  return p;
+}
 
 // S69. A gate that cannot count its own overrules cannot tell working from ignored, and this one
 // could not record a single one: the ceiling was a constant with no override path, so the only
@@ -108,6 +210,37 @@ const CEILING = { large: 2, small: 3 };
 // a trace. The ledger is COMMITTED beside the tickets because a machine-local file would be
 // appended to by every session, conflict on every push, and differ on every machine.
 const OVERRIDES = path.join(ROOT, 'overrides.json');
+
+// ---- the journal, which is the only reason eviction can be called atomic --------------------
+//
+// EVICTING AN INITIATIVE TOUCHES MANY FILES AND THERE IS NO TRANSACTION HERE. A database gives
+// all-or-nothing for free; a directory of JSON files gives nothing. Half an eviction is the worst
+// state this board can be in: a large back in backlog with three of its smalls still in progress
+// looks exactly like a board where somebody started unrelated work, and every refusal downstream
+// would then be reasoning from it.
+//
+// SO THE INTENT IS WRITTEN DOWN BEFORE ANY TICKET MOVES. The journal holds each ref and the status
+// it had, flushed to disk first. If a write then fails, the journal is what puts them back. If the
+// process dies outright, the journal is still there, and the next command finds it -- which is the
+// DETECTOR, and the reason this is one command rather than a sequence somebody is trusted to
+// finish.
+//
+// WHAT IT DOES NOT CLAIM. This is not durability against a disk that lies about flushing, and it
+// is not isolation: two evictions at once are not defended against, because there is one operator
+// on this board and inventing a lock would be a control with nothing to point at. It is
+// all-or-nothing against the failures that actually happen here -- a refusal part way through, a
+// crash, a session killed mid-write.
+const JOURNAL = path.join(ROOT, 'evict.journal.json');
+
+function readJournal() {
+  if (!fs.existsSync(JOURNAL)) return null;
+  try { return JSON.parse(fs.readFileSync(JOURNAL, 'utf8')); }
+  catch (e) {
+    // ABSENT and CORRUPT are different answers, exactly as for the override ledger. A corrupt
+    // journal read as absent would let the next command carry on over a half-evicted board.
+    return { corrupt: e.message };
+  }
+}
 
 // ABSENT and CORRUPT are different answers and must never be the same one. Swallowed, the parse
 // error made a damaged ledger read as no history, so the refusal reported nothing had ever been
@@ -358,6 +491,7 @@ commands.add = () => {
   const desc = flag('desc', '');
   const size = flag('size', 'small');
   const assignee = flag('assignee', null);
+  const under = flag('under', null);
   if (!['large', 'small'].includes(size)) die('--size must be large or small');
   if (desc === '' || desc === true) die('--desc is required. A title is a summary; work is picked from the description.');
   if (assignee && assignee !== true && p.assignees.length && !p.assignees.includes(assignee))
@@ -373,11 +507,19 @@ commands.add = () => {
   const t = {
     ref: ref, num: num, project: p.slug, title: title, description: desc, size: size,
     status: 'backlog', assignee: (assignee && assignee !== true) ? assignee : null,
+    parent: null,
     test_notes: null, decisions: [], history: [], created_at: now(), updated_at: now(), deleted_at: null,
   };
-  log(t, flag('by', 'unattributed'), 'created in backlog');
+  // VALIDATED BEFORE THE FILE IS WRITTEN. A ticket created and then refused leaves a number burnt
+  // and an orphan on disk, and the next `add` would carry on from the higher number as though
+  // nothing happened.
+  if (under && under !== true) {
+    const parent = requireParentable(t, under, allTickets());
+    t.parent = parent.ref;
+  }
+  log(t, flag('by', 'unattributed'), 'created in backlog' + (t.parent ? ' under ' + t.parent : ''));
   save(t);
-  ok(ref + '  ' + title + '  [' + size + ']');
+  ok(ref + '  ' + title + '  [' + size + ']' + (t.parent ? '  under ' + t.parent : ''));
 };
 
 // THE FRONT DOOR, RECORDED. Large work is assessed before it starts: the team argues the idea,
@@ -427,9 +569,78 @@ commands.move = () => {
 
   // S27's ceiling, enforced on the way in rather than reported after the fact.
   let pendingOverride = null;
+  let pendingInitiative = null;
   if (to === 'in_progress') {
-    const live = allTickets().filter(x => x.status === 'in_progress' && x.ref !== t.ref);
+    const all = allTickets();
+    const live = all.filter(x => x.status === 'in_progress' && x.ref !== t.ref);
     const n = live.filter(x => x.size === t.size).length;
+
+    // THE FOUNDER'S RULE, AND IT RUNS BEFORE THE COUNT BECAUSE IT IS THE STRICTER TEST. A small may
+    // start unparented ONLY while no large is in flight. Once a large IS in flight, every small
+    // starting must belong to it, because a small that belongs to something else is the second
+    // initiative the one-large ceiling exists to prevent -- and it would be invisible to a count,
+    // which is exactly how the board came to hold 90 backlog items it could not group (S162).
+    //
+    // MEASURED BEFORE THE QUESTION WAS PUT, not after the rule was chosen: 57 small starts in this
+    // board's life, 42 of them (74 per cent) with NO large in flight, including the last thirteen
+    // in a row. So this refusal leaves three quarters of the work this studio has actually done
+    // untouched, and fires on the 15 that are the break-context case the CEO named.
+    //
+    // THE ESCAPE IS THE ONE THAT ALREADY EXISTS. --override "<reason>" and the same hardening,
+    // rather than a second escape with its own ledger, because two ways past one rule is a rule
+    // with no count.
+    // "EVERY SMALL MUST BE UNDER IT" MEANS UNDER THAT LARGE, NOT UNDER SOME LARGE. A small parented
+    // to a different initiative is refused by the same rule and for the same reason as an
+    // unparented one: it is the second initiative, and having a parent written on it does not make
+    // it the work in flight. Reading d6 as "has a parent" would have let the whole backlog through
+    // on a field nobody checked against anything.
+    if (t.size === 'small') {
+      const larges = live.filter(x => x.size === 'large' && x.ref !== parentOf(t));
+      if (larges.length) {
+        // ITS OWN FLAG, NOT THE CEILING'S. A single --override used to clear BOTH gates and burn
+        // two ledger rows with the same reason and the same timestamp, so one decision advanced two
+        // hardening counters and the operator was never shown the second refusal they were being
+        // excused from. "Two ways past one rule is a rule with no count" was the argument for one
+        // ledger; it says nothing about one way past two rules, which is the same defect mirrored.
+        const why = flag('override-initiative', null);
+        const prior = readOverrides('initiative');
+        // ITS OWN LEDGER, NOT THE CEILING'S. The hardening counts overrides of ONE gate inside a
+        // window, so pooling two gates would harden each of them on the other's history and the
+        // count would stop meaning what its message says. Same shape, separate books.
+        const habitual = prior.filter(o => daysBefore(o.at) <= ESCALATE.withinDays);
+        if (habitual.length >= ESCALATE.after)
+          die(t.ref + ' does not belong to the initiative in flight and this gate has HARDENED.\n' +
+              '       ' + habitual.length + ' override(s) inside ' + ESCALATE.withinDays +
+              ' days, so working outside the initiative is\n' +
+              '       the habit rather than the exception, which is the point at which the count stops\n' +
+              '       meaning anything. Most recent: ' + String(habitual[habitual.length - 1].at).slice(0, 10) +
+              ', ' + habitual[habitual.length - 1].ref + ': ' + habitual[habitual.length - 1].reason + '\n' +
+              '       No --override-initiative passes this one. Finish or evict ' + larges[0].ref + ' first.');
+        if (!why || why === true || !String(why).trim()) {
+          let msg = t.ref + ' ' + (parentOf(t) ? 'belongs to ' + parentOf(t) : 'belongs to no initiative') +
+            ', and ' + larges.map(x => x.ref).join(', ') + ' is the one in flight.\n' +
+            '       Work that does not belong to the initiative in flight is the second initiative,\n' +
+            '       and finishing what we start is the whole rule. Put it under that large:\n' +
+            '         node board.js under ' + t.ref + ' --under ' + larges[0].ref + ' --by <role>\n' +
+            '       Or leave it in backlog until this one is finished, or evict the initiative.\n' +
+            '       To override, say why: --override-initiative "<reason>". Required, and recorded.';
+          if (prior.length) {
+            const last = prior[prior.length - 1];
+            msg += '\n       Overridden ' + prior.length + ' time(s) before, most recently ' +
+                   String(last.at).slice(0, 10) + ': ' + last.reason;
+          }
+          die(msg);
+        }
+        // HELD, NOT WRITTEN YET, for S97's reason: the ledger records the act that succeeded rather
+        // than the attempt. NOTHING BETWEEN HERE AND THE WRITE CAN CURRENTLY REFUSE THIS MOVE, and
+        // that is said plainly because the first version of this comment claimed the front-door
+        // check could, which is false: this branch only runs for a SMALL and that check only fires
+        // for a LARGE. It is held anyway, so that a refusal added below cannot silently start
+        // recording overrules of moves that never happened.
+        pendingInitiative = { reason: String(why).trim(), larges: larges.map(x => x.ref), prior: prior.length };
+      }
+    }
+
     if (n >= CEILING[t.size]) {
       const why = flag('override', null);
       const prior = readOverrides('ceiling');
@@ -492,10 +703,17 @@ commands.move = () => {
     log(t, by, 'CEILING OVERRIDDEN at ' + pendingOverride.at + '/' + CEILING[t.size] + ' ' +
         t.size + ': ' + pendingOverride.reason);
   }
+  if (pendingInitiative) {
+    recordOverride('initiative', t.ref, by, pendingInitiative.reason);
+    log(t, by, 'INITIATIVE OVERRIDDEN, started outside ' + pendingInitiative.larges.join(', ') +
+        ': ' + pendingInitiative.reason);
+  }
   log(t, by, 'moved ' + from + ' -> ' + to + (notes && notes !== true ? ' | notes: ' + notes : ''));
   save(t);
   if (pendingOverride)
     console.log('  ceiling OVERRIDDEN, ' + (pendingOverride.prior + 1) + ' on record: ' + pendingOverride.reason);
+  if (pendingInitiative)
+    console.log('  initiative OVERRIDDEN, ' + (pendingInitiative.prior + 1) + ' on record: ' + pendingInitiative.reason);
   ok(t.ref + '  ' + from + ' -> ' + to + '  (' + by + ')');
 };
 
@@ -503,6 +721,224 @@ commands.move = () => {
 // with the assignee field still null. Writing the assignment in prose and never recording it
 // is the same failure the board exists to stop: the narrative and the data disagreed, and only
 // the data is queryable. There was no way to assign an existing ticket at all.
+// EVICTION IS ONE COMMAND OR IT IS NOTHING, which is what both leads said when they were asked.
+// The founder's rule creates a state that did not exist before: an initiative in flight that the
+// founder reprioritises away from. Today that is done by hand, ticket by ticket, and a hand that
+// stops half way leaves a board nobody can reason about. "all tickets related to each large goes
+// out including anything related in the smalls" is one act, so it is one command.
+//
+// IT HAPPENED FOR REAL BEFORE THE RULE EXISTED, which is why the shape is not guessed at: a large
+// was in flight, the founder reprioritised to something unrelated, and there was no mechanism to
+// move the initiative out and back. The board permitted it silently because the ceiling was a
+// COUNT and one large plus one small is inside two and three.
+//
+// WHERE IT PUTS THEM AND WHY NOT `todo`. Backlog, because that is where unstarted work lives and
+// an evicted initiative is unstarted work again. `todo` would say it is next, which is the one
+// thing an eviction has just decided it is not.
+commands.evict = () => {
+  // THE RECOVERY PATH IS ROLLBACK AND NOT RESUME, ON PURPOSE. An interrupted eviction either
+  // happened or it did not, and rollback is the answer that makes that sentence true. Resuming
+  // would be a second code path reaching the same board state as `evict` run again, and the one
+  // that runs about once a year is the one nobody has watched work.
+  if (args.indexOf('--rollback') !== -1) {
+    const j = readJournal();
+    if (!j) die('there is no unfinished eviction here. ' + JOURNAL + ' does not exist.');
+    if (j.corrupt)
+      die('the eviction journal is unreadable: ' + JOURNAL + '\n' +
+          '       ' + j.corrupt + '\n' +
+          '       Refusing rather than treating it as absent, because absent means no eviction was\n' +
+          '       ever running and this file says one was.\n' +
+          '       THIS CANNOT BE RESTORED FROM GIT: the journal is written mid-command, removed on\n' +
+          '       success, and never committed. It is also written by rename, so this program cannot\n' +
+          '       produce a half-written one; something outside it did.\n' +
+          '       DELETE THIS FILE FIRST, before anything else in this list. Every writing command\n' +
+          '       refuses while it exists, `move` included, so the repair below cannot even start\n' +
+          '       until it is gone. Then run `doctor`, read the history of each ticket under the\n' +
+          '       initiative to see which moved, and put those back with `move`.');
+    const by = requireBy();
+    // A COMPLETED EVICTION IS NOT ROLLED BACK, IT IS TIDIED UP. The journal used to say "finished"
+    // only by being absent, so an unlink that failed after a perfectly good eviction left this
+    // command ready to undo the founder's own reprioritisation and report success for doing it.
+    // The marker is what tells the two apart, and reversing work nobody asked to reverse is a worse
+    // outcome than any lockout.
+    if (j.state === 'committed') {
+      fs.unlinkSync(JOURNAL);
+      return ok('the eviction of ' + j.initiative + ' had already COMPLETED; nothing was reversed.\n' +
+                '  Only the leftover journal was removed, so writes work again. To put that initiative\n' +
+                '  back, move it and its work yourself -- an eviction that finished is a decision.');
+    }
+    const back = [], stuck = [];
+    for (const rec of j.tickets) {
+      // A journal naming a ticket that is no longer there used to throw ENOENT outside every try,
+      // so the recovery path crashed with a raw stack, kept the journal, and repeated forever. This
+      // program's own contract is that its failures are diagnoses rather than crashes.
+      let x;
+      try { x = readTicketFile(ticketPath(rec.ref)); } catch (e) { stuck.push(rec.ref); continue; }
+      if (x.status === rec.was) continue;
+      x.status = rec.was;
+      log(x, by, 'eviction of ' + j.initiative + ' rolled back, returned to ' + rec.was);
+      try { save(x); back.push(rec.ref); } catch (e) { stuck.push(rec.ref); }
+    }
+    if (stuck.length)
+      die('the eviction of ' + j.initiative + ' could NOT be fully rolled back.\n' +
+          '       Restored: ' + (back.length ? back.join(', ') : 'none') + '\n' +
+          '       Could not be read or written: ' + stuck.join(', ') + '\n' +
+          '       The journal is kept, so nothing may be written. Fix those files, then run this\n' +
+          '       again; every ticket also carries the move in its own history.');
+    fs.unlinkSync(JOURNAL);
+    return ok('eviction of ' + j.initiative + ' rolled back. ' + back.length + ' of ' +
+              j.tickets.length + ' ticket(s) restored' + (back.length ? ': ' + back.join(', ') :
+              ' (the rest had not moved)'));
+  }
+
+  const t = findTicket(positionals()[0]);
+  const by = requireBy();
+  const reason = flag('reason', '');
+  if (t.size !== 'large')
+    die(t.ref + ' is small. Eviction moves an INITIATIVE and its work out together; a single small\n' +
+        '       is a plain move: node board.js move ' + t.ref + ' backlog --by ' + by);
+  if (t.status !== 'in_progress')
+    die(t.ref + ' is ' + t.status + ', not in progress. There is nothing in flight to evict.');
+  if (!reason || reason === true || !String(reason).trim())
+    die('--reason is required. An initiative dropped with no reason is indistinguishable from one\n' +
+        '       that was forgotten, and the next session cannot tell which.');
+
+  const all = allTickets();
+  // EVERY CHILD THAT HAS NOT ENDED, NOT ONLY THE ONES IN PROGRESS. Scoped to in_progress this
+  // silently left a child sitting in uat or prod_ready, `audit` reported no loose ends because the
+  // orphan rule only fires on a TERMINAL parent, and the published claim that an eviction moves
+  // everything out together or does nothing at all was false on the SUCCESS path with no failure
+  // involved. A ticket that is done, parked or killed has ended and there is nothing to withdraw.
+  //
+  // WHAT MOVING A UAT CHILD COSTS, said rather than glossed: it loses its place in the queue. Its
+  // test notes and its whole history stay on the ticket, so the work is recoverable, and an
+  // initiative that is being dropped is one whose work is stopping. Leaving it where it was would
+  // mean a dropped initiative still had live work, which is the state this command exists to end.
+  const kids = childrenOf(t.ref, all).filter(x => !TERMINAL.includes(x.status) && x.status !== 'backlog');
+  const moving = [t].concat(kids);
+
+  const entry = {
+    started_at: now(), by: by, initiative: t.ref, reason: String(reason).trim(),
+    tickets: moving.map(x => ({ ref: x.ref, was: x.status })),
+  };
+  // WRITTEN AND FLUSHED BEFORE THE FIRST TICKET MOVES. Every guarantee below rests on this line
+  // happening first: a journal written afterwards records a state that has already been left.
+  //
+  // TEMP FILE AND RENAME, because a half-written journal is the one failure that has no remedy: it
+  // locks every write, `--rollback` refuses to guess from it, and the message telling the reader to
+  // restore it from git names a file that is never committed. A rename is atomic, so the journal is
+  // either absent or whole and that branch stops being reachable from inside this program.
+  writeJson(JOURNAL + '.tmp', entry);
+  fs.renameSync(JOURNAL + '.tmp', JOURNAL);
+
+  const done = [];
+  try {
+    for (const x of moving) {
+      x.status = 'backlog';
+      log(x, by, 'evicted from in_progress' + (x.ref === t.ref ? '' : ' with ' + t.ref) + ': ' + entry.reason);
+      save(x);
+      done.push(x.ref);
+    }
+  } catch (e) {
+    // ROLLBACK, from the journal rather than from memory, because memory is the thing that just
+    // failed. Restoring is a plain re-save of the recorded status: no ticket is deleted or created
+    // by an eviction, so there is nothing to undo but a field.
+    const stuck = [];
+    for (const rec of entry.tickets) {
+      if (done.indexOf(rec.ref) === -1) continue;
+      try {
+        const back = readTicketFile(ticketPath(rec.ref));
+        back.status = rec.was;
+        log(back, by, 'eviction of ' + t.ref + ' failed and was rolled back');
+        save(back);
+      } catch (e2) { stuck.push(rec.ref); }
+    }
+    // CONSISTENCY IS VERIFIED, NEVER ASSUMED, AND THE FILE THAT FAILED IS THE ONE TO LOOK AT.
+    // The loop above skips any ticket not in `done`, which is exactly the ticket whose write just
+    // failed -- and writeFileSync opens with O_TRUNC, so a failure AFTER the open leaves that file
+    // truncated on disk. Declaring the board consistent while skipping it is the strongest claim
+    // in this command made about the one file most likely to be damaged. So every ref in the
+    // journal is read back and parsed before anything is declared, including the ones that never
+    // moved.
+    //
+    // THIS GUARD IS UNPROVED BY THE SUITE AND THAT IS SAID HERE RATHER THAN LEFT TO BE FOUND.
+    // Deleting it returns DELTA ZERO, measured, not assumed. The only fixture that can interrupt a
+    // write on this platform is a read-only file, and chmod fails at OPEN, so it can never truncate
+    // anything: the branch needs a disk that fills or a write that dies after the open, and neither
+    // can be arranged here. It is kept rather than deleted because it is REACHABLE IN PRODUCTION,
+    // which is what separates it from dead code -- S168 asks for a comment that matches the
+    // measurement, not for the removal of everything a test cannot reach (S61).
+    for (const rec of entry.tickets) {
+      if (stuck.indexOf(rec.ref) !== -1) continue;
+      try { readTicketFile(ticketPath(rec.ref)); } catch (e3) { stuck.push(rec.ref); }
+    }
+    // THE JOURNAL GOES ONLY IF THE ROLLBACK ACTUALLY FINISHED. Keeping it unconditionally would
+    // lock every write on a board that is already consistent again, and a refusal that outlives
+    // the fault is one people delete files to escape. Keeping it when a restore FAILED is the
+    // whole point: that board really is part way through and nothing should be written to it.
+    if (!stuck.length) fs.unlinkSync(JOURNAL);
+    die('eviction of ' + t.ref + ' FAILED: ' + e.message + '\n' +
+        '       ' + done.length + ' of ' + moving.length + ' had moved, and ' +
+        (stuck.length ? stuck.length + ' ticket(s) are NOT sound: ' + stuck.join(', ') + '.\n' +
+         '       Read those files before anything else; one of them may be half written.\n' +
+         '       The journal is still there, so nothing may be written until `evict --rollback` runs.'
+                      : 'every one of them was put back\n' +
+         '       and every ticket in the journal reads back cleanly. Nothing was evicted.'));
+  }
+  // COMMITTED IS WRITTEN BEFORE THE JOURNAL IS REMOVED, AND THAT IS NOT BELT AND BRACES. Removal
+  // was the only thing saying "finished", so an unlink that failed -- a lock, an indexer, a virus
+  // scanner, any of which are ordinary on this platform -- left a COMPLETED eviction looking
+  // exactly like an interrupted one. Every mutator would then refuse, and the single remedy the
+  // refusal prints would faithfully undo work the founder had asked for, and report success.
+  writeJson(JOURNAL + '.tmp', Object.assign({}, entry, { state: 'committed' }));
+  fs.renameSync(JOURNAL + '.tmp', JOURNAL);
+  fs.unlinkSync(JOURNAL);
+  console.log('  ' + t.ref + ' evicted with ' + kids.length + ' ticket(s) under it: ' + entry.reason);
+  ok(moving.map(x => x.ref).join(', ') + '  -> backlog');
+};
+
+// SET OR CLEAR THE RELATION ON A TICKET THAT ALREADY EXISTS, which is most of them: 195 tickets
+// predate the field and 73 of the 91 backlog items name their initiative in PROSE that nothing can
+// read. Without this the relation would only ever exist on work raised after today, so the rule
+// would refuse every small on the board and have no way to satisfy itself.
+commands.under = () => {
+  const pos = positionals();
+  const t = findTicket(pos[0]);
+  const by = requireBy();
+  const to = flag('under', null);
+  const all = allTickets();
+
+  if (to === 'none' || (pos[1] && String(pos[1]).toLowerCase() === 'none')) {
+    if (!parentOf(t)) die(t.ref + ' is not under anything.');
+    const was = parentOf(t);
+    t.parent = null;
+    log(t, by, 'removed from ' + was);
+    save(t);
+    return ok(t.ref + '  no longer under ' + was);
+  }
+  if (!to || to === true) die('under needs a target: --under <ref>, or --under none to clear it.');
+
+  const parent = requireParentable(t, to, all);
+  // The walk is guarded, so this cannot hang on a board whose files already disagree. It reads
+  // what is on DISK, which is why it is asked even though the size rules above make a cycle
+  // unreachable through this command: a hand-edited or badly merged pair of files is a real state
+  // here, and the alternative to catching it is a stack overflow that exits 1 and reads as a
+  // refusal (S156).
+  // The self-parent half of this used to be `parent.ref === t.ref ||` and was DEAD, sitting under
+  // a comment arguing at length that no such refusal had been written because it would be dead
+  // code. requireParentable has already guaranteed a small child and a large parent, so the clause
+  // could not hold. Deleted rather than documented, which is what S168 actually asks for.
+  if (ancestorsOf(parent.ref, all).indexOf(t.ref) !== -1)
+    die('that would make a loop: ' + t.ref + ' is already above ' + parent.ref + '.\n' +
+        '       Run `doctor` -- if this board already holds a loop, the file pair is the fault.');
+
+  const was = parentOf(t);
+  t.parent = parent.ref;
+  log(t, by, was ? 'moved from ' + was + ' to ' + parent.ref : 'put under ' + parent.ref);
+  save(t);
+  ok(t.ref + '  under ' + parent.ref + (was ? '  (was ' + was + ')' : ''));
+};
+
 commands.assign = () => {
   const p = readProject();
   const pos = positionals();
@@ -616,6 +1052,25 @@ commands.close = () => {
   const openD = openDecisions(t);
   if (openD.length) die(t.ref + ' has an unanswered decision. Answer it or the question evaporates:\n' +
       openD.map(x => '       [' + x.key + '] ' + x.d.question).join('\n'));
+
+  // "A LARGE IS NOT FINISHED UNTIL EVERY TICKET RELATED TO IT IS CLOSED." The founder's own
+  // words: "focus needs to be finishing what we start and closing all related tickets." Without
+  // this the relation would be decoration: an initiative could be marked done with half its work
+  // still open, and the smalls would fall back into the backlog they came from with nothing
+  // pointing at them any more.
+  //
+  // DONE ONLY, AND THAT IS THE WHOLE POINT. Parking or killing an initiative is a decision that
+  // its remaining work is not being done, which is a legitimate ending and is what `evict` is for
+  // on a large in flight. Refusing every ending would leave an initiative that cannot be abandoned,
+  // and a rule with no way out is a rule that gets routed around.
+  if (as === 'done' && t.size === 'large') {
+    const openKids = childrenOf(t.ref, allTickets()).filter(x => !TERMINAL.includes(x.status));
+    if (openKids.length)
+      die(t.ref + ' has ' + openKids.length + ' ticket(s) still open under it:\n' +
+          openKids.map(x => '       ' + x.ref + '  ' + x.status + '  ' + x.title).join('\n') + '\n' +
+          '       An initiative is finished when its work is finished. Close them, or close this\n' +
+          '       one as parked or killed with a reason, which says the rest is not being done.');
+  }
   t.status = as;
   log(t, by, as + (reason && reason !== true ? ': ' + reason : ''));
   save(t);
@@ -778,10 +1233,30 @@ commands.show = () => {
 };
 
 commands.wip = () => {
-  const live = allTickets().filter(t => t.status === 'in_progress');
+  const all = allTickets();
+  const live = all.filter(t => t.status === 'in_progress');
   const L = live.filter(t => t.size === 'large'), S = live.filter(t => t.size === 'small');
   console.log('\nIN PROGRESS   large ' + L.length + '/' + CEILING.large + '   small ' + S.length + '/' + CEILING.small);
-  for (const t of live) console.log('  ' + t.ref + '  ' + (t.size === 'large' ? '[L]' : '[s]') + ' ' + t.title);
+  // THE RELATION IS SHOWN WHERE THE COUNT IS SHOWN, or it is a field only refusals can see. The
+  // whole complaint behind this rule was that the board could not tell a small that FINISHES an
+  // initiative from one that STARTS a fourth, and a reader who has to run `show` on each ticket to
+  // find out is in the same position.
+  for (const t of live) {
+    const p = parentOf(t);
+    console.log('  ' + t.ref + '  ' + (t.size === 'large' ? '[L]' : '[s]') + ' ' + t.title +
+      // A SMALL UNDER THE WRONG LARGE IS THE CASE `move` REFUSES, and printing only the name of
+      // the initiative it belongs to made it read as compliant to the one role told to read this
+      // and name breaches.
+      (t.size === 'small' && L.length && !L.some(x => x.ref === p)
+        ? (p ? '   under ' + p + '   ** WRONG INITIATIVE **' : '   ** NO INITIATIVE **')
+        : (p ? '   under ' + p : '')));
+    if (t.size === 'large') {
+      const kids = childrenOf(t.ref, all);
+      const open = kids.filter(x => !TERMINAL.includes(x.status)).length;
+      console.log('        ' + kids.length + ' under it, ' + open + ' still open' +
+        (open ? '' : '  -- this initiative can be closed'));
+    }
+  }
   if (L.length >= CEILING.large) console.log('\n  At the large ceiling. Say so out loud with the count before taking anything else on.');
   console.log('');
 };
@@ -800,9 +1275,39 @@ commands.audit = () => {
     if (t.status === 'in_progress' && !t.assignee) problems.push(t.ref + ': in progress with nobody on it');
   }
   const live = ts.filter(t => t.status === 'in_progress');
-  const L = live.filter(t => t.size === 'large').length, S = live.filter(t => t.size === 'small').length;
-  if (L > CEILING.large) problems.push('large WIP over ceiling: ' + L + '/' + CEILING.large);
-  if (S > CEILING.small) problems.push('small WIP over ceiling: ' + S + '/' + CEILING.small);
+  const L = live.filter(t => t.size === 'large'), S = live.filter(t => t.size === 'small');
+  if (L.length > CEILING.large) problems.push('large WIP over ceiling: ' + L.length + '/' + CEILING.large);
+  if (S.length > CEILING.small) problems.push('small WIP over ceiling: ' + S.length + '/' + CEILING.small);
+
+  // THE REFUSALS GUARD THE WAY IN; THIS IS THE ONLY THING THAT SEES A BOARD THAT DRIFTED. A ticket
+  // moved by a hand edit, an override taken on purpose, or an initiative closed while its work was
+  // still in flight all leave a board that no refusal will ever be asked about again. An audit that
+  // could only count is what let 90 backlog items pile up ungrouped.
+  for (const t of S) {
+    const p = parentOf(t);
+    const off = L.filter(x => x.ref !== p);
+    if (off.length)
+      problems.push(t.ref + ': in progress ' + (p ? 'under ' + p : 'with no initiative') +
+        ' while ' + off.map(x => x.ref).join(', ') + ' is the initiative in flight');
+  }
+  for (const t of ts) {
+    const p = parentOf(t);
+    if (!p) continue;
+    const owner = ts.filter(x => x.ref === p)[0];
+    // A parent that is not on the board is worse than no parent: every rollup silently drops the
+    // ticket and the audit is the only place it can surface.
+    if (!owner) { problems.push(t.ref + ': under ' + p + ', which is not on this board'); continue; }
+    if (owner.size !== 'large') problems.push(t.ref + ': under ' + p + ', which is not a large');
+    if (TERMINAL.includes(owner.status) && !TERMINAL.includes(t.status))
+      problems.push(t.ref + ': ' + t.status + ' under ' + p + ', which is already ' + owner.status);
+  }
+  // The loop the seen-set in ancestorsOf survives, reported rather than merely survived, because a
+  // walk that terminates quietly on a broken board leaves the board broken.
+  for (const t of ts) {
+    if (!parentOf(t)) continue;
+    if (ancestorsOf(t.ref, ts).indexOf(t.ref) !== -1)
+      problems.push(t.ref + ': is its own ancestor -- the parent chain is a loop');
+  }
 
   console.log('\nAUDIT  ' + ts.length + ' live tickets');
   if (!problems.length) { console.log('  no loose ends\n'); process.exit(0); }
@@ -834,6 +1339,24 @@ commands.doctor = () => {
   // The override ledger was the one file doctor could not see, exactly where project.json was
   // before the comment above. A record of gates waved through is the last thing to rot unwatched.
   const ledger = fs.existsSync(OVERRIDES) ? [{ f: 'overrides.json', p: OVERRIDES }] : [];
+
+  // AN UNFINISHED EVICTION IS A FAULT AND THIS IS WHERE A READER FINDS OUT WHAT TO DO ABOUT IT.
+  // Every writing command already refuses on it, but a refusal reaches whoever happened to run a
+  // command; doctor is the one place someone looks when the board is behaving oddly, and the
+  // remedy has to be printed where they are looking rather than where they were stopped.
+  const journal = readJournal();
+  if (journal) {
+    problems.push(journal.corrupt
+      ? 'evict.journal.json: an eviction did not finish AND the journal is unreadable (' +
+        journal.corrupt + '). It CANNOT be restored from git: it is written mid-command, removed ' +
+        'on success, never committed, and .gitignore excludes it. DELETE THE FILE FIRST, because ' +
+        'every writing command refuses while it exists and `evict --rollback` refuses on an ' +
+        'unreadable one, so nothing can be put back until it is gone. Then read the history of ' +
+        'each ticket under the initiative to see which moved, and put those back with `move`.'
+      : 'evict.journal.json: the eviction of ' + journal.initiative + ' did not finish (' +
+        journal.tickets.length + ' ticket(s), started ' + String(journal.started_at).slice(0, 19) +
+        '). Nothing may be written until it is resolved: node board.js evict --rollback --by <role>');
+  }
 
   for (const entry of [{ f: 'project.json', p: PROJECT }].concat(ledger, files.map(f => ({ f: f, p: path.join(TICKETS, f) })))) {
     const f = entry.f;
@@ -887,7 +1410,41 @@ commands.doctor = () => {
 //
 // It warns and never refuses, and it fails open on every path. A board outside a repository, or
 // on a machine with no git at all, is a legitimate way to run this and must not be blocked.
-const MUTATORS = ['init', 'add', 'assess', 'move', 'assign', 'rank', 'note', 'ask', 'answer', 'close', 'reopen', 'delete', 'restore'];
+const MUTATORS = ['init', 'add', 'assess', 'move', 'assign', 'rank', 'note', 'ask', 'answer', 'close', 'reopen', 'delete', 'restore', 'under', 'evict'];
+
+// THE DETECTOR, AND IT IS WHAT MAKES THE JOURNAL MORE THAN A LOG FILE. A journal nobody reads
+// records a broken board without stopping anyone building on top of it. So every command that
+// WRITES refuses while an eviction is unfinished, and every command that READS carries on and
+// says so, because a half-evicted board is exactly the thing you need to be able to look at.
+// Bricking the reading commands would leave the operator with a broken board and no way to see it.
+//
+// `evict --rollback` is the one writer that passes THIS guard, because it is the way out. Refusing
+// it here too would be a refusal with no remedy, which is the shape people delete files to escape.
+//
+// IT IS NOT A WAY OUT OF EVERYTHING, AND SAYING SO HERE IS THE POINT. On a journal that is
+// unreadable, rollback refuses as well, because it cannot know what to put back. That is the one
+// branch where deleting the file by hand really is the only escape, and it was shipped as a loop:
+// `move` sent the reader to rollback, rollback sent them to `move`, and `doctor` told them to
+// restore from git, which .gitignore makes impossible. Both messages now name the deletion FIRST,
+// because every other writer is refused until the file is gone.
+if (MUTATORS.indexOf(cmd) !== -1 && !(cmd === 'evict' && args.indexOf('--rollback') !== -1)) {
+  const unfinished = readJournal();
+  if (unfinished) {
+    const what = unfinished.corrupt
+      ? 'the journal itself is unreadable (' + unfinished.corrupt + '), which this program\n' +
+        '       cannot produce, because it writes the journal by rename. Something outside it did'
+      : 'of ' + unfinished.initiative + ', started ' + String(unfinished.started_at).slice(0, 19) +
+        ' by ' + unfinished.by + ', covering ' + unfinished.tickets.length + ' ticket(s)';
+    die('an eviction did not finish and this board is part way through it.\n' +
+        '       ' + what + '\n' +
+        '       Journal: ' + JOURNAL + '\n' +
+        '       Nothing may be written until it is resolved, because a refusal computed over a\n' +
+        '       half-evicted board is a refusal reasoning from a state nobody chose.\n' +
+        '       Put it back:  node board.js evict --rollback --by <role>\n' +
+        '       Reading commands (list, show, wip, audit, doctor) still work.');
+  }
+}
+
 if (MUTATORS.indexOf(cmd) !== -1 && !process.env.BOARD_NO_GIT_WARN) {
   process.on('exit', () => {
     try {
@@ -923,8 +1480,13 @@ function renderBoard() {
   out.push('');
   const line = t => {
     const open = t.decisions.filter(x => x.answer === null).length;
+    const p = parentOf(t);
+    // The rendered board is the only view of this a founder sees without a terminal, so the
+    // relation belongs here too. Without it the page shows a flat list of tickets and the reader
+    // is back to inferring which initiative each one serves from its title.
     return '- **' + t.ref + '** ' + t.title +
       '  `' + t.size + '`' +
+      (p ? '  under ' + p : '') +
       (t.assignee ? '  @' + t.assignee : '') +
       (open ? '  **' + open + ' DECISION WAITING**' : '');
   };

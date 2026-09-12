@@ -2670,6 +2670,10 @@ if ($Autoload) {
     # It still returns 0. A SessionStart hook that fails the session over a stale roster trades a
     # missing rule for no session, which is the worse of the two.
     $lines = @()
+    # THE SECOND CHANNEL, AND ST-197 IS THAT IT EXISTED ALL ALONG. Kept apart from $lines because
+    # the two go to different places: $lines is the warning-coloured systemMessage, this is neutral
+    # context handed to the session. Declared out here so the emit block below can see it.
+    $briefText = ''
     # Resolved before anything can throw and written AFTER, so the line records where the hook ran
     # and how it ended rather than only that it ran at all.
     $hookFrom = $Path
@@ -2702,21 +2706,38 @@ if ($Autoload) {
                 # reading first, while the brief is standing orientation.
                 $fb = Get-FounderBrief $proj
                 if ($fb) {
-                    # WRAPPED AT TWO LINES BY HAND. Written as one sentence this was 134 characters,
-                    # which breaks the same 100-column rule the check enforces on the brief below it.
-                    # The width rule applied to the founder's words and not to mine, which is the
-                    # check having a blind spot exactly where its author was standing.
+                    # ST-197, AND IT REVERSES ST-193 ON A PREMISE THAT WAS FALSE. The comment that
+                    # used to sit here said systemMessage is the ONLY founder-facing channel a
+                    # SessionStart hook has, and ST-193 reasoned from that to the conclusion that
+                    # the TEXT was the only lever, so the brief opened with "NOT AN ERROR".
                     #
-                    # IT OPENS WITH NOT AN ERROR, and that is the whole of ST-193. systemMessage is
-                    # the ONLY founder-facing channel a SessionStart hook has, and the CLI paints it
-                    # in warning colour with a prefix stamped on EVERY line. We control neither, so
-                    # the text is the only lever there is. The founder opened two consecutive
-                    # sittings reporting this healthy hook as a red error, and both times the answer
-                    # was to RUN it: exit 0, empty stderr, one valid JSON document. A brief read as
-                    # a failure is a brief that gets ignored, which is the fate the REALITY line
-                    # further down this file already records for nine projects.
-                    $lines += ("NOT AN ERROR. This is the FOUNDER BRIEF from WARM_START.md, written at the last wind-down." + "`n" +
-                               "Treat every number in it as a claim to verify rather than a fact:" + "`n`n" + $fb)
+                    # HALF OF THAT PREMISE IS TRUE AND IT IS THE HALF THAT DOES NOT MATTER. The
+                    # colour of systemMessage really is not configurable: the CLI paints it in
+                    # warning colour with a prefix stamped on every line and no field, flag or
+                    # setting changes it. Checked against the hooks reference rather than assumed.
+                    #
+                    # THE OTHER HALF WAS FALSE, AND THE COUNTEREXAMPLE WAS 800 LINES UP THIS FILE.
+                    # hookSpecificOutput.additionalContext is a second channel, it is neutral, and
+                    # Invoke-Recall has been using it since it was written. The reasoning walked
+                    # past our own code. So the brief goes to the SESSION, which prints it as
+                    # ordinary output: no colour, no per-line prefix, and no disclaimer needed.
+                    #
+                    # THE COST, STATED BECAUSE THE CEO WAS ASKED AND TOOK IT. systemMessage is
+                    # guaranteed delivery and this is not: the founder sees the brief only if the
+                    # session prints it. The argument that carried it is that a brief read as a
+                    # failure is already a brief that is not landing, which is the fate this file
+                    # records for the REALITY line in nine projects.
+                    #
+                    # findings STAY on systemMessage. A finding is a warning and warning colour is
+                    # right for it. Only the standing brief moves.
+                    $briefText = ("FOUNDER BRIEF, read from the '## Founder brief' section of WARM_START.md " +
+                                  "and written at the last wind-down." + "`n`n" +
+                                  "PRINT IT TO THE FOUNDER VERBATIM as the first thing you say this session, " +
+                                  "before anything else, as an ordinary markdown block. Do not summarise it, " +
+                                  "do not reorder it, and do not put commentary above it. It is the only copy " +
+                                  "they get and nothing else in the session start hands it over." + "`n`n" +
+                                  "Treat every number in it as a claim to verify rather than a fact." + "`n`n" +
+                                  $fb)
                 }
             }
         } catch {
@@ -2743,7 +2764,7 @@ if ($Autoload) {
     Write-HookLog 'autoload' $hookFrom $hookOutcome
     # ONE write, or nothing. Two ConvertTo-Json documents on the same stream is not valid JSON and
     # the consumer reads whichever it can, which is a worse failure than saying nothing.
-    if ($lines.Count) {
+    if ($lines.Count -or $briefText) {
         # suppressOutput stays TRUE, which is the long-standing behaviour and is deliberate: it
         # hides the raw JSON echo, and systemMessage reaches the reader either way. An earlier
         # version of this set it to false on the failure path, reasoning that a rebuild which did
@@ -2777,7 +2798,28 @@ if ($Autoload) {
         # that never existed as lines, and could not see the one thing that actually blew the
         # budget. qa-tester measured this at the ST-069 gate. Making them real lines is the fix
         # that lets a line cap mean anything at all.
-        @{ systemMessage = ($lines -join "`n"); suppressOutput = $true } | ConvertTo-Json -Compress
+        # TWO CHANNELS, ONE DOCUMENT. Still exactly one ConvertTo-Json write, for the reason stated
+        # above: two documents on the same stream is not valid JSON. systemMessage carries FINDINGS
+        # only and is omitted entirely when there are none, so a healthy session start now prints
+        # nothing red at all rather than thirteen warning-coloured lines. The brief rides
+        # additionalContext, which is neutral and reaches the session rather than the terminal.
+        #
+        # THE WRAPPING ABOVE DELIBERATELY DOES NOT APPLY TO THE BRIEF ANY MORE. It exists because
+        # the CLI stamps a prefix on every systemMessage line and a 650-character line rendered as
+        # 19. Ordinary markdown output wraps itself, and hard-wrapping it at 100 would fight the
+        # renderer. The width rule on the brief's own SOURCE is unchanged and still enforced by
+        # check-session-brief.js against WARM_START.md.
+        # TESTED ON THE JOINED TEXT AND NOT ON THE COUNT, WHICH IS A DEFECT THIS CHANGE CREATED AND
+        # THEN CAUGHT BY RUNNING THE HOOK. Invoke-Autoload contributes an element even when it has
+        # nothing to say, so $lines.Count was 1 with a joined value of "". That emitted
+        # systemMessage:"" and an empty warning-coloured line is still a warning-coloured line,
+        # which is the entire complaint. It could not show up before this change because the brief
+        # lived in $lines and was never empty.
+        $sysText = ($lines -join "`n").Trim()
+        $out = @{ suppressOutput = $true }
+        if ($sysText)   { $out.systemMessage = $sysText }
+        if ($briefText) { $out.hookSpecificOutput = @{ hookEventName = 'SessionStart'; additionalContext = $briefText } }
+        $out | ConvertTo-Json -Compress -Depth 5
     }
     return
 }

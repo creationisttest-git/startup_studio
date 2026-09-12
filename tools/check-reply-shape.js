@@ -27,6 +27,23 @@
  * paragraph does not. Both measures below are satisfied by writing in the shape the rule asks
  * for, and NEITHER can be satisfied by removing content, which is the whole design.
  *
+ * THE THIRD MEASURE, EM-DASHES, AND THE DEFECT THAT ADDED IT. The em-dash ban is permanent,
+ * retroactive, and named in the governance core as applying to every string a reader sees. This
+ * check read every reply a session wrote to the founder and did not once count the banned
+ * character. On 2026-09-10 a method reviewer caught one by hand and reported ONE; the instrument,
+ * the moment it could count, found FOUR across two replies in the same session, three of them in
+ * the very reply that was reporting a content gate's em-dash findings. A rule enforced by hand is
+ * enforced at whatever rate the hand is having a good day, and the hand here belonged to the
+ * reviewer whose whole job was catching it.
+ *
+ * TWO DELIBERATE EDGES ON THAT COUNT. Fenced blocks are EXCLUDED, because pasting a tool's output
+ * that contains an em-dash is quoting evidence, which these rules ask for everywhere else;
+ * refusing a session for showing its working teaches people to stop pasting the numbers, which
+ * costs more than the dashes it saves. And U+2015 HORIZONTAL BAR is counted alongside U+2014,
+ * because it is visually identical at every size a reader sees and a check that refuses one while
+ * passing the other ships with a documented way around it. The en-dash is a different character
+ * and is not counted, because counting it would refuse page ranges and score lines.
+ *
  * WHAT IS MEASURED, AND WHY WORDS RATHER THAN LINES. The first version of this counted
  * consecutive prose LINES and was wrong, which the corpus said immediately: across every
  * reply in it the longest run of consecutive prose lines anywhere was FOUR, because a markdown
@@ -77,19 +94,20 @@
  * WHERE THE EVIDENCE COMES FROM. The same per-project transcripts check-gate-dispatch.js reads.
  * ONE HALF OF THAT IS SHARED AND THE OTHER HALF IS NOT, and this used to claim both were. The
  * directory-name derivation, projectDirName, is IMPORTED from that file, so the two tools cannot
- * disagree about where a project's sessions live. transcriptsFor and newest are COPIES: newest is
- * byte-identical to the other one today and transcriptsFor differs only by carrying the directory
- * in what it returns, and being identical today is not the same as being unable to diverge, which
- * is the whole property an import buys. A claim that two things cannot disagree is worth exactly
+ * disagree about where a project's sessions live, and sessionTranscript is imported from it too,
+ * so they cannot disagree about WHICH session is running either. transcriptsFor is still a COPY:
+ * it differs only by carrying the directory in what it returns, and being nearly identical today
+ * is not the same as being unable to diverge, which is the whole property an import buys.
+ * A claim that two things cannot disagree is worth exactly
  * as much as the import that makes it true, so it is stated for the half that has one. That
  * derivation is undocumented and one
  * silent rename away from being wrong; when it is wrong, or the host writes no transcript, this
  * reports that it cannot see and does NOT refuse, because a gate refusing on something a
  * legitimate install can never satisfy locks that install out for good.
  *
- *   node tools/check-reply-shape.js                     the newest session for this project
+ *   node tools/check-reply-shape.js                     the CURRENT session for this project
  *   node tools/check-reply-shape.js --report            every reply over the limit, with numbers
- *   node tools/check-reply-shape.js --all               every transcript, not only the newest
+ *   node tools/check-reply-shape.js --all               every transcript, not only this session
  *   options: --root <dir>  --home <dir>  --max-prose <n>  --quiet
  *
  * Exit 0 clean, 1 refused, 2 on a usage error, 3 when no transcript could be read. Those are
@@ -97,9 +115,8 @@
  * argument: not being able to look must never count as having looked, and must never refuse.
  *
  * THE LIMIT WORTH KNOWING BEFORE TRUSTING A NUMBER FROM THIS. It reads what the session wrote,
- * not what the founder saw. And the newest transcript for a project is normally the session
- * running this, still being appended to as it reads, so a session cannot score its own final
- * reply. It scores the ones already sent, which is why its home is the wind-down set.
+ * not what the founder saw. And the transcript it reads is this session's own, still being
+ * appended to as it reads, so a session cannot score its own final reply. It scores the ones already sent, which is why its home is the wind-down set.
  */
 'use strict'
 
@@ -107,7 +124,7 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 
-const { projectDirName } = require('./check-gate-dispatch.js')
+const { projectDirName, sessionTranscript } = require('./check-gate-dispatch.js')
 
 const MAX_PROSE_WORDS = 80
 
@@ -139,17 +156,6 @@ function transcriptsFor (root, home) {
   const files = names.filter(n => n.endsWith('.jsonl')).map(n => path.join(dir, n))
   if (!files.length) return { why: 'the transcript directory holds no session' }
   return { files: files }
-}
-
-function newest (files) {
-  let best = null
-  let bestAt = -1
-  for (const f of files) {
-    let at
-    try { at = fs.statSync(f).mtimeMs } catch (e) { continue }
-    if (at > bestAt) { bestAt = at; best = f }
-  }
-  return best
 }
 
 // Every assistant reply in one transcript, as text. A tool call is not a reply: the founder
@@ -196,6 +202,8 @@ function shapeOf (text) {
   let point = 0
   let run = 0
   let biggest = 0
+  let dashes = 0
+  let fencedDashes = 0
   for (const raw of lines) {
     const t = raw.trim()
     if (t.slice(0, 3) === '```') {
@@ -204,6 +212,8 @@ function shapeOf (text) {
       run = 0
       continue
     }
+    const em = raw.match(/[—―]/g)
+    if (em) { if (fenced) fencedDashes += em.length; else dashes += em.length }
     if (fenced) continue
     if (!t) { run = 0; continue }
     if (first === null) first = t
@@ -217,12 +227,34 @@ function shapeOf (text) {
     run += w
     if (run > biggest) biggest = run
   }
-  const opener = first === null ? '' : first.replace(/^[*_#\s]+/, '')
+  // EM-DASHES ARE COUNTED OUTSIDE FENCES ONLY, and the distinction is the whole point rather
+  // than a nicety. Pasting a tool's output that happens to contain an em-dash is quoting
+  // evidence, which the rules ask for; writing one into your own sentence is the thing that is
+  // banned. Counting inside fences would refuse a session for showing its working, which is the
+  // fastest way to teach everybody to stop pasting the numbers.
+  //
+  // U+2015 HORIZONTAL BAR IS COUNTED WITH U+2014, because it is visually identical at every size
+  // a reader sees and a check that refuses one while passing the other is a check with a
+  // documented way around it.
+  // THE HYPHEN IS IN THIS SET BECAUSE IT IS THE BULLET THIS STUDIO ACTUALLY WRITES, and for
+  // three sittings it was the one marker missing. The class stripped asterisk, underscore and
+  // hash, so "* Let me walk you through" was tested for preamble and "- Let me walk you
+  // through" was immune -- the instrument was strictest on the writers who least needed it, and
+  // the founder brief, which is eleven hyphen bullets, could open with throat-clearing and pass
+  // both this check and check-session-brief.js, which borrows this predicate.
+  //
+  // MEASURED BEFORE WIDENING, because a check that suddenly refuses a large share of historical
+  // replies is one everybody routes around: 49 transcripts, 3,822 assistant replies, 1 opening
+  // with a hyphen bullet, 51 tripping THROAT already, and ZERO newly refused by adding it. The
+  // blast radius the ticket was written around did not exist.
+  const opener = first === null ? '' : first.replace(/^[-*_#\s]+/, '')
   return {
     biggestProseBlock: biggest,
     proseWords: prose,
     pointWords: point,
     throat: opener !== '' && THROAT.some(re => re.test(opener)),
+    emDashes: dashes,
+    fencedEmDashes: fencedDashes,
     first: first || ''
   }
 }
@@ -248,17 +280,47 @@ function main (argv) {
     return 2
   }
 
+  // --recent N: REFUSE on the last N replies only, and REPORT the whole session regardless. See
+  // the header for why this exists and what it costs. Zero is not a window, it is a way of
+  // switching the check off while it still prints, so it is refused like any other bad value.
+  const recentArg = flagOf(argv, 'recent', null)
+  let recent = null
+  if (has(argv, 'recent')) {
+    if (recentArg === null || !/^\d+$/.test(recentArg) || Number(recentArg) < 1) {
+      process.stderr.write('check-reply-shape: --recent needs a whole number of replies, at least 1\n')
+      return 2
+    }
+    recent = Number(recentArg)
+    // REPLIES FROM DIFFERENT SESSIONS HAVE NO ORDER BETWEEN THEM. --all sorts files by NAME,
+    // which is a uuid here, so "the last twenty" across sessions would be twenty replies chosen
+    // by an alphabet. A window over a set with no order is a number that looks like a measure
+    // and is not one, so this is a usage error rather than a quiet approximation.
+    if (all) {
+      process.stderr.write('check-reply-shape: --recent cannot be combined with --all, because '
+        + 'replies from different sessions have no order between them\n')
+      return 2
+    }
+  }
+
   const t = transcriptsFor(rootArg, homeArg)
   if (t.why) {
     say(quiet, 'REPLY SHAPE  CANNOT TELL. ' + t.why)
     return 3
   }
-  const files = all ? t.files.slice().sort() : [newest(t.files)]
-  if (!files[0]) {
-    say(quiet, 'REPLY SHAPE  CANNOT TELL. no session in the transcript directory could be measured')
-    return 3
+  // --all IS THE ONE CASE THAT WANTS EVERY SESSION, so it keeps every file. Every other
+  // caller is asking about THIS session, and asking the host beats ranking by mtime: see
+  // sessionTranscript in check-gate-dispatch.js for what mtime was actually selecting.
+  let files
+  if (all) {
+    files = t.files.slice().sort()
+  } else {
+    const pick = sessionTranscript(t.files)
+    if (pick.why) {
+      say(quiet, 'REPLY SHAPE  CANNOT TELL. ' + pick.why)
+      return 3
+    }
+    files = [pick.file]
   }
-
   const rows = []
   const unreadable = []
   for (const f of files) {
@@ -271,8 +333,19 @@ function main (argv) {
     return 3
   }
 
-  const over = rows.filter(r => r.biggestProseBlock > max)
-  const throats = rows.filter(r => r.throat)
+  // THE REFUSAL AND THE RECORD ARE NOW TWO DIFFERENT POPULATIONS, AND THAT IS THE WHOLE OF ST-219.
+  // Everything printed below counts the WHOLE session, because the record must not shrink: the
+  // wind-down reads these numbers into the compliance table and a slip a session recovered from
+  // still happened. Only `judged` is what the exit code is computed from, and with no --recent it
+  // IS the whole session, so the default behaviour is byte-identical to before.
+  const judged = recent === null ? rows : rows.slice(-recent)
+  const over = judged.filter(r => r.biggestProseBlock > max)
+  const throats = judged.filter(r => r.throat)
+  const dashed = judged.filter(r => r.emDashes > 0)
+  const dashTotal = dashed.reduce((s, r) => s + r.emDashes, 0)
+  const sessionDashed = rows.filter(r => r.emDashes > 0)
+  const sessionDashTotal = sessionDashed.reduce((s, r) => s + r.emDashes, 0)
+  const fencedTotal = rows.reduce((s, r) => s + r.fencedEmDashes, 0)
   const worst = rows.reduce((a, b) => (b.biggestProseBlock > a.biggestProseBlock ? b : a), rows[0])
   const substantial = rows.filter(r => r.proseWords + r.pointWords > 40)
   const proseShare = substantial.length
@@ -282,26 +355,51 @@ function main (argv) {
 
   say(quiet, 'REPLY SHAPE  ' + rows.length + ' repl(ies) across ' + files.length + ' session(s)')
   say(quiet, '  largest prose block: ' + worst.biggestProseBlock + ' word(s), against a limit of ' + max)
-  say(quiet, '  ' + over.length + ' past the limit, ' + throats.length + ' opening with preamble')
+  say(quiet, '  ' + rows.filter(r => r.biggestProseBlock > max).length + ' past the limit, '
+    + rows.filter(r => r.throat).length + ' opening with preamble')
+  say(quiet, '  ' + sessionDashTotal + ' em-dash(es) across ' + sessionDashed.length
+    + ' repl(ies), outside fenced blocks')
+  if (recent !== null) {
+    say(quiet, '  JUDGED ON THE LAST ' + recent + ' repl(ies) of ' + rows.length + ', which is '
+      + judged.length + ' repl(ies) carrying ' + dashTotal + ' em-dash(es). The count above is the '
+      + 'whole session and is the record; this window is what the exit code is computed from.')
+  }
+  say(quiet, '  ' + fencedTotal + ' more inside fenced blocks. REPORTED, NOT REFUSED ON: quoted tool '
+    + 'output is evidence, but a fenced paragraph still reaches the founder.')
   say(quiet, '  prose share of the ' + substantial.length + ' repl(ies) over 40 words: ' + proseShare
     + ' per cent. REPORTED, NOT REFUSED ON: see the header for why.')
   for (const u of unreadable) say(quiet, '  note  ' + u)
+  // THE REPORT LISTS THE WHOLE SESSION EVEN WHEN THE REFUSAL DOES NOT. A reader asking for the
+  // detail is asking what happened, not what is still being held against them.
   if (report) {
-    for (const r of over) say(quiet, '  OVER  ' + r.biggestProseBlock + ' words  ' + r.first.slice(0, 70))
-    for (const r of throats) say(quiet, '  PREAMBLE  ' + r.first.slice(0, 70))
+    for (const r of rows.filter(x => x.biggestProseBlock > max)) say(quiet, '  OVER  ' + r.biggestProseBlock + ' words  ' + r.first.slice(0, 70))
+    for (const r of rows.filter(x => x.throat)) say(quiet, '  PREAMBLE  ' + r.first.slice(0, 70))
+    for (const r of sessionDashed) say(quiet, '  EM-DASH  x' + r.emDashes + '  ' + r.first.slice(0, 70))
   }
 
-  if (over.length || throats.length) {
+  if (over.length || throats.length || dashed.length) {
     process.stdout.write('FAIL  ' + over.length + ' repl(ies) carry a prose block past ' + max
-      + ' word(s) and ' + throats.length + ' open with preamble\n')
+      + ' word(s), ' + throats.length + ' open with preamble, and ' + dashTotal
+      + ' em-dash(es) reached the founder across ' + dashed.length + ' repl(ies)'
+      + (recent === null ? '' : ', in the last ' + recent + ' repl(ies)') + '\n')
     for (const r of over) process.stdout.write('  ' + r.biggestProseBlock + ' words: ' + r.first.slice(0, 70) + '\n')
     for (const r of throats) process.stdout.write('  preamble: ' + r.first.slice(0, 70) + '\n')
+    for (const r of dashed) process.stdout.write('  em-dash x' + r.emDashes + ': ' + r.first.slice(0, 70) + '\n')
     return 1
   }
-  say(quiet, 'OK  every reply is point form and opens with the answer')
+  // THE PASS MUST NOT CLAIM MORE THAN IT MEASURED. With a window, a clean exit says the session
+  // has recovered, not that it never slipped, and printing the older wording would make a
+  // recovered session read exactly like a spotless one in the only line most readers see.
+  if (recent !== null && (sessionDashTotal || rows.length !== judged.length)) {
+    say(quiet, 'OK  the last ' + recent + ' repl(ies) are point form, open with the answer and carry no '
+      + 'em-dash. Earlier in this session: ' + sessionDashTotal + ' em-dash(es) across '
+      + sessionDashed.length + ' repl(ies), which is recorded and no longer refused on.')
+    return 0
+  }
+  say(quiet, 'OK  every reply is point form, opens with the answer, and carries no em-dash')
   return 0
 }
 
 if (require.main === module) process.exit(main(process.argv.slice(2)))
 
-module.exports = { main, shapeOf, repliesIn, transcriptsFor, newest, THROAT, MAX_PROSE_WORDS }
+module.exports = { main, shapeOf, repliesIn, transcriptsFor, THROAT, MAX_PROSE_WORDS }

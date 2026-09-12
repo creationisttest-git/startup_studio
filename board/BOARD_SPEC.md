@@ -124,7 +124,10 @@ click. The command surface:
 
 ```
 init <slug> [--assignees a,b,c]        create a board here
-add "<title>" --desc "..." [--size large|small] [--assignee X]
+add "<title>" --desc "..." [--size large|small] [--assignee X] [--under <ref>]
+under <ref> --under <ref>|none --by <role>   put a small under a large, or take it out
+evict <ref> --reason "..." --by <role>       drop an initiative and everything under it
+evict --rollback --by <role>                 undo an eviction that did not finish
 list [column]                          the board, or one column
 show <ref>                             the whole ticket, including its history
 move <ref> <column> --by <role> [--notes "..."] [--override "<reason>"]
@@ -162,9 +165,14 @@ the program, not paragraphs somebody is trusted to remember:
 
 - Only qa-tester moves a ticket to UAT, and only with test notes written first.
 - A large ticket cannot enter `in_progress` without a recorded verdict and a measure.
-- Work in progress has a ceiling of **two large and three small**, and a move that would exceed
+- Work in progress has a ceiling of **one large and three small**, and a move that would exceed
   it is refused with the count. The numbers are part of the contract: two implementations that
   refuse at different counts are not the same board.
+- **A small in flight belongs to the large in flight.** While a large is in progress, a small
+  entering `in_progress` must be under it, and one that is not is refused with the same
+  `--override "<reason>"` escape, counted in its own ledger. A large cannot be closed as done
+  while any ticket under it is still open. Dropping an initiative is one command, `evict`, which
+  moves it and everything under it out together or does nothing at all.
 - That ceiling can be overridden, and cannot be overridden quietly. The refusal comes first;
   `--override "<reason>"` passes it, and an override whose reason is blank is refused as hard as
   none at all. The reason is written to `overrides.json` beside the tickets, which git commits,
