@@ -220,7 +220,7 @@ must be proved by a test rather than assumed.
 ## Decisions live on the ticket
 
 A question put to the founder is recorded with `ask` and answered with `answer`. It arrives as
-numbered options with a recommendation, so the reply can be a single character, and the answer
+numbered options with a recommendation, raised through the host's interactive prompt so the CEO answers by clicking rather than typing, and the answer
 is appended to the ticket rather than lost in a conversation.
 
 Each decision carries a stable key, such as `d2`. With more than one open on a ticket, `answer`

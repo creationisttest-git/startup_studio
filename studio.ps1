@@ -752,8 +752,57 @@ function Install-GlobalAgents {
         # A skipped role keeps whatever it was last installed from. That stale entry is the
         # evidence the install has since been hand-edited; overwriting it would erase it.
     }
+    # ST-246. THE MACHINE-WIDE INSTALL NEVER PRUNED, SO A RENAME IN BASE SHIPPED BOTH NAMES FOR
+    # EVER. The per-project compose has always pruned; this, the roster every untuned project
+    # loads, never did. Renaming a role therefore left the orphan installed and still dispatchable,
+    # carrying whatever claims its last version made. In the case that found this, the orphan
+    # carried two claims the very same commit had just corrected: that the role is a gate returning
+    # PASS or FAIL that refuses a release, and that check-reply-shape is in the RELEASE set.
+    #
+    # IT REMOVES ONLY WHAT THIS TOOL INSTALLED AND STILL RECOGNISES. The target is the user's own
+    # .claude\agents and may hold roles they wrote themselves, so a file with no manifest entry is
+    # never touched. A file whose text no longer matches its manifest entry has been hand-edited
+    # since, and that edit exists nowhere else, so it is reported and KEPT unless -Force. An
+    # unbounded delete in a user's directory is a worse defect than the orphan it would fix.
+    # ST-249. A PARTIAL LIST CANNOT ANSWER WHAT BASE NO LONGER DEFINES, SO IT MAY NOT BE ASKED.
+    # $files comes from Get-BaseAgents, which honours the global -Only filter, so on a filtered run
+    # every role the user asked to SKIP looks exactly like a role base has dropped. -Sync -Only
+    # doctor reported EVERY OTHER ROLE as "no longer defined in base\agents" and would have deleted
+    # all of them from the user's own directory; every one is defined. That is precisely the
+    # unbounded delete the comment above calls a worse defect than the orphan it fixes, shipped by
+    # the commit that wrote the comment. An EMPTY base directory is the same shape and worse:
+    # Get-BaseAgents throws only when the directory is absent, so an empty one turns a sync into a
+    # full uninstall. Both cases refuse to prune rather than guessing.
+    $baseNames = @($files | ForEach-Object { $_.BaseName })
+    $gone=@(); $goneEdited=@()
+    if ($Only) {
+        Write-Host "  nothing pruned: -Only was given, and a filtered list cannot say what base dropped." -ForegroundColor Gray
+    } elseif ($baseNames.Count -eq 0) {
+        Write-Host "  nothing pruned: base\agents defines no roles, which would make this an uninstall." -ForegroundColor Yellow
+    } else {
+        foreach ($key in @($man.Keys)) {
+            if ($baseNames -contains $key) { continue }
+            $orphan = Join-Path $target ($key + '.md')
+            if (-not (Test-Path $orphan)) { $man.Remove($key); continue }
+            $oh = Get-FileTextSha $orphan
+            if ($oh -eq $man[$key] -or $Force) {
+                if (-not $WhatIf) { Remove-Item $orphan -Force }
+                $gone += $key; $man.Remove($key)
+            } else {
+                $goneEdited += $key
+            }
+        }
+    }
     if (-not $WhatIf) { Write-InstallManifest $target $man }
     Write-Host "  agents  updated $($upd.Count), current $($same.Count)" -ForegroundColor Gray
+    if ($gone.Count) {
+        Write-Host "  removed, no longer defined in base\agents: $($gone -join ', ')" -ForegroundColor Gray
+    }
+    if ($goneEdited.Count) {
+        Write-Host "  GONE FROM BASE BUT EDITED IN THE INSTALL, so not removed: $($goneEdited -join ', ')" -ForegroundColor Yellow
+        Write-Host "  that change exists nowhere else. Promote it into base\agents, or -Sync -Force" -ForegroundColor Yellow
+        Write-Host "  once you are satisfied nothing is lost." -ForegroundColor Yellow
+    }
     if ($skip.Count) {
         Write-Host "  EDITED IN THE INSTALL, so not overwritten: $($skip -join ', ')" -ForegroundColor Yellow
         Write-Host "  that change exists nowhere else. Promote it into base\agents, then sync." -ForegroundColor Yellow

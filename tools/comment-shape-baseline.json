@@ -1,6 +1,6 @@
 {
   "what": "Per published code file: named comment lines, counted comment ratio and control lines, as tools/check-comment-shape.js defines them. Written only by that tool. The check refuses when any value differs from this record: the wrong way outright, the right way until this record is rewritten, so the record is never slack.",
-  "written": "2026-09-12",
+  "written": "2026-09-13",
   "new_file_cap": 5,
   "overrides": [
     {
@@ -1706,24 +1706,176 @@
       "from": 14.6,
       "to": 15,
       "reason": "ST-237 follow-up. The H1 fix carries the missing method review to the end of check-gate-dispatch instead of returning on it, so the tree half still runs. The comments record what the early return skipped and why the ordering became load bearing only once one branch went advisory."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "board/board.js",
+      "field": "named",
+      "from": 0,
+      "to": 5,
+      "reason": "ST-246. Seven new named lines in check-gate-dispatch.js and six in its test carry the roster-binding rule and why it reports rather than refuses; three in studio.ps1 carry the prune and why it will not delete a file it did not install. The rise is the defect and its reason written down, which is what this project asks a comment to be."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "board/board.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 4,
+      "reason": "ST-246. Seven new named lines in check-gate-dispatch.js and six in its test carry the roster-binding rule and why it reports rather than refuses; three in studio.ps1 carry the prune and why it will not delete a file it did not install. The rise is the defect and its reason written down, which is what this project asks a comment to be."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 4,
+      "to": 11,
+      "reason": "ST-246. Seven new named lines in check-gate-dispatch.js and six in its test carry the roster-binding rule and why it reports rather than refuses; three in studio.ps1 carry the prune and why it will not delete a file it did not install. The rise is the defect and its reason written down, which is what this project asks a comment to be."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/check-context-budget.js",
+      "field": "named",
+      "from": 1,
+      "to": 2,
+      "reason": "ST-246. Seven new named lines in check-gate-dispatch.js and six in its test carry the roster-binding rule and why it reports rather than refuses; three in studio.ps1 carry the prune and why it will not delete a file it did not install. The rise is the defect and its reason written down, which is what this project asks a comment to be."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/check-document-shape.js",
+      "field": "named",
+      "from": 2,
+      "to": 3,
+      "reason": "ST-246. Seven new named lines in check-gate-dispatch.js and six in its test carry the roster-binding rule and why it reports rather than refuses; three in studio.ps1 carry the prune and why it will not delete a file it did not install. The rise is the defect and its reason written down, which is what this project asks a comment to be."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "named",
+      "from": 0,
+      "to": 7,
+      "reason": "ST-246. Seven new named lines in check-gate-dispatch.js and six in its test carry the roster-binding rule and why it reports rather than refuses; three in studio.ps1 carry the prune and why it will not delete a file it did not install. The rise is the defect and its reason written down, which is what this project asks a comment to be."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "ratio",
+      "from": 26.3,
+      "to": 28.4,
+      "reason": "ST-246. Seven new named lines in check-gate-dispatch.js and six in its test carry the roster-binding rule and why it reports rather than refuses; three in studio.ps1 carry the prune and why it will not delete a file it did not install. The rise is the defect and its reason written down, which is what this project asks a comment to be."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "named",
+      "from": 2,
+      "to": 8,
+      "reason": "ST-246. Seven new named lines in check-gate-dispatch.js and six in its test carry the roster-binding rule and why it reports rather than refuses; three in studio.ps1 carry the prune and why it will not delete a file it did not install. The rise is the defect and its reason written down, which is what this project asks a comment to be."
+    },
+    {
+      "date": "2026-09-12",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 15,
+      "to": 15.8,
+      "reason": "ST-246. Seven new named lines in check-gate-dispatch.js and six in its test carry the roster-binding rule and why it reports rather than refuses; three in studio.ps1 carry the prune and why it will not delete a file it did not install. The rise is the defect and its reason written down, which is what this project asks a comment to be."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "board/reference/board-refusals.js",
+      "field": "ratio",
+      "from": 11.3,
+      "to": 12.3,
+      "reason": "ST-247: two new files, check-decision-shape.js and its test, carry header comments explaining why the founder's second top-two measure had no instrument before 2026-09-13 and why it refuses on the board record while only reporting on reply shape. Both sit above the 5 per cent cap for a file with no baseline, at 7.2 and 11 per cent. run-checks.js rose 20.3 to 21.4 and board-refusals.js 11.3 to 12.3 for the same reason: the retired decision rule had to be replaced with the reason it was retired, in comments, in files that publish. Recorded as a deliberate rise rather than trimmed, and the trim is on ST-247 as follow-up."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-decision-shape.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 7.2,
+      "reason": "ST-247: two new files, check-decision-shape.js and its test, carry header comments explaining why the founder's second top-two measure had no instrument before 2026-09-13 and why it refuses on the board record while only reporting on reply shape. Both sit above the 5 per cent cap for a file with no baseline, at 7.2 and 11 per cent. run-checks.js rose 20.3 to 21.4 and board-refusals.js 11.3 to 12.3 for the same reason: the retired decision rule had to be replaced with the reason it was retired, in comments, in files that publish. Recorded as a deliberate rise rather than trimmed, and the trim is on ST-247 as follow-up."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 11,
+      "reason": "ST-247: two new files, check-decision-shape.js and its test, carry header comments explaining why the founder's second top-two measure had no instrument before 2026-09-13 and why it refuses on the board record while only reporting on reply shape. Both sit above the 5 per cent cap for a file with no baseline, at 7.2 and 11 per cent. run-checks.js rose 20.3 to 21.4 and board-refusals.js 11.3 to 12.3 for the same reason: the retired decision rule had to be replaced with the reason it was retired, in comments, in files that publish. Recorded as a deliberate rise rather than trimmed, and the trim is on ST-247 as follow-up."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 20.3,
+      "to": 21.4,
+      "reason": "ST-247: two new files, check-decision-shape.js and its test, carry header comments explaining why the founder's second top-two measure had no instrument before 2026-09-13 and why it refuses on the board record while only reporting on reply shape. Both sit above the 5 per cent cap for a file with no baseline, at 7.2 and 11 per cent. run-checks.js rose 20.3 to 21.4 and board-refusals.js 11.3 to 12.3 for the same reason: the retired decision rule had to be replaced with the reason it was retired, in comments, in files that publish. Recorded as a deliberate rise rather than trimmed, and the trim is on ST-247 as follow-up."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 11,
+      "to": 13,
+      "reason": "ST-249 and ST-251, both product review findings on the release range. studio.ps1 gains the reason a filtered sync must not prune: -Sync -Only deleted every role it was told to skip from the user's own directory and printed that base had dropped them. check-decision-shape.js and its test gain the reason its refusal now splits on the prompt count: the single message asserted the founder got no clickable prompt in a case where one was raised and its own count line said so, which is a claim the tool cannot make. Both are defects a reader cannot see from the code, so the comment is the record."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 30.3,
+      "to": 30.5,
+      "reason": "ST-249 and ST-251, both product review findings on the release range. studio.ps1 gains the reason a filtered sync must not prune: -Sync -Only deleted every role it was told to skip from the user's own directory and printed that base had dropped them. check-decision-shape.js and its test gain the reason its refusal now splits on the prompt count: the single message asserted the founder got no clickable prompt in a case where one was raised and its own count line said so, which is a claim the tool cannot make. Both are defects a reader cannot see from the code, so the comment is the record."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-decision-shape.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "ST-249 and ST-251, both product review findings on the release range. studio.ps1 gains the reason a filtered sync must not prune: -Sync -Only deleted every role it was told to skip from the user's own directory and printed that base had dropped them. check-decision-shape.js and its test gain the reason its refusal now splits on the prompt count: the single message asserted the founder got no clickable prompt in a case where one was raised and its own count line said so, which is a claim the tool cannot make. Both are defects a reader cannot see from the code, so the comment is the record."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-decision-shape.js",
+      "field": "ratio",
+      "from": 7.2,
+      "to": 10.3,
+      "reason": "ST-249 and ST-251, both product review findings on the release range. studio.ps1 gains the reason a filtered sync must not prune: -Sync -Only deleted every role it was told to skip from the user's own directory and printed that base had dropped them. check-decision-shape.js and its test gain the reason its refusal now splits on the prompt count: the single message asserted the founder got no clickable prompt in a case where one was raised and its own count line said so, which is a claim the tool cannot make. Both are defects a reader cannot see from the code, so the comment is the record."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 2,
+      "reason": "ST-249 and ST-251, both product review findings on the release range. studio.ps1 gains the reason a filtered sync must not prune: -Sync -Only deleted every role it was told to skip from the user's own directory and printed that base had dropped them. check-decision-shape.js and its test gain the reason its refusal now splits on the prompt count: the single message asserted the founder got no clickable prompt in a case where one was raised and its own count line said so, which is a claim the tool cannot make. Both are defects a reader cannot see from the code, so the comment is the record."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "ratio",
+      "from": 11,
+      "to": 13.3,
+      "reason": "ST-249 and ST-251, both product review findings on the release range. studio.ps1 gains the reason a filtered sync must not prune: -Sync -Only deleted every role it was told to skip from the user's own directory and printed that base had dropped them. check-decision-shape.js and its test gain the reason its refusal now splits on the prompt count: the single message asserted the founder got no clickable prompt in a case where one was raised and its own count line said so, which is a claim the tool cannot make. Both are defects a reader cannot see from the code, so the comment is the record."
     }
   ],
   "files": {
     "board/board.js": {
-      "nonblank": 1440,
-      "comment": 557,
-      "header": 57,
+      "nonblank": 1443,
+      "comment": 560,
+      "header": 58,
       "controls": 54,
-      "named": 0,
+      "named": 5,
       "ratio": 31,
-      "ratio_all": 38.7
+      "ratio_all": 38.8
     },
     "board/board.test.js": {
       "nonblank": 1432,
       "comment": 406,
       "header": 17,
       "controls": 63,
-      "named": 0,
+      "named": 4,
       "ratio": 22.8,
       "ratio_all": 28.4
     },
@@ -1737,13 +1889,13 @@
       "ratio_all": 26.2
     },
     "board/reference/board-refusals.js": {
-      "nonblank": 80,
-      "comment": 19,
+      "nonblank": 81,
+      "comment": 20,
       "header": 8,
       "controls": 2,
       "named": 0,
-      "ratio": 11.3,
-      "ratio_all": 23.8
+      "ratio": 12.3,
+      "ratio_all": 24.7
     },
     "board/reference/board-refusals.test.js": {
       "nonblank": 130,
@@ -1827,13 +1979,13 @@
       "ratio_all": 21.4
     },
     "studio.ps1": {
-      "nonblank": 2755,
-      "comment": 972,
+      "nonblank": 2804,
+      "comment": 993,
       "header": 36,
       "controls": 102,
-      "named": 4,
-      "ratio": 30.3,
-      "ratio_all": 35.3
+      "named": 13,
+      "ratio": 30.5,
+      "ratio_all": 35.4
     },
     "tools/archive-decisions.js": {
       "nonblank": 191,
@@ -1912,7 +2064,7 @@
       "comment": 96,
       "header": 47,
       "controls": 8,
-      "named": 1,
+      "named": 2,
       "ratio": 21.7,
       "ratio_all": 50.8
     },
@@ -1943,12 +2095,30 @@
       "ratio": 4.1,
       "ratio_all": 18.6
     },
+    "tools/check-decision-shape.js": {
+      "nonblank": 300,
+      "comment": 83,
+      "header": 49,
+      "controls": 3,
+      "named": 1,
+      "ratio": 10.3,
+      "ratio_all": 27.7
+    },
+    "tools/check-decision-shape.test.js": {
+      "nonblank": 180,
+      "comment": 42,
+      "header": 11,
+      "controls": 7,
+      "named": 2,
+      "ratio": 13.3,
+      "ratio_all": 23.3
+    },
     "tools/check-document-shape.js": {
       "nonblank": 302,
       "comment": 145,
       "header": 60,
       "controls": 14,
-      "named": 2,
+      "named": 3,
       "ratio": 23.5,
       "ratio_all": 48
     },
@@ -1962,21 +2132,21 @@
       "ratio_all": 33.2
     },
     "tools/check-gate-dispatch.js": {
-      "nonblank": 441,
-      "comment": 219,
+      "nonblank": 503,
+      "comment": 250,
       "header": 83,
-      "controls": 20,
-      "named": 0,
-      "ratio": 26.3,
+      "controls": 24,
+      "named": 7,
+      "ratio": 28.4,
       "ratio_all": 49.7
     },
     "tools/check-gate-dispatch.test.js": {
-      "nonblank": 1067,
-      "comment": 320,
+      "nonblank": 1151,
+      "comment": 345,
       "header": 134,
-      "controls": 26,
-      "named": 2,
-      "ratio": 15,
+      "controls": 29,
+      "named": 8,
+      "ratio": 15.8,
       "ratio_all": 30
     },
     "tools/check-governance-core.js": {
@@ -2142,13 +2312,13 @@
       "ratio_all": 29.3
     },
     "tools/run-checks.js": {
-      "nonblank": 685,
-      "comment": 221,
+      "nonblank": 710,
+      "comment": 237,
       "header": 64,
-      "controls": 18,
+      "controls": 21,
       "named": 1,
-      "ratio": 20.3,
-      "ratio_all": 32.3
+      "ratio": 21.4,
+      "ratio_all": 33.4
     },
     "tools/run-checks.test.js": {
       "nonblank": 511,

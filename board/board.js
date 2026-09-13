@@ -10,7 +10,8 @@
  *
  * WHAT MAKES IT DIFFERENT IS THAT THE RULES REFUSE. Only qa-tester moves a ticket to UAT, and
  * only with test notes written first. A ticket cannot be closed over a decision nobody
- * answered. A question put to the founder must carry numbered options and a recommendation.
+ * answered. A question put to the founder must carry numbered options and a recommendation, and
+ * must reach them through the host's interactive prompt so they answer by clicking.
  * Work in progress has a ceiling. Every one of those is a refusal in this file rather than a
  * paragraph somebody is trusted to remember, because a rule nobody can break is the only kind
  * that survives a bad afternoon.
@@ -965,8 +966,10 @@ commands.note = () => {
   ok(t.ref + '  note added');
 };
 
-// The backlog item raised 2026-08-17: an agent asking the CEO for a decision must arrive with
-// numbered options, a recommendation, an escape hatch, and the ticket number. The value is
+// The backlog item raised 2026-08-17, and tightened 2026-09-13 on the CEO's own instruction: an
+// agent asking the CEO for a decision must arrive through the host's interactive prompt, so they
+// answer by CLICKING, carrying numbered options, a recommendation, an escape hatch, and the ticket
+// number. A numbered list typed into a reply is the thing they objected to. The value is
 // upstream of the founder's convenience -- an agent cannot write the options until it has
 // actually thought the alternatives through, which is the work the open question was avoiding.
 commands.ask = () => {

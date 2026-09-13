@@ -172,7 +172,7 @@ const junk = [];
 let n = 0;
 
 // EVERY FIXTURE ROOT IS A GIT REPOSITORY, AND ITS FIRST COMMIT IS DATED BEFORE THE DISPATCH.
-// The tree half asks git what has landed since the first reviewer was dispatched, so a bare
+// The tree half asks git what has landed since the LATEST qualifying reviewer was dispatched, so a bare
 // temp directory answers "not a repository" and every one of the twenty-two assertions that
 // expect a PASS would have gone advisory instead. They were RESTATED rather than loosened
 // (S134): they need a project that looks like a project, and they were never about git.
@@ -217,11 +217,11 @@ function transcriptDir (w) {
 // something else entirely -- truncated lines, tool renames, null content, flag fallbacks -- go
 // on testing what they are named for rather than the marker. Every one of them went red when the
 // marker landed and every one was RESTATED rather than deleted (S134): they need A PASSING
-// DIRECTOR, they were never about how the director qualifies. The marker gets its own fixtures
+// DOCTOR, they were never about how the doctor qualifies. The marker gets its own fixtures
 // below, where the prompt is stated explicitly in both directions.
 function dispatch (role, prompt, at) {
   const p = prompt === undefined
-    ? (role === 'studio-director' ? 'method review of this session' : 'review the change')
+    ? (role === 'doctor' ? 'method review of this session' : 'review the change')
     : prompt;
   return JSON.stringify({
     type: 'assistant',
@@ -267,7 +267,7 @@ function run (w, extra, id) {
 // --- a review agent was started: the half that announces a check gone paranoid ----------------
 {
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
   const r = run(w);
   ok('a session that started a reviewer passes', r.code === 0);
   ok('and it names which reviewer, so the row is worth reading', /code-reviewer 1/.test(r.out));
@@ -347,7 +347,7 @@ function run (w, extra, id) {
   // THE FIRST RACE, and it was called impossible to fixture twice. See the header.
   const w = world();
   const made = dangling(transcriptDir(w), 'a-vanished.jsonl');
-  session(w, 'z-real', [dispatch('qa-tester'), dispatch('studio-director')]);
+  session(w, 'z-real', [dispatch('qa-tester'), dispatch('doctor')]);
   const r = run(w, [], 'z-real');
   ok('a session listed and then gone before it can be measured is skipped rather than fatal',
     made && r.code === 0);
@@ -377,7 +377,7 @@ function run (w, extra, id) {
 // be counted as unmeasurable rather than as red, which is S127 and cost a whole derivation once.
 {
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
   // In process, so the stripping done for children does not apply and the real id would name a
   // transcript outside the fixture. Restored afterwards whatever happens, because every case
   // below shares this process.
@@ -402,7 +402,7 @@ function run (w, extra, id) {
 }
 
 // --- a reviewer is TWO kinds, and one of each is required -------------------------------------
-// The director reads the METHOD and never the diff, so it can never stand in for the five that
+// The doctor reads the METHOD and never the diff, so it can never stand in for the five that
 // read the WORK, and the five say nothing about whether the studio's own process was followed.
 // The published page draws six Gate tiles; this is the half that makes the six true. ST-156.
 {
@@ -416,7 +416,7 @@ function run (w, extra, id) {
   ok('and it says which half is missing rather than that no review ran at all',
     /NO METHOD REVIEW RAN/.test(r.out) && !/NO REVIEW RAN/.test(r.out));
   ok('and it names what to start, so the refusal is actionable rather than final',
-    /studio-director/.test(r.out));
+    /doctor/.test(r.out));
   ok('and it still names what DID run, so the reader can tell it looked',
     /code-reviewer 1/.test(r.out) && /security-reviewer 1/.test(r.out));
   ok('and it names the session it read, which is the only way to check it read the right one',
@@ -424,24 +424,24 @@ function run (w, extra, id) {
 }
 {
   const w = world();
-  session(w, 's1', [dispatch('studio-director')]);
+  session(w, 's1', [dispatch('doctor')]);
   const r = run(w);
   ok('a session that reviewed the METHOD and not the WORK refuses, which is the whole reason '
-    + 'the director is held in its own list', r.code === 1);
+    + 'the doctor is held in its own list', r.code === 1);
   ok('and it says the work was not read rather than reporting a clean gate',
     /NO PRODUCT REVIEW RAN/.test(r.out));
-  ok('and it names the five that would have counted, none of them the director',
-    /code-reviewer/.test(r.out) && !/Start one of: [^\n]*studio-director/.test(r.out));
+  ok('and it names the five that would have counted, none of them the doctor',
+    /code-reviewer/.test(r.out) && !/Start one of: [^\n]*doctor/.test(r.out));
   ok('and this branch names the session it read too, so neither refusal loses the file',
     /Session: s1\.jsonl/.test(r.out));
 }
 {
   const w = world();
-  session(w, 's1', [dispatch('mobile-qa'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('mobile-qa'), dispatch('doctor')]);
   const r = run(w);
   ok('one of each passes, and that is the only shape that does', r.code === 0);
   ok('and it names both, so the row says which six the page means',
-    /mobile-qa 1/.test(r.out) && /studio-director 1/.test(r.out));
+    /mobile-qa 1/.test(r.out) && /doctor 1/.test(r.out));
 }
 
 // --- the session the HOST names is the one that is read ---------------------------------------
@@ -461,7 +461,7 @@ function run (w, extra, id) {
     /m-newest\.jsonl/.test(r.out));
   const older = run(w, [], 'a-oldest');
   // THE VERDICT IS NOT THE CLAIM HERE, and asserting it would hide the one that is: a-oldest
-  // carries a qa-tester and no director, so it refuses whichever file is read. What is asserted
+  // carries a qa-tester and no doctor, so it refuses whichever file is read. What is asserted
   // is WHICH FILE was read, and that it is not the one every incidental order points at.
   ok('and naming the OLDEST file reads that one, though it is newest by nothing',
     /a-oldest\.jsonl/.test(older.out) && !/m-newest\.jsonl/.test(older.out));
@@ -486,7 +486,7 @@ function run (w, extra, id) {
 {
   const w = world();
   session(w, 'a-oldest', [dispatch('pm')], 1000000);
-  session(w, 'm-newest', [dispatch('mobile-qa'), dispatch('studio-director')], 3000000);
+  session(w, 'm-newest', [dispatch('mobile-qa'), dispatch('doctor')], 3000000);
   session(w, 'z-middle', [dispatch('tech-lead')], 2000000);
   const r = run(w, [], 'm-newest');
   ok('and a reviewer in the NAMED session passes, so the rule is a rule and not an accident',
@@ -498,14 +498,14 @@ function run (w, extra, id) {
 // --- shapes the host really produces ----------------------------------------------------------
 {
   const w = world();
-  session(w, 's1', [dispatch('security-reviewer'), '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Task","input":{"subagent_type":"code-rev', dispatch('studio-director')]);
+  session(w, 's1', [dispatch('security-reviewer'), '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Task","input":{"subagent_type":"code-rev', dispatch('doctor')]);
   const r = run(w);
   ok('a half-written last line is skipped rather than crashing the check', r.code === 0);
   ok('and nothing about the failure reaches the reader as an error', !/SyntaxError/.test(r.out));
 }
 {
   const w = world();
-  session(w, 's1', ['{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Task","input":{"subagent_type":"code-rev', dispatch('security-reviewer'), dispatch('studio-director')]);
+  session(w, 's1', ['{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Task","input":{"subagent_type":"code-rev', dispatch('security-reviewer'), dispatch('doctor')]);
   const r = run(w);
   ok('a half-written line does not stop the scan finding a reviewer AFTER it', r.code === 0);
   ok('and that reviewer is the one counted, so a bad record is skipped and not the rest of the file',
@@ -517,7 +517,7 @@ function run (w, extra, id) {
     type: 'assistant',
     timestamp: '2026-09-06T04:00:09.953Z',
     message: { content: [{ type: 'tool_use', name: 'Task', input: { subagent_type: 'content-reviewer' } }] }
-  }), dispatch('studio-director')]);
+  }), dispatch('doctor')]);
   ok('the older name for the dispatch tool is recognised, so a rename is not a silent miss',
     run(w).code === 0);
 }
@@ -555,7 +555,7 @@ function run (w, extra, id) {
 {
   // THE PAIR: this goes red only when BOTH guards are gone. See the header.
   const w = world();
-  session(w, 's1', ['null', dispatch('qa-tester'), dispatch('studio-director')]);
+  session(w, 's1', ['null', dispatch('qa-tester'), dispatch('doctor')]);
   const r = run(w);
   ok('a bare null line is skipped and the reviewer after it is still found', r.code === 0);
   ok('and nothing about it reaches the reader as an error', !/TypeError/.test(r.out));
@@ -567,7 +567,7 @@ function run (w, extra, id) {
     message: { content: null },
     toolUseResult: { subagent_type: 'code-reviewer' }
   });
-  session(w, 's1', [nullContent, dispatch('qa-tester'), dispatch('studio-director')]);
+  session(w, 's1', [nullContent, dispatch('qa-tester'), dispatch('doctor')]);
   const r = run(w);
   ok('a record whose content is null is skipped, not walked, so the scan survives it', r.code === 0);
   ok('and the reviewer after it is still counted', /qa-tester 1/.test(r.out));
@@ -578,7 +578,7 @@ function run (w, extra, id) {
     type: 'assistant',
     message: { content: 'a plain string mentioning subagent_type in prose' }
   });
-  session(w, 's1', [stringContent, dispatch('qa-tester'), dispatch('studio-director')]);
+  session(w, 's1', [stringContent, dispatch('qa-tester'), dispatch('doctor')]);
   const r = run(w);
   ok('a record whose content is a string is skipped the same way', r.code === 0);
   ok('and the reviewer after THAT is still counted', /qa-tester 1/.test(r.out));
@@ -590,7 +590,7 @@ function run (w, extra, id) {
     type: 'assistant',
     message: { content: { subagent_type: 'code-reviewer' } }
   });
-  session(w, 's1', [objectContent, dispatch('qa-tester'), dispatch('studio-director')]);
+  session(w, 's1', [objectContent, dispatch('qa-tester'), dispatch('doctor')]);
   const r = run(w);
   ok('a record whose content is an OBJECT is skipped rather than walked', r.code === 0);
   ok('and the reviewer after it is still counted, so the file was not abandoned',
@@ -602,7 +602,7 @@ function run (w, extra, id) {
     type: 'assistant',
     timestamp: '2026-09-06T04:00:09.953Z',
     message: { content: [null, { type: 'tool_use', name: 'Agent', input: { subagent_type: 'qa-tester' } }] }
-  }), dispatch('studio-director')]);
+  }), dispatch('doctor')]);
   const r = run(w);
   ok('an empty block inside the content array does not stop the blocks after it', r.code === 0);
 }
@@ -617,7 +617,7 @@ function run (w, extra, id) {
         { type: 'tool_use', name: 'Agent', input: { subagent_type: 'qa-tester' } }
       ]
     }
-  }), dispatch('studio-director')]);
+  }), dispatch('doctor')]);
   const r = run(w);
   ok('a dispatch block carrying no input at all is skipped rather than crashing the scan', r.code === 0);
 }
@@ -630,7 +630,7 @@ function run (w, extra, id) {
   const r = run(world_with(w, [odd]));
   ok('a subagent_type that is not a string is not counted as an agent', /0 agent\(s\) started/.test(r.out));
   const w2 = world();
-  session(w2, 's1', [odd, dispatch('qa-tester'), dispatch('studio-director')]);
+  session(w2, 's1', [odd, dispatch('qa-tester'), dispatch('doctor')]);
   const r2 = run(w2);
   ok('and an odd record does not stop the scan finding a real reviewer after it', r2.code === 0);
   ok('and the real one is the one counted', /qa-tester 1/.test(r2.out));
@@ -683,7 +683,7 @@ function run (w, extra, id) {
 {
   // THE SHAPE PRODUCTION ACTUALLY USES, which until this existed nothing exercised. See header.
   const w = world();
-  session(w, 's1', [dispatch('qa-tester'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('qa-tester'), dispatch('doctor')]);
   const env = Object.assign(baseEnv(), { USERPROFILE: w.home, HOME: w.home, CLAUDE_CODE_SESSION_ID: 's1' });
   let code = 0, out = '';
   try { out = execFileSync('node', [TOOL, '--root', w.root], { env: env, stdio: ['pipe', 'pipe', 'pipe'] }).toString(); }
@@ -694,7 +694,7 @@ function run (w, extra, id) {
 {
   // The other half of the same fallback line.
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
   let code = 0, out = '';
   try { out = execFileSync('node', [TOOL, '--home', w.home], { cwd: w.root, stdio: ['pipe', 'pipe', 'pipe'], env: Object.assign(baseEnv(), { CLAUDE_CODE_SESSION_ID: 's1' }) }).toString(); }
   catch (e) { code = e.status; out = ((e.stdout || '') + (e.stderr || '')).toString(); }
@@ -703,7 +703,7 @@ function run (w, extra, id) {
 }
 {
   const w = world();
-  session(w, 's1', [dispatch('qa-tester'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('qa-tester'), dispatch('doctor')]);
   const r = run(w, ['--quiet']);
   ok('--quiet says nothing at all on a pass, because the gate prints its own row',
     r.code === 0 && r.out === '');
@@ -726,13 +726,13 @@ function run (w, extra, id) {
 // errand assertions below go red while every other assertion in this file stays green.
 {
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', 'report the WIP breaches on the board')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor', 'report the WIP breaches on the board')]);
   const r = run(w);
   // 4, not 1. The method half is ADVISORY now: this branch still fires and still names the
   // errand, and what changed is that it reports rather than refusing a release.
-  ok('a director started ONLY for an errand does not satisfy the method half', r.code === 4);
-  ok('and it says the director WAS started, so the reader is not sent hunting for a defect in the tool',
-    /studio-director was started 1 time\(s\)/.test(r.out));
+  ok('a doctor started ONLY for an errand does not satisfy the method half', r.code === 4);
+  ok('and it says the doctor WAS started, so the reader is not sent hunting for a defect in the tool',
+    /doctor was started 1 time\(s\)/.test(r.out));
   ok('and it calls that dispatch an ERRAND rather than a missing agent',
     /ERRAND/.test(r.out));
   // WHICH TRANSCRIPT WAS READ IS A FACT AND NOT ADVICE, so unlike the explanatory lines around it
@@ -747,28 +747,28 @@ function run (w, extra, id) {
   // the phrase cleared the gate, so the fix had to name WHERE the phrase goes.
   ok('and it names the remedy precisely enough to be followed, which means naming the FIRST LINE',
     /Open the FIRST LINE of that prompt/.test(r.out) && /"method review"/.test(r.out));
-  ok('and it does NOT tell them to start a director they can see they already started',
-    !/Start one of: studio-director/.test(r.out));
+  ok('and it does NOT tell them to start a doctor they can see they already started',
+    !/Start one of: doctor/.test(r.out));
 }
 {
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', 'do a method review of this session')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor', 'do a method review of this session')]);
   const r = run(w);
-  ok('a director asked for a method review satisfies the method half', r.code === 0);
+  ok('a doctor asked for a method review satisfies the method half', r.code === 0);
 }
 {
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', 'METHOD REVIEW: did we follow the process')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor', 'METHOD REVIEW: did we follow the process')]);
   const r = run(w);
   ok('the marker is case-insensitive, because a prompt written in capitals is still the ask',
     r.code === 0);
 }
 {
-  // The realistic shape once the director has two jobs: it is dispatched for both in one session.
+  // The realistic shape once the doctor has two jobs: it is dispatched for both in one session.
   const w = world();
   session(w, 's1', [dispatch('code-reviewer'),
-    dispatch('studio-director', 'report the WIP breaches'),
-    dispatch('studio-director', 'method review before the release')]);
+    dispatch('doctor', 'report the WIP breaches'),
+    dispatch('doctor', 'method review before the release')]);
   const r = run(w);
   ok('an errand and a review in the same session passes, because the review is what is required',
     r.code === 0);
@@ -778,17 +778,17 @@ function run (w, extra, id) {
   // carrying no prompt at all is the shape every fixture in this file had before the split, and
   // reading it as a review would mean the marker could be skipped by omitting a field.
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', '')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor', '')]);
   const r = run(w);
-  ok('a director dispatch with NO prompt is an errand and not a review, so the marker fails closed',
+  ok('a doctor dispatch with NO prompt is an errand and not a review, so the marker fails closed',
     r.code === 4 && /ERRAND/.test(r.out));
 }
 {
   const w = world();
   session(w, 's1', [dispatch('code-reviewer'), dispatch('security-reviewer')]);
   const r = run(w);
-  ok('with no director at all the message is the OTHER one, naming what to start',
-    r.code === 4 && /Start one of: studio-director/.test(r.out) && !/ERRAND/.test(r.out));
+  ok('with no doctor at all the message is the OTHER one, naming what to start',
+    r.code === 4 && /Start one of: doctor/.test(r.out) && !/ERRAND/.test(r.out));
   ok('and that message now names the marker too, so following it actually clears the gate',
     /open its prompt with "method review"/.test(r.out));
 }
@@ -805,7 +805,7 @@ function run (w, extra, id) {
   ];
   disclaimed.forEach((prompt, i) => {
     const w = world();
-    session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', prompt)]);
+    session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor', prompt)]);
     const r = run(w);
     ok('an errand that DISCLAIMS being a method review is still an errand (' + (i + 1) + ' of 3)',
        r.code === 4 && /ERRAND/.test(r.out));
@@ -816,7 +816,7 @@ function run (w, extra, id) {
   // line; a mention three paragraphs down is a mention.
   const w = world();
   session(w, 's1', [dispatch('code-reviewer'),
-    dispatch('studio-director', 'Report the WIP breaches on the board.\nWhile you are there, a method review would be nice.')]);
+    dispatch('doctor', 'Report the WIP breaches on the board.\nWhile you are there, a method review would be nice.')]);
   const r = run(w);
   ok('the phrase buried below the first line does not make an errand a review',
      r.code === 4 && /ERRAND/.test(r.out));
@@ -824,7 +824,7 @@ function run (w, extra, id) {
 {
   const w = world();
   session(w, 's1', [dispatch('code-reviewer'),
-    dispatch('studio-director', 'Do a method review of this session.\nDo NOT fix anything you find.')]);
+    dispatch('doctor', 'Do a method review of this session.\nDo NOT fix anything you find.')]);
   const r = run(w);
   ok('but a negation AFTER the ask is just an instruction, and the review still counts',
      r.code === 0);
@@ -834,11 +834,11 @@ function run (w, extra, id) {
   // command a person runs to find out what a session started.
   const w = world();
   session(w, 's1', [dispatch('qa-tester'),
-    dispatch('studio-director', 'report the WIP breaches'),
-    dispatch('studio-director', 'method review before the release')]);
+    dispatch('doctor', 'report the WIP breaches'),
+    dispatch('doctor', 'method review before the release')]);
   const r = run(w, ['--list']);
-  ok('--list says how many director dispatches were reviews and how many were errands',
-     /studio-director\s+\(1 asked for a method review, 1 errand\)/.test(r.out));
+  ok('--list says how many doctor dispatches were reviews and how many were errands',
+     /doctor\s+\(1 asked for a method review, 1 errand\)/.test(r.out));
   ok('and it does not break down the product reviewers, for whom the name is still the whole answer',
      !/qa-tester.*asked for a method review/.test(r.out) && /qa-tester/.test(r.out));
 }
@@ -846,7 +846,7 @@ function run (w, extra, id) {
   // The marker is the METHOD half's rule and nothing else's. A product reviewer asked to do
   // anything at all still counts, or this split would have quietly tightened the other half.
   const w = world();
-  session(w, 's1', [dispatch('qa-tester', 'check the login flow'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('qa-tester', 'check the login flow'), dispatch('doctor')]);
   const r = run(w);
   ok('a product reviewer needs no marker, because the marker exists for the name with two jobs',
     r.code === 0);
@@ -880,7 +880,88 @@ function run (w, extra, id) {
     verdict('This is a method review of the studio.\nDetails below.') === true);
 }
 
-junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
+// --- ST-246: the gate demanded a name and nothing anywhere proved the name existed -----------
+// A product review renamed base/agents/doctor.md, deleting the only role the gate requires, and
+// measured delta ZERO on every instrument in this repository. Every fixture above writes no
+// roster at all, which is the CANNOT TELL case, and that is precisely why adding the check left
+// all of them green. Each case below names the input that separates it from its neighbour before
+// it is run (S190), because a case that differs from its neighbour in nothing measures nothing.
+function roster (dir, names) {
+  const p = path.join(dir, '.claude', 'agents');
+  fs.mkdirSync(p, { recursive: true });
+  // Filename and frontmatter agree here because that is the ordinary case. The one case where
+  // they DISAGREE is built by hand below, since it is the whole reason the reader parses
+  // frontmatter rather than reading the directory listing.
+  for (const nm of names) {
+    fs.writeFileSync(path.join(p, nm + '.md'),
+      '---\nname: ' + nm + '\ndescription: fixture\n---\n\nbody\n', 'utf8');
+  }
+  return p;
+}
+const ALL_SIX = ['qa-tester', 'code-reviewer', 'security-reviewer', 'content-reviewer',
+  'mobile-qa', 'doctor'];
+const NO_DOCTOR = ALL_SIX.filter(nm => nm !== 'doctor');
+
+{
+  // Separating input: a home roster holding five of the six, the absent one being the method
+  // role. That is exactly the state the studio's own machine was in when this was found.
+  const w = world();
+  roster(w.home, NO_DOCTOR);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
+  const r = run(w);
+  ok('an install that cannot dispatch a reviewer the gate demands is reported, not passed over',
+    /CANNOT DISPATCH 1 REVIEWER\(S\) THIS GATE DEMANDS: doctor/.test(r.out));
+  ok('and it is advisory, because the install is the user directory and not ours to refuse over',
+    r.code === 4);
+  ok('and it names the directory it read, so a reader can check the derivation rather than trust it',
+    /Installed at: /.test(r.out));
+}
+{
+  // Separating input: the same session with the SIXTH file present and nothing else changed. A
+  // report here would be the check firing on something other than absence.
+  const w = world();
+  roster(w.home, ALL_SIX);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
+  const r = run(w);
+  ok('a complete install says nothing at all and leaves the gate clean',
+    r.code === 0 && !/CANNOT DISPATCH/.test(r.out));
+}
+{
+  // Separating input: a roster of the SAME SIZE holding none of these names. A count-based check
+  // cannot tell this from the case above. Refusing here would lock out every reader running the
+  // method with a roster of their own, which is the S189 class.
+  const w = world();
+  roster(w.home, ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta']);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
+  const r = run(w);
+  ok('a roster holding none of these names belongs to somebody else and is not reported on',
+    r.code === 0 && !/CANNOT DISPATCH/.test(r.out));
+}
+{
+  // Separating input: the file is NAMED doctor.md and its frontmatter still declares the old
+  // name. A filename check passes this. The agent registers as studio-director and stays
+  // unreachable, which is the same defect one layer further in.
+  const w = world();
+  const p = roster(w.home, NO_DOCTOR);
+  fs.writeFileSync(path.join(p, 'doctor.md'),
+    '---\nname: studio-director\ndescription: fixture\n---\n\nbody\n', 'utf8');
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
+  const r = run(w);
+  ok('the dispatch name is the FRONTMATTER name, so a renamed file with a stale one is still absent',
+    /CANNOT DISPATCH 1 REVIEWER\(S\) THIS GATE DEMANDS: doctor/.test(r.out));
+}
+{
+  // Separating input: the project roster is complete and the HOME roster is not. A session inside
+  // a project loads that project's roster, so the machine-wide one must not be consulted at all.
+  const w = world();
+  roster(w.home, NO_DOCTOR);
+  roster(w.root, ALL_SIX);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
+  const r = run(w);
+  ok('a project roster wins over the machine-wide one, because that is the one a session loads',
+    r.code === 0 && !/CANNOT DISPATCH/.test(r.out));
+}
+
 /* Measured: a fatal guard firing part way through the studio suite reported 0 failed
    and exit 0, having run 22 of 214, so a count of failures cannot see an assertion that
    never ran. The total is pinned here, and the number is written down rather than measured
@@ -892,7 +973,7 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 // while both were reading, and nothing anywhere reporting it.
 {
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
   const r = run(w);
   ok('with no commit since the dispatch it still passes', r.code === 0);
   // A PASS THAT SAYS NOTHING IS INDISTINGUISHABLE FROM THE HALF NOT RUNNING. Without this, every
@@ -903,7 +984,7 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 }
 {
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
   commitAt(w, '2026-09-06T05:00:00Z', 'a second writer lands mid-review');
   const r = run(w);
   ok('a commit landing AFTER the reviewers were dispatched refuses', r.code === 1);
@@ -930,7 +1011,7 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
   // refuse every session that has ever committed anything.
   const w = world();
   commitAt(w, '2026-09-02T00:00:00Z', 'ordinary work, committed before the review');
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
   const r = run(w);
   ok('a commit BEFORE the dispatch does not refuse', r.code === 0);
 }
@@ -939,7 +1020,7 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
   // outside git must not be told the tree held still, and must not be locked out either.
   const w = world();
   fs.rmSync(path.join(w.root, '.git'), { recursive: true, force: true });
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
   const r = run(w);
   ok('a root that is not a git repository reports it cannot tell rather than passing', r.code === 3);
   ok('and it says so in the words a reader can act on',
@@ -963,7 +1044,7 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
   });
   const noStampDirector = JSON.stringify({
     type: 'assistant',
-    message: { content: [{ type: 'tool_use', name: 'Agent', input: { subagent_type: 'studio-director', prompt: 'method review of this session' } }] }
+    message: { content: [{ type: 'tool_use', name: 'Agent', input: { subagent_type: 'doctor', prompt: 'method review of this session' } }] }
   });
   session(w, 's1', [noStamp, noStampDirector]);
   const r = run(w);
@@ -982,14 +1063,14 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 // about a remedy has to perform the remedy.
 {
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
   commitAt(w, '2026-09-06T05:00:00Z', 'a fix committed after the first review');
   ok('a commit after the first review refuses, which is the state the remedy is printed in',
     run(w).code === 1);
   // Perform the printed remedy: dispatch both kinds again, after that commit.
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director'),
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor'),
     dispatch('code-reviewer', undefined, '2026-09-06T06:00:00.000Z'),
-    dispatch('studio-director', undefined, '2026-09-06T06:00:01.000Z')]);
+    dispatch('doctor', undefined, '2026-09-06T06:00:01.000Z')]);
   const after = run(w);
   ok('and performing that remedy CLEARS it, which is the whole difference between a refusal and a lockout',
     after.code === 0);
@@ -1001,9 +1082,9 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
   // re-running only the product reviewer leaves the method reviewer behind the commit and the
   // refusal correctly stands. Without this, taking the latest of ALL dispatches would pass here.
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
   commitAt(w, '2026-09-06T05:00:00Z', 'a fix committed after the first review');
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director'),
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor'),
     dispatch('code-reviewer', undefined, '2026-09-06T06:00:00.000Z')]);
   ok('re-dispatching only ONE kind does not clear it, because the other still read the older tree',
     run(w).code === 1);
@@ -1015,7 +1096,7 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 {
   const w = world();
   session(w, 's1', [dispatch('code-reviewer', undefined, 'not-a-date'),
-    dispatch('studio-director', undefined, 'not-a-date')]);
+    dispatch('doctor', undefined, 'not-a-date')]);
   commitAt(w, '2026-09-06T05:00:00Z', 'a commit that a working window would have found');
   const r = run(w);
   ok('an unreadable timestamp is cannot-tell', r.code === 3);
@@ -1039,7 +1120,7 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
   // return gone, this is what holds the field-count guard in place: without it an empty git
   // result becomes one commit with no hash and refuses a release nothing is wrong with.
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
   const r = run(w);
   ok('an empty git result is no commits, not one blank one', r.code === 0);
   ok('and it does not claim a commit landed', !/THE TREE MOVED/.test(r.out));
@@ -1047,7 +1128,7 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 {
   // One kind readable and the other not is still cannot-tell: a window needs both ends.
   const w = world();
-  session(w, 's1', [dispatch('code-reviewer'), dispatch('studio-director', undefined, 'not-a-date')]);
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor', undefined, 'not-a-date')]);
   commitAt(w, '2026-09-06T05:00:00Z', 'a commit that a working window would have found');
   ok('one kind readable and the other not is still cannot-tell, never a pass', run(w).code === 3);
 }
@@ -1078,7 +1159,13 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
     /NO METHOD REVIEW RAN/.test(r.out));
 }
 
-const EXPECTED_ASSERTIONS = 141;
+// MOVED HERE FROM MID-FILE, WHICH IS ST-246 M5. It used to run before roughly fifteen further
+// blocks, so every world those built was never removed: a product review counted 11,630
+// gate-dispatch-* directories in the temp directory, each one a git repository. Nothing failed,
+// which is why it survived. It has to be the last statement before the tally.
+junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
+
+const EXPECTED_ASSERTIONS = 148;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

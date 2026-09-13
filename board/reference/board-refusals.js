@@ -54,7 +54,8 @@ function assertNoOpenDecision(ticket, action) {
   }
 }
 
-// The decision format, enforced rather than described. An agent cannot write numbered options
+// The decision format, enforced rather than described. The options must reach the founder through
+// the host's interactive prompt, so the answer is a click. An agent cannot write numbered options
 // until it has actually thought the alternatives through, which is the point of the format.
 function assertDecisionShape(options, recommend) {
   if (!options || !options.length) {

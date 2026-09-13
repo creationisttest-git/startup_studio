@@ -6,6 +6,101 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-13
+
+### A decision now reaches you as something you click, and the release gate no longer demands a reviewer nobody could prove existed
+
+**What this gives you.** Three things, in the order they will matter to you. When an agent needs a
+decision from you, it has to raise your tool's interactive multiple-choice prompt so you answer by
+clicking, rather than typing a list into a reply and hoping you scroll. There is now an instrument
+that measures whether that actually happened, and it is the first one this project has ever had for
+it. And the release gate no longer names a reviewer role that nothing anywhere proved was real.
+
+- **The rule you were given told every agent to do the wrong thing.** The shared rule about asking
+  for a decision said "numbered options, so the reply can be a single character". That describes a
+  list typed into a reply. It is now the interactive prompt, with the prose list demoted to a
+  fallback for the one case that genuinely has no prompt available, which is a dispatched subagent
+  handing its options back to the session that dispatched it. The rule is one file composed into
+  seventeen roles and into the shared governance, so it changed in one place and arrives everywhere.
+- **Nothing had ever measured it, and that is the part worth knowing.** A search for the prompt by
+  name across every document under the venture root found it in no governance file and no
+  instrument. The companion rule about brevity has had a measuring tool for weeks. So one of the two
+  rules about how you are spoken to was enforced and the other was decoration, and no report would
+  have told you which.
+- **`tools/check-decision-shape.js` is the new instrument.** It reads the session's own record and
+  the project's board and reports how many decisions were put to you against how many prompts were
+  actually raised, marking each decision as PROMPT or PROSE. It refuses on the board record, which
+  is unambiguous, and only reports on whether a reply merely looks like a list of options, because
+  numbered steps followed by a question is how anybody writes ordinary instructions and refusing on
+  that shape would fail correct work. It runs in the wind-down set. Twenty assertions, and a project
+  with no board reads as cannot-tell rather than as a project in breach.
+- **The role that reports on your sessions now leads with those two.** Brevity and the clickable
+  decision are sections one and two of the doctor's review, ahead of the instruments and the
+  process, because those are the only two surfaces you actually see.
+
+**The release gate demanded a role name and nothing proved the name existed.** The gate required a
+reviewer called `doctor` and matched it by exact name against a hand written constant. Deleting that
+role from the repository moved no number anywhere: the session start set, the gate's own suite and
+the roster count were all identical either way, because the roster check counts FILES and the gate
+matches NAMES. Two surfaces were being compared to each other and neither to the roster, so they
+could agree perfectly about a role that did not exist.
+
+- **It was live rather than theoretical.** The roster installed on the machine that publishes this
+  project held the role under its old name and no `doctor.md` at all, so the gate was printing "start
+  one of: doctor" to an install that could not start one.
+- **And a sync could not have fixed it, which is why the rename had quietly been blocked.** The
+  global install wrote every file the base defines and removed nothing the base had dropped, so a
+  sync would have installed the new name and left the old one in place for ever, still dispatchable
+  and still carrying claims that had just been corrected. The install now prunes what it placed and
+  no longer recognises, and it keeps anything hand edited unless you pass `-Force`.
+- **The split between refusing and reporting is deliberate.** The test suite REFUSES when the gate's
+  constants disagree with the roles in this repository, because that is ours and a disagreement is a
+  defect. The tool only REPORTS on the roster installed in your own home directory, because you may
+  be running the method with no roster or with one you wrote yourself, and there is no way to tell a
+  broken install from a different setup by looking at it.
+
+**A sentence in the shared governance had been false for months and was about to be copied into
+every project.** `AGENTS.md` said that each reviewer returns PASS or FAIL and that only then is a
+deploy permitted. No reviewer's verdict has ever blocked anything here, and that includes the work
+reviewers: nothing in this repository opens a review transcript, so no PASS and no FAIL has ever
+been read by the gate. What the gate does refuse on is whether a review HAPPENED, which is a
+different question and the only one it can answer from the record it keeps. A forced governance sync
+was about to push the old sentence into five projects, so it was corrected first. It now says
+plainly that no verdict stops a deploy, and that the teeth are the ticket a finding gets written to
+rather than the gate.
+
+**The method reviewer is called the doctor everywhere.** The role that checked the installation
+across projects and the role that checked whether a session followed the method were doing one job
+from opposite ends, and neither was read by anything. They are one role now. The rename touched the
+roster, the shared governance, the gate tool and the published site, and every edit was applied by a
+script that refused unless its pattern matched exactly once, because a plain search for the old name
+returned more than fourteen hundred hits across a hundred and seventy five files and almost all of
+them were the word directory.
+
+**A review of this release found three things in it that should not have gone out, and the worst
+one would have deleted most of your roster.** None of them reached you, because the review ran
+before the publish rather than after it, which is the whole reason that step exists.
+
+- **`-Sync -Only <role>` deleted every role it was told to skip.** The prune added earlier in this
+  same release read the filtered list of roles rather than the full one, so every role you asked it
+  to leave alone looked exactly like a role that no longer exists. Running it for one role reported
+  sixteen others as dropped from the source and would have removed all sixteen from your machine,
+  giving a reason that was untrue of every one of them. `-Update` went through the same code. It now
+  refuses to prune at all on a filtered run and says why, and it refuses again if the source
+  directory is empty, which would otherwise have turned a sync into an uninstall.
+- **The note describing that fix repeated the false claim it was describing.** The entry above about
+  reviewers and deploys said the blocking rule was true of the work reviewers. It is true of neither.
+  Nothing in this tool has ever read a reviewer's verdict, so no PASS and no FAIL has ever stopped
+  anything; what the gate checks is whether a review happened at all. The sentence has been rewritten
+  from the code rather than from memory of it, which is the third time in two releases that
+  correcting a false claim produced a new one.
+- **The new check for clickable decisions accused a session of something it had not done.** When a
+  decision had no prompt inside its own window it said the decision had reached you without one,
+  printed directly under a line counting the prompts that were raised. The two causes are different
+  faults: no prompt at all, or a prompt raised before the question was written down. It now names
+  which, and for the second it says what to do next time rather than printing an instruction that
+  cannot be carried out now.
+
 ## 2026-09-12
 
 ### Your session start is five checks instead of eleven, and a release no longer waits half an hour on a check nobody reads

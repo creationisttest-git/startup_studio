@@ -381,6 +381,31 @@ function definitions (root) {
       about: 'the replies this session actually sent are point form and lead with the answer'
     },
     {
+      name: 'decision-shape',
+      // THE FOUNDER'S SECOND TOP-TWO MEASURE, AND UNTIL 2026-09-13 NOTHING ANYWHERE COUNTED IT.
+      // They said the projects "don't give me mcq prompts to respond via click inputs". A grep
+      // that day for AskUserQuestion across every markdown file under the venture root found it in
+      // NO governance file and NO instrument, while the rule that did exist told every reader to
+      // write "numbered options, so the reply can be a single character", which describes a list
+      // typed into a reply rather than a prompt. A rule can reach 17 roles and 11 of 11 project
+      // sessions and still be invisible, because nothing ever read the surface it governs. That is
+      // the asymmetry worth keeping: brevity has had an instrument for weeks and this had none.
+      sets: ['wind-down'],
+      // ANCHORED ON THE TOOL, for the same reason reply-shape is. This reads the session transcript
+      // and the board, and neither is a repository artefact, so anchoring the row on anything in
+      // the tree would make it read ABSENT on every installed copy and the check would never run.
+      where: ['tools/check-decision-shape.js'],
+      needs: ['tools/check-decision-shape.js'],
+      build: (f, t) => ({ exe: process.execPath, args: [t.abs, '--root', root, '--quiet'] }),
+      // 3 IS CANNOT TELL AND IT COVERS THE HONEST CASES: no transcript, no board, or no decision
+      // put to the founder in this session. A sitting that needed no decision is not a sitting in
+      // breach, and a project with no board cannot be measured at all, so it reports rather than
+      // refuses (S202). The refusal at 1 is reserved for the unambiguous case: the board holds a
+      // decision put inside this session and no prompt was raised in that decision's own window.
+      advisory: [3],
+      about: 'every decision put to the CEO this session reached them as a clickable prompt'
+    },
+    {
       name: 'reply-shape-recent',
       // Refused a release over a single banned character in the session own replies, and by
       // this project record it blocked four of the last five releases. Nothing a customer

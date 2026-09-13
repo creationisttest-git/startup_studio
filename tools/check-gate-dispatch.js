@@ -42,13 +42,13 @@
  * A REVIEWER IS TWO LISTS AND NOT ONE. PRODUCT_REVIEWERS read the WORK; METHOD_REVIEWERS read
  * the METHOD, meaning whether the studio's own process was followed and whether the replies the
  * founder was sent are the shape the studio publishes. A release needs ONE OF EACH, because as
- * one flat list a session that started only the director would clear a gate whose entire
+ * one flat list a session that started only the doctor would clear a gate whose entire
  * question is whether anybody read the change. The page draws six Gate tiles and this is the six.
  *
- * AND THE METHOD HALF NEEDS THE PROMPT AS WELL AS THE NAME, because the director now has a
+ * AND THE METHOD HALF NEEDS THE PROMPT AS WELL AS THE NAME, because the doctor now has a
  * second job. See METHOD_REVIEW_MARKER below for why the marker sits on the review rather than
- * on the errand. There are three outcomes for that half and not two: no director at all, a
- * director started only for an errand, and a director asked for a method review.
+ * on the errand. There are three outcomes for that half and not two: no doctor at all, a
+ * doctor started only for an errand, and a doctor asked for a method review.
  *
  * FOUR THINGS THE CODE BELOW DECIDES ONCE, AND WHY EACH IS ONE PLACE RATHER THAN TWO.
  * Which roles count as a review and in which of the two kinds, because the same question asked
@@ -92,8 +92,45 @@ const { spawnSync } = require('child_process')
 
 // Two lists, one of each required. See the header for why they cannot be one.
 const PRODUCT_REVIEWERS = ['qa-tester', 'code-reviewer', 'security-reviewer', 'content-reviewer', 'mobile-qa']
-const METHOD_REVIEWERS = ['studio-director']
+const METHOD_REVIEWERS = ['doctor']
 const REVIEW_ROLES = PRODUCT_REVIEWERS.concat(METHOD_REVIEWERS)
+
+// ST-246. THE GATE DEMANDED A NAME AND NOTHING ANYWHERE PROVED THE NAME EXISTED. A product review
+// renamed the single file METHOD_REVIEWERS points at and measured delta ZERO on every instrument
+// in this repository. Live at the time, the studio's own install held studio-director.md and no
+// doctor.md, so this tool printed "Start one of: doctor" to a machine that could not start one.
+// An unperformable remedy is the S148/S177/S178 class, and the method half being advisory since
+// f342f07 made the gate silent as well as dead: nothing distinguished "no doctor exists" from
+// "nobody asked for one".
+//
+// THIS REPORTS AND NEVER REFUSES, AND THAT IS THE WHOLE DESIGN. base/agents is repo-internal, so a
+// disagreement with it is a defect and the PowerShell suite refuses on it. This directory belongs
+// to the USER: they may run the method with no roster, or with one they wrote. Refusing on a state
+// a reader cannot be wrong about is the lockout class this project keeps shipping, so a roster
+// that holds none of these names is CANNOT TELL and says nothing at all (S189).
+//
+// It reads the frontmatter name rather than the filename, because the frontmatter name is what a
+// session can actually dispatch. A file renamed with its frontmatter left alone registers under
+// the old name and would pass a filename check while staying unreachable.
+function installedRoster (root, home) {
+  // The project's own roster wins where it exists, because that is the one a session in that
+  // project loads. The studio itself has none, which is why it falls through to the global one.
+  const dirs = [path.join(root, '.claude', 'agents'), path.join(home, '.claude', 'agents')]
+  for (const dir of dirs) {
+    let files
+    try { files = fs.readdirSync(dir).filter(f => /\.md$/i.test(f)) } catch (e) { continue }
+    if (!files.length) continue
+    const names = []
+    for (const f of files) {
+      let text
+      try { text = fs.readFileSync(path.join(dir, f), 'utf8') } catch (e) { continue }
+      const m = /^name:[ \t]*([a-z0-9-]+)[ \t]*$/m.exec(text)
+      if (m) names.push(m[1])
+    }
+    return { dir: dir, names: names }
+  }
+  return { dir: null, names: [] }
+}
 
 const DISPATCH_TOOLS = ['Agent', 'Task']
 
@@ -104,7 +141,7 @@ const DISPATCH_TOOLS = ['Agent', 'Task']
 // half of this gate without a method review having happened. That is S143's defect arriving from
 // the other direction: not a list widened, but a name that stopped meaning one thing.
 //
-// SO A DIRECTOR DISPATCH COUNTS AS A METHOD REVIEW ONLY WHEN ITS PROMPT SAYS SO. The marker is
+// SO A DOCTOR DISPATCH COUNTS AS A METHOD REVIEW ONLY WHEN ITS PROMPT SAYS SO. The marker is
 // required on the REVIEW rather than on the errand, deliberately, because the two directions fail
 // in opposite ways. Marking the errand fails OPEN: a forgotten marker on a WIP dispatch clears the
 // gate, which is exactly the hole this is closing. Marking the review fails CLOSED: a forgotten
@@ -113,7 +150,7 @@ const DISPATCH_TOOLS = ['Agent', 'Task']
 // lockout.
 //
 // WHAT THIS PROVES AND WHAT IT STILL DOES NOT. It proves the dispatch was FOR a method review
-// rather than for an errand. It cannot prove the director reviewed anything, and never could:
+// rather than for an errand. It cannot prove the doctor reviewed anything, and never could:
 // this check has only ever proved that agents were started. Declared intent is strictly more
 // than a name, and strictly less than a verdict, and a reader who takes it for a verdict has
 // over-read it: the gate stays green whatever the review comes back with.
@@ -305,6 +342,31 @@ function main (argv) {
     return 2
   }
 
+  // ST-246. CARRIED, NEVER RETURNED ON, AND PRINTED HERE SO IT SURVIVES EVERY EXIT BELOW. A
+  // reviewer proved that returning early from this function skips the guards under it, which is
+  // how a product review with a later commit once reached a green gate (S192). It is also the
+  // most useful line to print on the refusal paths: a session told NO REVIEW RAN needs to know
+  // first whether the reviewer it was about to start exists at all.
+  let rosterAdvisory = 0
+  const roster = installedRoster(root, home)
+  const absentRoles = roster.names.length
+    ? REVIEW_ROLES.filter(n => roster.names.indexOf(n) === -1)
+    : []
+  // Some but not all. A roster holding NONE of these names is somebody else's roster, or none at
+  // all, and this tool has nothing to say about it.
+  if (absentRoles.length && absentRoles.length < REVIEW_ROLES.length) {
+    process.stdout.write('  THE INSTALLED ROSTER CANNOT DISPATCH ' + absentRoles.length +
+      ' REVIEWER(S) THIS GATE DEMANDS: ' + absentRoles.join(', ') + '.\n')
+    process.stdout.write('  Installed at: ' + roster.dir + '\n')
+    process.stdout.write('  So any remedy below naming one of those is unperformable, and a\n')
+    process.stdout.write('  release can never satisfy that half however many times it is run.\n')
+    process.stdout.write('  Run studio.ps1 -Sync to install what base/agents defines.\n')
+    // 4, advisory. The install is the user's own directory and this tool does not get to refuse
+    // over its contents. base/agents is where a disagreement is a defect, and the suite refuses
+    // on that one.
+    rosterAdvisory = 4
+  }
+
   const t = transcriptsFor(root, home)
   if (t.why) {
     // It prints where it looked, because the derivation is the thing most likely to be wrong
@@ -369,7 +431,7 @@ function main (argv) {
     return 1
   }
 
-  // TWO DIFFERENT MISSES, TWO DIFFERENT MESSAGES. Telling someone to start a director they can
+  // TWO DIFFERENT MISSES, TWO DIFFERENT MESSAGES. Telling someone to start a doctor they can
   // see they already started sends them looking for a defect in the tool. The errand case is the
   // one this split exists for and it names its own remedy.
   // Carried to the end rather than returned on, so the TREE half below still runs. A reviewer
@@ -380,7 +442,7 @@ function main (argv) {
     process.stdout.write('  NO METHOD REVIEW RAN in this session, though ' + METHOD_REVIEWERS.join('/') +
       ' was started ' + methodDispatched.length + ' time(s).\n')
     process.stdout.write('  Every one of those was an ERRAND: no prompt asked for a method review, so none of\n')
-    process.stdout.write('  them counts as one. Dispatching the director to report a breach is not a review of\n')
+    process.stdout.write('  them counts as one. Dispatching the doctor to report a breach is not a review of\n')
     process.stdout.write('  the method, and one name cannot stand for both.\n')
     process.stdout.write('  Open the FIRST LINE of that prompt with what you are asking for: "method review".\n')
     process.stdout.write('  Mentioning it further down, or after a "not", is how an errand disclaiming\n')
@@ -446,7 +508,7 @@ function main (argv) {
   }
   if (since.commits.length) {
     process.stdout.write('  THE TREE MOVED AFTER THE REVIEW STARTED. ' + since.commits.length +
-      ' commit(s) landed since the first reviewer was dispatched at ' + earliest + '.\n')
+      ' commit(s) landed since the latest qualifying reviewer was dispatched at ' + earliest + '.\n')
     for (const c of since.commits) {
       process.stdout.write('    ' + c.hash + '  ' + c.at + '  ' + c.subject + '\n')
     }
@@ -463,7 +525,9 @@ function main (argv) {
   say('  It proves they were started, never that they passed. Session: ' + path.basename(file))
   // 0 clean, or 4 when the tree held but no method review ran. The tree half has been asked
   // either way, which is the whole point of carrying the miss down here.
-  return methodAdvisory
+  // Either miss is advisory and both have already printed. || rather than a sum, because the
+  // runner reads a code and not a tally, and 4 is the one code it treats as a notice.
+  return methodAdvisory || rosterAdvisory
 }
 
 if (require.main === module) process.exit(main(process.argv.slice(2)))
