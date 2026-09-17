@@ -138,6 +138,17 @@ const CLEAN_JS = lines([
   ok('gate round is named', T.namedBy('// this cost a gate round', roles).indexOf('round') !== -1);
   ok('a plain why sentence names nothing', T.namedBy('// the value must never be zero', roles).length === 0);
   ok('with no roster, a role name is not named', T.namedBy('// qa-tester found this', null).length === 0);
+
+  // A hyphen in front of a name means it is not a person: a switch written -Name, or a compound
+  // identifier whose tail is a name. Mutation: remove the lookbehind and the first two redden while
+  // the third stays green, which is what rules out simply dropping the colliding name.
+  const roles2 = T.roleRegex(['qa-tester', 'doctor']);
+  ok('a name used as a command-line switch is not a role mention',
+    T.namedBy('// -Doctor reports what has drifted, per project', roles2).length === 0);
+  ok('a name that is the tail of a compound identifier is not a role mention',
+    T.namedBy('// that one file backs both board-audit and board-doctor', roles2).length === 0);
+  ok('the same word genuinely naming a role is still a role mention, so the fix is not a deletion',
+    T.namedBy('// the doctor reads the method and never the diff', roles2).indexOf('role') !== -1);
 }
 
 // --- measuring one file: header, controls, named, ratio ------------------------------------
@@ -485,7 +496,7 @@ const CLEAN_JS = lines([
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 115;
+const EXPECTED_ASSERTIONS = 118;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

@@ -385,7 +385,84 @@ junk.forEach(d => { try { fs.rmSync(d, { recursive: true, force: true }); } catc
     /--root needs a value/.test(b.out));
 }
 
-const EXPECTED_ASSERTIONS = 41;
+// --- the fast half: is this baseline still about the file it describes? ---------------------------
+//
+// The question --stale-only answers is not the question the rest of this file is about, and the
+// reason it exists is a defect rather than a feature: the slow derivation was put in a set no gate
+// triggers, so the baseline drifted from two accepted lines to seven with every instrument in the
+// repository reporting clean. These assertions are about the cheap question being answered cheaply
+// and honestly, which means CANNOT TELL is not allowed to look like a pass.
+{
+  const d = world(ALL_THREE);
+  const r = run(d, ['--stale-only']);
+  ok('with no stamp recorded, staleness is CANNOT TELL and not a pass', r.code === 3);
+  ok('and it says in words that it is not a pass', /NOT a pass/.test(r.out));
+  ok('and it names the command that would settle it', /--write-baseline/.test(r.out));
+}
+{
+  // THE SEPARATING ASSERTION FOR "IT IS FAST". The suite here is red before any mutation, which
+  // makes the experiment refuse with a usage error. If --stale-only still answers its own
+  // question, it provably never reached the experiment. A timing assertion would say the same
+  // thing less reliably on a loaded machine.
+  const d = world(ALL_THREE);
+  fs.writeFileSync(path.join(d, 't.test.js'),
+    FIXTURE_SUITE.replace("ok('the yes flag passes', code(['--yes']) === 0)",
+      "ok('a deliberately failing assertion', false)"), 'utf8');
+  const slow = run(d, []);
+  ok('the experiment itself cannot run against a red suite', slow.code === 2);
+  const fast = run(d, ['--stale-only']);
+  ok('but the staleness question is still answered, so it never ran the experiment', fast.code === 3);
+}
+{
+  const d = world(ALL_THREE);
+  const w = run(d, ['--write-baseline']);
+  ok('writing a baseline succeeds on the fixture pair', w.code === 0);
+  ok('and it says it stamped one', /stamped \d{4}-\d{2}-\d{2}/.test(w.out));
+  const stored = JSON.parse(fs.readFileSync(path.join(d, 'base.json'), 'utf8'));
+  ok('the stamp is recorded under a key that is not a file entry',
+     !!stored.__stamps && !!stored.__stamps['t.js']);
+  ok('and it carries both sides of the pair, not just the tool',
+     !!stored.__stamps['t.js'].tool && !!stored.__stamps['t.js'].suite);
+  ok('a freshly stamped baseline is not stale', run(d, ['--stale-only']).code === 0);
+}
+{
+  const d = world(ALL_THREE);
+  run(d, ['--write-baseline']);
+  const p = path.join(d, 't.js');
+  fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('var unused = 1', 'var unused = 2'), 'utf8');
+  const r = run(d, ['--stale-only']);
+  ok('a changed CODE line in the tool makes the baseline stale', r.code === 1);
+  ok('and the refusal names which side of the pair moved', /t\.js has changed since/.test(r.out));
+  ok('and it names the date the answer was derived on', /derived on \d{4}-\d{2}-\d{2}/.test(r.out));
+}
+{
+  // THE CRY-WOLF GUARD. A whole-file hash would redden here, and a check that refuses over a
+  // comment is one people learn to pass over, which is how the slow one came to be ignored.
+  const d = world(ALL_THREE);
+  run(d, ['--write-baseline']);
+  const p = path.join(d, 't.js');
+  fs.writeFileSync(p, '// a comment carrying no code at all\n' + fs.readFileSync(p, 'utf8'), 'utf8');
+  ok('a comment added to the tool is NOT reported as drift', run(d, ['--stale-only']).code === 0);
+}
+{
+  const d = world(ALL_THREE);
+  run(d, ['--write-baseline']);
+  const p = path.join(d, 't.test.js');
+  fs.writeFileSync(p, fs.readFileSync(p, 'utf8')
+    .replace("ok('and without it the tool refuses', code([]) === 1)", ''), 'utf8');
+  const r = run(d, ['--stale-only']);
+  ok('a changed SUITE makes the baseline stale too, because coverage is a property of the pair',
+     r.code === 1);
+  ok('and the refusal names the suite rather than the tool', /t\.test\.js has changed since/.test(r.out));
+}
+{
+  const d = world(ALL_THREE);
+  fs.rmSync(path.join(d, 't.js'));
+  const r = run(d, ['--stale-only']);
+  ok('a missing file is a usage error rather than a verdict about staleness', r.code === 2);
+}
+
+const EXPECTED_ASSERTIONS = 58;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

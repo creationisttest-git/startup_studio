@@ -54,9 +54,16 @@ function assertNoOpenDecision(ticket, action) {
   }
 }
 
-// The decision format, enforced rather than described. The options must reach the founder through
-// the host's interactive prompt, so the answer is a click. An agent cannot write numbered options
-// until it has actually thought the alternatives through, which is the point of the format.
+// The decision format. What is enforced here is the SHAPE: at least two options, and a
+// recommendation naming one of them. An agent cannot write numbered options until it has actually
+// thought the alternatives through, which is the point of the format.
+//
+// WHAT IS NOT ENFORCED HERE IS THE CLICK, and this comment used to say it was. The options have to
+// reach the founder through the host's interactive prompt so the answer is a click, and nothing in
+// this file can tell whether that happened: it is handed two arguments and never a session. The
+// rule is real and it is measured elsewhere. A comment claiming a refusal the code does not make
+// is worse than no comment, because a reader who believes it stops looking for the measure.
+// ST-254.
 function assertDecisionShape(options, recommend) {
   if (!options || !options.length) {
     throw new Error(

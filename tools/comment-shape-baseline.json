@@ -1,6 +1,6 @@
 {
   "what": "Per published code file: named comment lines, counted comment ratio and control lines, as tools/check-comment-shape.js defines them. Written only by that tool. The check refuses when any value differs from this record: the wrong way outright, the right way until this record is rewritten, so the record is never slack.",
-  "written": "2026-09-13",
+  "written": "2026-09-18",
   "new_file_cap": 5,
   "overrides": [
     {
@@ -1858,17 +1858,329 @@
       "from": 11,
       "to": 13.3,
       "reason": "ST-249 and ST-251, both product review findings on the release range. studio.ps1 gains the reason a filtered sync must not prune: -Sync -Only deleted every role it was told to skip from the user's own directory and printed that base had dropped them. check-decision-shape.js and its test gain the reason its refusal now splits on the prompt count: the single message asserted the founder got no clickable prompt in a case where one was raised and its own count line said so, which is a claim the tool cannot make. Both are defects a reader cannot see from the code, so the comment is the record."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "named",
+      "from": 2,
+      "to": 3,
+      "reason": "ST-252. tools/check-decision-shape.test.js rises because the three new assertion blocks each carry the mutation that reddens them and the input separating mutant from original, which is this project's own standard for a new assertion and is the reason the blocks read long. tools/check-decision-shape.js falls, because the branch added is code rather than prose. NAMED FILES: tools/check-decision-shape.js and tools/check-decision-shape.test.js, and no others."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "ratio",
+      "from": 13.3,
+      "to": 16.3,
+      "reason": "ST-252. tools/check-decision-shape.test.js rises because the three new assertion blocks each carry the mutation that reddens them and the input separating mutant from original, which is this project's own standard for a new assertion and is the reason the blocks read long. tools/check-decision-shape.js falls, because the branch added is code rather than prose. NAMED FILES: tools/check-decision-shape.js and tools/check-decision-shape.test.js, and no others."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "board/reference/board-refusals.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "ST-253, ST-254 and ST-255, and this reason NAMES EVERY FILE IT COVERS because the finding that produced ST-255 is that 9 of 13 earlier overrides carried a reason naming files other than their own. FALLS, all three caused by the ST-255 lookbehind removing false role matches on a hyphenated switch or compound identifier: studio.ps1 named 13 to 7, tools/check-context-budget.js named 2 to 1, tools/check-document-shape.js named 3 to 2. Those are the measure of the fix and none of the three files was touched by the change that caused the inflation. RISES: tools/check-gate-dispatch.js carries the ST-253 correction saying a forgotten marker does not refuse a release and has not since f342f07; base/board/reference/board-refusals.js carries the ST-254 correction saying the click is not enforced there; tools/check-comment-shape.js carries the reason a hyphen-prefixed name is not a role mention; tools/check-comment-shape.test.js carries the mutation line for the three new assertions. FALL: base/board/board.js, from the ST-254 rewrite of its refusal list."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "board/reference/board-refusals.js",
+      "field": "ratio",
+      "from": 12.3,
+      "to": 18.2,
+      "reason": "ST-253, ST-254 and ST-255, and this reason NAMES EVERY FILE IT COVERS because the finding that produced ST-255 is that 9 of 13 earlier overrides carried a reason naming files other than their own. FALLS, all three caused by the ST-255 lookbehind removing false role matches on a hyphenated switch or compound identifier: studio.ps1 named 13 to 7, tools/check-context-budget.js named 2 to 1, tools/check-document-shape.js named 3 to 2. Those are the measure of the fix and none of the three files was touched by the change that caused the inflation. RISES: tools/check-gate-dispatch.js carries the ST-253 correction saying a forgotten marker does not refuse a release and has not since f342f07; base/board/reference/board-refusals.js carries the ST-254 correction saying the click is not enforced there; tools/check-comment-shape.js carries the reason a hyphen-prefixed name is not a role mention; tools/check-comment-shape.test.js carries the mutation line for the three new assertions. FALL: base/board/board.js, from the ST-254 rewrite of its refusal list."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-comment-shape.js",
+      "field": "ratio",
+      "from": 1.5,
+      "to": 3.6,
+      "reason": "ST-253, ST-254 and ST-255, and this reason NAMES EVERY FILE IT COVERS because the finding that produced ST-255 is that 9 of 13 earlier overrides carried a reason naming files other than their own. FALLS, all three caused by the ST-255 lookbehind removing false role matches on a hyphenated switch or compound identifier: studio.ps1 named 13 to 7, tools/check-context-budget.js named 2 to 1, tools/check-document-shape.js named 3 to 2. Those are the measure of the fix and none of the three files was touched by the change that caused the inflation. RISES: tools/check-gate-dispatch.js carries the ST-253 correction saying a forgotten marker does not refuse a release and has not since f342f07; base/board/reference/board-refusals.js carries the ST-254 correction saying the click is not enforced there; tools/check-comment-shape.js carries the reason a hyphen-prefixed name is not a role mention; tools/check-comment-shape.test.js carries the mutation line for the three new assertions. FALL: base/board/board.js, from the ST-254 rewrite of its refusal list."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-comment-shape.test.js",
+      "field": "ratio",
+      "from": 4.8,
+      "to": 4.9,
+      "reason": "ST-253, ST-254 and ST-255, and this reason NAMES EVERY FILE IT COVERS because the finding that produced ST-255 is that 9 of 13 earlier overrides carried a reason naming files other than their own. FALLS, all three caused by the ST-255 lookbehind removing false role matches on a hyphenated switch or compound identifier: studio.ps1 named 13 to 7, tools/check-context-budget.js named 2 to 1, tools/check-document-shape.js named 3 to 2. Those are the measure of the fix and none of the three files was touched by the change that caused the inflation. RISES: tools/check-gate-dispatch.js carries the ST-253 correction saying a forgotten marker does not refuse a release and has not since f342f07; base/board/reference/board-refusals.js carries the ST-254 correction saying the click is not enforced there; tools/check-comment-shape.js carries the reason a hyphen-prefixed name is not a role mention; tools/check-comment-shape.test.js carries the mutation line for the three new assertions. FALL: base/board/board.js, from the ST-254 rewrite of its refusal list."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "named",
+      "from": 7,
+      "to": 8,
+      "reason": "ST-253, ST-254 and ST-255, and this reason NAMES EVERY FILE IT COVERS because the finding that produced ST-255 is that 9 of 13 earlier overrides carried a reason naming files other than their own. FALLS, all three caused by the ST-255 lookbehind removing false role matches on a hyphenated switch or compound identifier: studio.ps1 named 13 to 7, tools/check-context-budget.js named 2 to 1, tools/check-document-shape.js named 3 to 2. Those are the measure of the fix and none of the three files was touched by the change that caused the inflation. RISES: tools/check-gate-dispatch.js carries the ST-253 correction saying a forgotten marker does not refuse a release and has not since f342f07; base/board/reference/board-refusals.js carries the ST-254 correction saying the click is not enforced there; tools/check-comment-shape.js carries the reason a hyphen-prefixed name is not a role mention; tools/check-comment-shape.test.js carries the mutation line for the three new assertions. FALL: base/board/board.js, from the ST-254 rewrite of its refusal list."
+    },
+    {
+      "date": "2026-09-13",
+      "file": "tools/check-gate-dispatch.js",
+      "field": "ratio",
+      "from": 28.4,
+      "to": 29.4,
+      "reason": "ST-253, ST-254 and ST-255, and this reason NAMES EVERY FILE IT COVERS because the finding that produced ST-255 is that 9 of 13 earlier overrides carried a reason naming files other than their own. FALLS, all three caused by the ST-255 lookbehind removing false role matches on a hyphenated switch or compound identifier: studio.ps1 named 13 to 7, tools/check-context-budget.js named 2 to 1, tools/check-document-shape.js named 3 to 2. Those are the measure of the fix and none of the three files was touched by the change that caused the inflation. RISES: tools/check-gate-dispatch.js carries the ST-253 correction saying a forgotten marker does not refuse a release and has not since f342f07; base/board/reference/board-refusals.js carries the ST-254 correction saying the click is not enforced there; tools/check-comment-shape.js carries the reason a hyphen-prefixed name is not a role mention; tools/check-comment-shape.test.js carries the mutation line for the three new assertions. FALL: base/board/board.js, from the ST-254 rewrite of its refusal list."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/check-reply-shape.js",
+      "field": "ratio",
+      "from": 12.7,
+      "to": 14.3,
+      "reason": "ST-257: tools/check-reply-shape.js gains a reply-word cap and stops counting list markers as words; tools/check-reply-shape.test.js gains 23 assertions covering both sides of that boundary, the new usage errors and the marker fix; tools/check-session-brief.test.js names which rule its borrowed prose predicate is not a length cap for. Each added comment states a defect: the retired no-length-cap reasoning, the marker bias against point form, and the guard that must not refuse a default the caller never set."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/check-reply-shape.test.js",
+      "field": "ratio",
+      "from": 12.3,
+      "to": 14.4,
+      "reason": "ST-257: tools/check-reply-shape.js gains a reply-word cap and stops counting list markers as words; tools/check-reply-shape.test.js gains 23 assertions covering both sides of that boundary, the new usage errors and the marker fix; tools/check-session-brief.test.js names which rule its borrowed prose predicate is not a length cap for. Each added comment states a defect: the retired no-length-cap reasoning, the marker bias against point form, and the guard that must not refuse a default the caller never set."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/check-session-brief.test.js",
+      "field": "ratio",
+      "from": 22,
+      "to": 22.5,
+      "reason": "ST-257: tools/check-reply-shape.js gains a reply-word cap and stops counting list markers as words; tools/check-reply-shape.test.js gains 23 assertions covering both sides of that boundary, the new usage errors and the marker fix; tools/check-session-brief.test.js names which rule its borrowed prose predicate is not a length cap for. Each added comment states a defect: the retired no-length-cap reasoning, the marker bias against point form, and the guard that must not refuse a default the caller never set."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/check-decision-shape.js",
+      "field": "named",
+      "from": 1,
+      "to": 3,
+      "reason": "ST-259. Five files, named. tools/check-decision-shape.js gains the atAnswer() predicate and its --at-answer branch, whose comments state why a second entry point exists rather than a second tool (S201) and why the window is unbounded above at answer time. tools/check-decision-shape.test.js gains twelve assertions covering that gate plus a fixture flag for an OPEN decision, which the fixture could not previously express. tools/session-budget.js gains decisionGate(), whose comment carries the two design refusals a later reader would otherwise reverse: not in board.js because that file is published and would gain a dependency on one coding agent (ST-055), and not at the release gate because a decision already written cannot be un-written, which is the defect ST-237 removed. tools/session-budget.test.js gains eleven assertions including four proving the gate stays out of the way. tools/run-checks.js corrects two comments claiming reply-shape-recent is the check a release runs, false since f342f07, and states that NEITHER of the founder top-two measures gates a release and that this is a decision rather than a defect."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/check-decision-shape.js",
+      "field": "ratio",
+      "from": 10,
+      "to": 14.1,
+      "reason": "ST-259. Five files, named. tools/check-decision-shape.js gains the atAnswer() predicate and its --at-answer branch, whose comments state why a second entry point exists rather than a second tool (S201) and why the window is unbounded above at answer time. tools/check-decision-shape.test.js gains twelve assertions covering that gate plus a fixture flag for an OPEN decision, which the fixture could not previously express. tools/session-budget.js gains decisionGate(), whose comment carries the two design refusals a later reader would otherwise reverse: not in board.js because that file is published and would gain a dependency on one coding agent (ST-055), and not at the release gate because a decision already written cannot be un-written, which is the defect ST-237 removed. tools/session-budget.test.js gains eleven assertions including four proving the gate stays out of the way. tools/run-checks.js corrects two comments claiming reply-shape-recent is the check a release runs, false since f342f07, and states that NEITHER of the founder top-two measures gates a release and that this is a decision rather than a defect."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "named",
+      "from": 3,
+      "to": 4,
+      "reason": "ST-259. Five files, named. tools/check-decision-shape.js gains the atAnswer() predicate and its --at-answer branch, whose comments state why a second entry point exists rather than a second tool (S201) and why the window is unbounded above at answer time. tools/check-decision-shape.test.js gains twelve assertions covering that gate plus a fixture flag for an OPEN decision, which the fixture could not previously express. tools/session-budget.js gains decisionGate(), whose comment carries the two design refusals a later reader would otherwise reverse: not in board.js because that file is published and would gain a dependency on one coding agent (ST-055), and not at the release gate because a decision already written cannot be un-written, which is the defect ST-237 removed. tools/session-budget.test.js gains eleven assertions including four proving the gate stays out of the way. tools/run-checks.js corrects two comments claiming reply-shape-recent is the check a release runs, false since f342f07, and states that NEITHER of the founder top-two measures gates a release and that this is a decision rather than a defect."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "ratio",
+      "from": 16.3,
+      "to": 19.1,
+      "reason": "ST-259. Five files, named. tools/check-decision-shape.js gains the atAnswer() predicate and its --at-answer branch, whose comments state why a second entry point exists rather than a second tool (S201) and why the window is unbounded above at answer time. tools/check-decision-shape.test.js gains twelve assertions covering that gate plus a fixture flag for an OPEN decision, which the fixture could not previously express. tools/session-budget.js gains decisionGate(), whose comment carries the two design refusals a later reader would otherwise reverse: not in board.js because that file is published and would gain a dependency on one coding agent (ST-055), and not at the release gate because a decision already written cannot be un-written, which is the defect ST-237 removed. tools/session-budget.test.js gains eleven assertions including four proving the gate stays out of the way. tools/run-checks.js corrects two comments claiming reply-shape-recent is the check a release runs, false since f342f07, and states that NEITHER of the founder top-two measures gates a release and that this is a decision rather than a defect."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/run-checks.js",
+      "field": "named",
+      "from": 1,
+      "to": 3,
+      "reason": "ST-259. Five files, named. tools/check-decision-shape.js gains the atAnswer() predicate and its --at-answer branch, whose comments state why a second entry point exists rather than a second tool (S201) and why the window is unbounded above at answer time. tools/check-decision-shape.test.js gains twelve assertions covering that gate plus a fixture flag for an OPEN decision, which the fixture could not previously express. tools/session-budget.js gains decisionGate(), whose comment carries the two design refusals a later reader would otherwise reverse: not in board.js because that file is published and would gain a dependency on one coding agent (ST-055), and not at the release gate because a decision already written cannot be un-written, which is the defect ST-237 removed. tools/session-budget.test.js gains eleven assertions including four proving the gate stays out of the way. tools/run-checks.js corrects two comments claiming reply-shape-recent is the check a release runs, false since f342f07, and states that NEITHER of the founder top-two measures gates a release and that this is a decision rather than a defect."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 21.4,
+      "to": 22.2,
+      "reason": "ST-259. Five files, named. tools/check-decision-shape.js gains the atAnswer() predicate and its --at-answer branch, whose comments state why a second entry point exists rather than a second tool (S201) and why the window is unbounded above at answer time. tools/check-decision-shape.test.js gains twelve assertions covering that gate plus a fixture flag for an OPEN decision, which the fixture could not previously express. tools/session-budget.js gains decisionGate(), whose comment carries the two design refusals a later reader would otherwise reverse: not in board.js because that file is published and would gain a dependency on one coding agent (ST-055), and not at the release gate because a decision already written cannot be un-written, which is the defect ST-237 removed. tools/session-budget.test.js gains eleven assertions including four proving the gate stays out of the way. tools/run-checks.js corrects two comments claiming reply-shape-recent is the check a release runs, false since f342f07, and states that NEITHER of the founder top-two measures gates a release and that this is a decision rather than a defect."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/session-budget.js",
+      "field": "named",
+      "from": 0,
+      "to": 5,
+      "reason": "ST-259. Five files, named. tools/check-decision-shape.js gains the atAnswer() predicate and its --at-answer branch, whose comments state why a second entry point exists rather than a second tool (S201) and why the window is unbounded above at answer time. tools/check-decision-shape.test.js gains twelve assertions covering that gate plus a fixture flag for an OPEN decision, which the fixture could not previously express. tools/session-budget.js gains decisionGate(), whose comment carries the two design refusals a later reader would otherwise reverse: not in board.js because that file is published and would gain a dependency on one coding agent (ST-055), and not at the release gate because a decision already written cannot be un-written, which is the defect ST-237 removed. tools/session-budget.test.js gains eleven assertions including four proving the gate stays out of the way. tools/run-checks.js corrects two comments claiming reply-shape-recent is the check a release runs, false since f342f07, and states that NEITHER of the founder top-two measures gates a release and that this is a decision rather than a defect."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/session-budget.js",
+      "field": "ratio",
+      "from": 36.7,
+      "to": 38.1,
+      "reason": "ST-259. Five files, named. tools/check-decision-shape.js gains the atAnswer() predicate and its --at-answer branch, whose comments state why a second entry point exists rather than a second tool (S201) and why the window is unbounded above at answer time. tools/check-decision-shape.test.js gains twelve assertions covering that gate plus a fixture flag for an OPEN decision, which the fixture could not previously express. tools/session-budget.js gains decisionGate(), whose comment carries the two design refusals a later reader would otherwise reverse: not in board.js because that file is published and would gain a dependency on one coding agent (ST-055), and not at the release gate because a decision already written cannot be un-written, which is the defect ST-237 removed. tools/session-budget.test.js gains eleven assertions including four proving the gate stays out of the way. tools/run-checks.js corrects two comments claiming reply-shape-recent is the check a release runs, false since f342f07, and states that NEITHER of the founder top-two measures gates a release and that this is a decision rather than a defect."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/session-budget.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 2,
+      "reason": "ST-259. Five files, named. tools/check-decision-shape.js gains the atAnswer() predicate and its --at-answer branch, whose comments state why a second entry point exists rather than a second tool (S201) and why the window is unbounded above at answer time. tools/check-decision-shape.test.js gains twelve assertions covering that gate plus a fixture flag for an OPEN decision, which the fixture could not previously express. tools/session-budget.js gains decisionGate(), whose comment carries the two design refusals a later reader would otherwise reverse: not in board.js because that file is published and would gain a dependency on one coding agent (ST-055), and not at the release gate because a decision already written cannot be un-written, which is the defect ST-237 removed. tools/session-budget.test.js gains eleven assertions including four proving the gate stays out of the way. tools/run-checks.js corrects two comments claiming reply-shape-recent is the check a release runs, false since f342f07, and states that NEITHER of the founder top-two measures gates a release and that this is a decision rather than a defect."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/session-budget.js",
+      "field": "named",
+      "from": 5,
+      "to": 7,
+      "reason": "ST-257 part two. Two files, named. tools/session-budget.js gains tallyInput() and the INPUT_KINDS table, which count what a session SENDS from the tool_name and tool_input the PreToolUse payload already carried and which this file ignored until now; its comment states why the number is counted only because the stop message quotes it (S211), and why a size cap on tool calls was measured and deliberately NOT written, the twenty largest calls of 11,427 carrying 4.1 per cent. tools/session-budget.test.js gains five assertions proving the figure is reported, accumulates across calls, and separates Write from Bash, plus a comment recording that the accumulation fixture failed while the counter under it was already correct, because switching transcript files mid-session defeats the incremental byte offset the tally reads from."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/session-budget.test.js",
+      "field": "named",
+      "from": 2,
+      "to": 3,
+      "reason": "ST-257 part two. Two files, named. tools/session-budget.js gains tallyInput() and the INPUT_KINDS table, which count what a session SENDS from the tool_name and tool_input the PreToolUse payload already carried and which this file ignored until now; its comment states why the number is counted only because the stop message quotes it (S211), and why a size cap on tool calls was measured and deliberately NOT written, the twenty largest calls of 11,427 carrying 4.1 per cent. tools/session-budget.test.js gains five assertions proving the figure is reported, accumulates across calls, and separates Write from Bash, plus a comment recording that the accumulation fixture failed while the counter under it was already correct, because switching transcript files mid-session defeats the incremental byte offset the tally reads from."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/session-budget.test.js",
+      "field": "ratio",
+      "from": 22.1,
+      "to": 23.4,
+      "reason": "ST-257 part two. Two files, named. tools/session-budget.js gains tallyInput() and the INPUT_KINDS table, which count what a session SENDS from the tool_name and tool_input the PreToolUse payload already carried and which this file ignored until now; its comment states why the number is counted only because the stop message quotes it (S211), and why a size cap on tool calls was measured and deliberately NOT written, the twenty largest calls of 11,427 carrying 4.1 per cent. tools/session-budget.test.js gains five assertions proving the figure is reported, accumulates across calls, and separates Write from Bash, plus a comment recording that the accumulation fixture failed while the counter under it was already correct, because switching transcript files mid-session defeats the incremental byte offset the tally reads from."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/make-outline.test.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 10.9,
+      "reason": "ST-261. Two new files, named. tools/make-outline.js is a new instrument whose header carries the two reasons a file SPLITTER was not built instead: a sibling project's largest file is a single IIFE, so cutting it into script tags makes every var and function global at once, which is a behaviour change wearing the costume of a file move; and this project had already recorded on ST-258 that splitting before a read rule exists can RAISE cost, because an agent that reads whole files reads five modules where it read one. tools/make-outline.test.js states why the worst-gap assertion is the one that protects the purpose, since a tool finding two landmarks in a fifteen-thousand-line file passes every other test and saves nothing."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/session-budget.js",
+      "field": "named",
+      "from": 7,
+      "to": 8,
+      "reason": "ST-260: tools/session-budget.js gains boardTicketsFor and the reasoning for why the gate resolves a board the way board.js does, from the same input the caller used; tools/session-budget.test.js gains section 5, six assertions covering the board the gate could not see and the quotation mark that turned it off. Both rises are the provenance of a defect that let the one other project running a live board answer a decision with no prompt."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/session-budget.js",
+      "field": "ratio",
+      "from": 37.3,
+      "to": 38.1,
+      "reason": "ST-260: tools/session-budget.js gains boardTicketsFor and the reasoning for why the gate resolves a board the way board.js does, from the same input the caller used; tools/session-budget.test.js gains section 5, six assertions covering the board the gate could not see and the quotation mark that turned it off. Both rises are the provenance of a defect that let the one other project running a live board answer a decision with no prompt."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/session-budget.test.js",
+      "field": "named",
+      "from": 3,
+      "to": 5,
+      "reason": "ST-260: tools/session-budget.js gains boardTicketsFor and the reasoning for why the gate resolves a board the way board.js does, from the same input the caller used; tools/session-budget.test.js gains section 5, six assertions covering the board the gate could not see and the quotation mark that turned it off. Both rises are the provenance of a defect that let the one other project running a live board answer a decision with no prompt."
+    },
+    {
+      "date": "2026-09-17",
+      "file": "tools/session-budget.test.js",
+      "field": "ratio",
+      "from": 23.4,
+      "to": 25.1,
+      "reason": "ST-260: tools/session-budget.js gains boardTicketsFor and the reasoning for why the gate resolves a board the way board.js does, from the same input the caller used; tools/session-budget.test.js gains section 5, six assertions covering the board the gate could not see and the quotation mark that turned it off. Both rises are the provenance of a defect that let the one other project running a live board answer a decision with no prompt."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 30.5,
+      "to": 31,
+      "reason": "ST-266 and the twenty-fifth sitting's unrecorded work. Six files rise. studio.ps1 carries the ST-266 comment explaining why the leak scan now runs BEFORE the private push and why the STUDIO_SAFE guard moved past the dry-run return, which is the reasoning that stops the next reader deleting the pre-flight as redundant. archive-sittings.js and its suite are new files from ST-264: the tool MOVES content out of a live state document, so its header explains how it finds where history stops and why it refuses rather than guessing, and the suite's new named lines are S54 and S77 in the pin comment added this sitting. check-mutation-coverage.js, its suite and run-checks.js are ST-263 from last sitting: the --stale-only path, its CANNOT TELL exit, and the ADVISORY wiring into session-start. Full provenance per file is on ST-266. None of these is padding; each carries a defect or a named decision."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/archive-sittings.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 6.1,
+      "reason": "ST-266 and the twenty-fifth sitting's unrecorded work. Six files rise. studio.ps1 carries the ST-266 comment explaining why the leak scan now runs BEFORE the private push and why the STUDIO_SAFE guard moved past the dry-run return, which is the reasoning that stops the next reader deleting the pre-flight as redundant. archive-sittings.js and its suite are new files from ST-264: the tool MOVES content out of a live state document, so its header explains how it finds where history stops and why it refuses rather than guessing, and the suite's new named lines are S54 and S77 in the pin comment added this sitting. check-mutation-coverage.js, its suite and run-checks.js are ST-263 from last sitting: the --stale-only path, its CANNOT TELL exit, and the ADVISORY wiring into session-start. Full provenance per file is on ST-266. None of these is padding; each carries a defect or a named decision."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/archive-sittings.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 2,
+      "reason": "ST-266 and the twenty-fifth sitting's unrecorded work. Six files rise. studio.ps1 carries the ST-266 comment explaining why the leak scan now runs BEFORE the private push and why the STUDIO_SAFE guard moved past the dry-run return, which is the reasoning that stops the next reader deleting the pre-flight as redundant. archive-sittings.js and its suite are new files from ST-264: the tool MOVES content out of a live state document, so its header explains how it finds where history stops and why it refuses rather than guessing, and the suite's new named lines are S54 and S77 in the pin comment added this sitting. check-mutation-coverage.js, its suite and run-checks.js are ST-263 from last sitting: the --stale-only path, its CANNOT TELL exit, and the ADVISORY wiring into session-start. Full provenance per file is on ST-266. None of these is padding; each carries a defect or a named decision."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/archive-sittings.test.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 10.9,
+      "reason": "ST-266 and the twenty-fifth sitting's unrecorded work. Six files rise. studio.ps1 carries the ST-266 comment explaining why the leak scan now runs BEFORE the private push and why the STUDIO_SAFE guard moved past the dry-run return, which is the reasoning that stops the next reader deleting the pre-flight as redundant. archive-sittings.js and its suite are new files from ST-264: the tool MOVES content out of a live state document, so its header explains how it finds where history stops and why it refuses rather than guessing, and the suite's new named lines are S54 and S77 in the pin comment added this sitting. check-mutation-coverage.js, its suite and run-checks.js are ST-263 from last sitting: the --stale-only path, its CANNOT TELL exit, and the ADVISORY wiring into session-start. Full provenance per file is on ST-266. None of these is padding; each carries a defect or a named decision."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-mutation-coverage.js",
+      "field": "ratio",
+      "from": 8.8,
+      "to": 9,
+      "reason": "ST-266 and the twenty-fifth sitting's unrecorded work. Six files rise. studio.ps1 carries the ST-266 comment explaining why the leak scan now runs BEFORE the private push and why the STUDIO_SAFE guard moved past the dry-run return, which is the reasoning that stops the next reader deleting the pre-flight as redundant. archive-sittings.js and its suite are new files from ST-264: the tool MOVES content out of a live state document, so its header explains how it finds where history stops and why it refuses rather than guessing, and the suite's new named lines are S54 and S77 in the pin comment added this sitting. check-mutation-coverage.js, its suite and run-checks.js are ST-263 from last sitting: the --stale-only path, its CANNOT TELL exit, and the ADVISORY wiring into session-start. Full provenance per file is on ST-266. None of these is padding; each carries a defect or a named decision."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-mutation-coverage.test.js",
+      "field": "ratio",
+      "from": 6.7,
+      "to": 8.3,
+      "reason": "ST-266 and the twenty-fifth sitting's unrecorded work. Six files rise. studio.ps1 carries the ST-266 comment explaining why the leak scan now runs BEFORE the private push and why the STUDIO_SAFE guard moved past the dry-run return, which is the reasoning that stops the next reader deleting the pre-flight as redundant. archive-sittings.js and its suite are new files from ST-264: the tool MOVES content out of a live state document, so its header explains how it finds where history stops and why it refuses rather than guessing, and the suite's new named lines are S54 and S77 in the pin comment added this sitting. check-mutation-coverage.js, its suite and run-checks.js are ST-263 from last sitting: the --stale-only path, its CANNOT TELL exit, and the ADVISORY wiring into session-start. Full provenance per file is on ST-266. None of these is padding; each carries a defect or a named decision."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.js",
+      "field": "named",
+      "from": 3,
+      "to": 4,
+      "reason": "ST-266 and the twenty-fifth sitting's unrecorded work. Six files rise. studio.ps1 carries the ST-266 comment explaining why the leak scan now runs BEFORE the private push and why the STUDIO_SAFE guard moved past the dry-run return, which is the reasoning that stops the next reader deleting the pre-flight as redundant. archive-sittings.js and its suite are new files from ST-264: the tool MOVES content out of a live state document, so its header explains how it finds where history stops and why it refuses rather than guessing, and the suite's new named lines are S54 and S77 in the pin comment added this sitting. check-mutation-coverage.js, its suite and run-checks.js are ST-263 from last sitting: the --stale-only path, its CANNOT TELL exit, and the ADVISORY wiring into session-start. Full provenance per file is on ST-266. None of these is padding; each carries a defect or a named decision."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 22.2,
+      "to": 22.9,
+      "reason": "ST-266 and the twenty-fifth sitting's unrecorded work. Six files rise. studio.ps1 carries the ST-266 comment explaining why the leak scan now runs BEFORE the private push and why the STUDIO_SAFE guard moved past the dry-run return, which is the reasoning that stops the next reader deleting the pre-flight as redundant. archive-sittings.js and its suite are new files from ST-264: the tool MOVES content out of a live state document, so its header explains how it finds where history stops and why it refuses rather than guessing, and the suite's new named lines are S54 and S77 in the pin comment added this sitting. check-mutation-coverage.js, its suite and run-checks.js are ST-263 from last sitting: the --stale-only path, its CANNOT TELL exit, and the ADVISORY wiring into session-start. Full provenance per file is on ST-266. None of these is padding; each carries a defect or a named decision."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 7,
+      "to": 8,
+      "reason": "ST-266. studio.ps1 carries the comment explaining why the STUDIO_SAFE guard is deliberately untouched after two reverted attempts, and why the leak scan now runs before the private push. tests/studio-self.tests.ps1 carries the reason the release fixture now configures leak patterns, and the record that one assertion's proxy changed while its intent did not. Full provenance on ST-266."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 31,
+      "to": 31.1,
+      "reason": "ST-266. studio.ps1 carries the comment explaining why the STUDIO_SAFE guard is deliberately untouched after two reverted attempts, and why the leak scan now runs before the private push. tests/studio-self.tests.ps1 carries the reason the release fixture now configures leak patterns, and the record that one assertion's proxy changed while its intent did not. Full provenance on ST-266."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 31.1,
+      "to": 31.2,
+      "reason": "ST-266 third pass. studio.ps1 only: the pre-flight's STUDIO_SAFE branch is unreachable today and the comment now says so instead of describing it as live. Found by the second review of the release tree. Provenance on ST-266."
     }
   ],
   "files": {
     "board/board.js": {
-      "nonblank": 1443,
-      "comment": 560,
-      "header": 58,
+      "nonblank": 1451,
+      "comment": 568,
+      "header": 66,
       "controls": 54,
       "named": 5,
-      "ratio": 31,
-      "ratio_all": 38.8
+      "ratio": 30.9,
+      "ratio_all": 39.1
     },
     "board/board.test.js": {
       "nonblank": 1432,
@@ -1889,13 +2201,13 @@
       "ratio_all": 26.2
     },
     "board/reference/board-refusals.js": {
-      "nonblank": 81,
-      "comment": 20,
+      "nonblank": 88,
+      "comment": 27,
       "header": 8,
-      "controls": 2,
-      "named": 0,
-      "ratio": 12.3,
-      "ratio_all": 24.7
+      "controls": 3,
+      "named": 1,
+      "ratio": 18.2,
+      "ratio_all": 30.7
     },
     "board/reference/board-refusals.test.js": {
       "nonblank": 130,
@@ -1979,13 +2291,13 @@
       "ratio_all": 21.4
     },
     "studio.ps1": {
-      "nonblank": 2804,
-      "comment": 993,
+      "nonblank": 2853,
+      "comment": 1033,
       "header": 36,
-      "controls": 102,
-      "named": 13,
-      "ratio": 30.5,
-      "ratio_all": 35.4
+      "controls": 107,
+      "named": 8,
+      "ratio": 31.2,
+      "ratio_all": 36.2
     },
     "tools/archive-decisions.js": {
       "nonblank": 191,
@@ -2004,6 +2316,24 @@
       "named": 2,
       "ratio": 13,
       "ratio_all": 26.4
+    },
+    "tools/archive-sittings.js": {
+      "nonblank": 327,
+      "comment": 100,
+      "header": 78,
+      "controls": 2,
+      "named": 0,
+      "ratio": 6.1,
+      "ratio_all": 30.6
+    },
+    "tools/archive-sittings.test.js": {
+      "nonblank": 274,
+      "comment": 49,
+      "header": 16,
+      "controls": 3,
+      "named": 2,
+      "ratio": 10.9,
+      "ratio_all": 17.9
     },
     "tools/build-releases.js": {
       "nonblank": 686,
@@ -2042,29 +2372,29 @@
       "ratio_all": 29.1
     },
     "tools/check-comment-shape.js": {
-      "nonblank": 543,
-      "comment": 107,
+      "nonblank": 556,
+      "comment": 120,
       "header": 88,
-      "controls": 11,
+      "controls": 12,
       "named": 0,
-      "ratio": 1.5,
-      "ratio_all": 19.7
+      "ratio": 3.6,
+      "ratio_all": 21.6
     },
     "tools/check-comment-shape.test.js": {
-      "nonblank": 459,
-      "comment": 61,
+      "nonblank": 469,
+      "comment": 64,
       "header": 10,
-      "controls": 29,
+      "controls": 31,
       "named": 0,
-      "ratio": 4.8,
-      "ratio_all": 13.3
+      "ratio": 4.9,
+      "ratio_all": 13.6
     },
     "tools/check-context-budget.js": {
       "nonblank": 189,
       "comment": 96,
       "header": 47,
       "controls": 8,
-      "named": 2,
+      "named": 1,
       "ratio": 21.7,
       "ratio_all": 50.8
     },
@@ -2096,29 +2426,29 @@
       "ratio_all": 18.6
     },
     "tools/check-decision-shape.js": {
-      "nonblank": 300,
-      "comment": 83,
-      "header": 49,
-      "controls": 3,
-      "named": 1,
-      "ratio": 10.3,
-      "ratio_all": 27.7
+      "nonblank": 390,
+      "comment": 112,
+      "header": 52,
+      "controls": 5,
+      "named": 3,
+      "ratio": 14.1,
+      "ratio_all": 28.7
     },
     "tools/check-decision-shape.test.js": {
-      "nonblank": 180,
-      "comment": 42,
+      "nonblank": 309,
+      "comment": 80,
       "header": 11,
-      "controls": 7,
-      "named": 2,
-      "ratio": 13.3,
-      "ratio_all": 23.3
+      "controls": 10,
+      "named": 4,
+      "ratio": 19.1,
+      "ratio_all": 25.9
     },
     "tools/check-document-shape.js": {
       "nonblank": 302,
       "comment": 145,
       "header": 60,
       "controls": 14,
-      "named": 3,
+      "named": 2,
       "ratio": 23.5,
       "ratio_all": 48
     },
@@ -2132,13 +2462,13 @@
       "ratio_all": 33.2
     },
     "tools/check-gate-dispatch.js": {
-      "nonblank": 503,
-      "comment": 250,
+      "nonblank": 511,
+      "comment": 258,
       "header": 83,
-      "controls": 24,
-      "named": 7,
-      "ratio": 28.4,
-      "ratio_all": 49.7
+      "controls": 25,
+      "named": 8,
+      "ratio": 29.4,
+      "ratio_all": 50.5
     },
     "tools/check-gate-dispatch.test.js": {
       "nonblank": 1151,
@@ -2204,22 +2534,22 @@
       "ratio_all": 25.1
     },
     "tools/check-mutation-coverage.js": {
-      "nonblank": 342,
-      "comment": 124,
-      "header": 90,
+      "nonblank": 424,
+      "comment": 158,
+      "header": 116,
       "controls": 4,
       "named": 2,
-      "ratio": 8.8,
-      "ratio_all": 36.3
+      "ratio": 9,
+      "ratio_all": 37.3
     },
     "tools/check-mutation-coverage.test.js": {
-      "nonblank": 372,
-      "comment": 78,
+      "nonblank": 448,
+      "comment": 91,
       "header": 40,
-      "controls": 13,
+      "controls": 14,
       "named": 1,
-      "ratio": 6.7,
-      "ratio_all": 21
+      "ratio": 8.3,
+      "ratio_all": 20.3
     },
     "tools/check-published-counts.js": {
       "nonblank": 437,
@@ -2240,22 +2570,22 @@
       "ratio_all": 20.7
     },
     "tools/check-reply-shape.js": {
-      "nonblank": 386,
-      "comment": 170,
-      "header": 119,
-      "controls": 2,
+      "nonblank": 492,
+      "comment": 250,
+      "header": 176,
+      "controls": 5,
       "named": 1,
-      "ratio": 12.7,
-      "ratio_all": 44
+      "ratio": 14,
+      "ratio_all": 50.8
     },
     "tools/check-reply-shape.test.js": {
-      "nonblank": 592,
-      "comment": 123,
+      "nonblank": 709,
+      "comment": 157,
       "header": 42,
-      "controls": 8,
+      "controls": 13,
       "named": 2,
-      "ratio": 12.3,
-      "ratio_all": 20.8
+      "ratio": 14.4,
+      "ratio_all": 22.1
     },
     "tools/check-resume-pointer.js": {
       "nonblank": 167,
@@ -2303,22 +2633,40 @@
       "ratio_all": 49
     },
     "tools/check-session-brief.test.js": {
-      "nonblank": 703,
-      "comment": 206,
+      "nonblank": 707,
+      "comment": 210,
       "header": 8,
       "controls": 43,
       "named": 0,
-      "ratio": 22,
-      "ratio_all": 29.3
+      "ratio": 22.5,
+      "ratio_all": 29.7
+    },
+    "tools/make-outline.js": {
+      "nonblank": 162,
+      "comment": 39,
+      "header": 33,
+      "controls": 1,
+      "named": 0,
+      "ratio": 3.1,
+      "ratio_all": 24.1
+    },
+    "tools/make-outline.test.js": {
+      "nonblank": 129,
+      "comment": 23,
+      "header": 9,
+      "controls": 0,
+      "named": 0,
+      "ratio": 10.9,
+      "ratio_all": 17.8
     },
     "tools/run-checks.js": {
-      "nonblank": 710,
-      "comment": 237,
+      "nonblank": 743,
+      "comment": 262,
       "header": 64,
-      "controls": 21,
-      "named": 1,
-      "ratio": 21.4,
-      "ratio_all": 33.4
+      "controls": 28,
+      "named": 4,
+      "ratio": 22.9,
+      "ratio_all": 35.3
     },
     "tools/run-checks.test.js": {
       "nonblank": 511,
@@ -2330,22 +2678,22 @@
       "ratio_all": 26.8
     },
     "tools/session-budget.js": {
-      "nonblank": 256,
-      "comment": 134,
-      "header": 26,
-      "controls": 14,
-      "named": 0,
-      "ratio": 36.7,
-      "ratio_all": 52.3
+      "nonblank": 449,
+      "comment": 229,
+      "header": 32,
+      "controls": 26,
+      "named": 8,
+      "ratio": 38.1,
+      "ratio_all": 51
     },
     "tools/session-budget.test.js": {
-      "nonblank": 325,
-      "comment": 106,
+      "nonblank": 597,
+      "comment": 190,
       "header": 4,
-      "controls": 27,
-      "named": 0,
-      "ratio": 23.1,
-      "ratio_all": 32.6
+      "controls": 36,
+      "named": 5,
+      "ratio": 25.1,
+      "ratio_all": 31.8
     },
     "tools/session-guard.js": {
       "nonblank": 231,

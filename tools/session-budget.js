@@ -25,6 +25,12 @@
  *
  * It also fails OPEN. Every path is wrapped, and any error at all allows the tool call. A
  * budget guard that crashes and denies all work is worse than no budget guard.
+ *
+ * SECOND JOB, ADDED BY ST-259 ON 2026-09-17: it also refuses a board `answer` for a decision
+ * the founder was never shown as a clickable prompt. It lives here because this is the only
+ * PreToolUse hook the studio registers, and because the founder asked for the MCQ rule to be
+ * ENFORCED rather than counted afterwards. See decisionGate() below for why not in board.js
+ * and why not at the release gate. Same fail-open rule: any error allows the call.
  */
 
 const fs = require('fs');
@@ -145,10 +151,197 @@ function wip (cwd) {
   } catch (e) { return null; }
 }
 
+// ST-257 part two. WHAT THIS SESSION IS SENDING, COUNTED FROM THE PAYLOAD IT IS ALREADY HANDED.
+//
+// Until 2026-09-17 this file read `message.usage` and nothing else, so it could say what a session
+// had COST and never what the cost was made of. Measured across 62 transcripts of this project,
+// tool call inputs are 48 per cent of everything in a transcript, and inside them Bash is 50.2 per
+// cent, Write 27.7 and Edit 13.6. None of that was visible to any instrument; it took a one-off
+// script over the stored transcripts to find it, which means it was not being watched.
+//
+// THE NUMBER IS COUNTED HERE BECAUSE SOMETHING READS IT. It goes into the stop message below, at
+// the one moment a session is actually attending to its own spend. A number nothing reads is a
+// number nothing tests, and the last sitting found a word count that had been wrong in every case
+// for weeks for exactly that reason (S211). If the line ever comes out of the message, delete the
+// counting with it.
+//
+// WHAT IT DELIBERATELY DOES NOT DO. It does not refuse an oversized call. That rule was measured
+// before it was written and it is not worth writing: the twenty largest calls of 11,427 carry 4.1
+// per cent of all tool input characters, so the cost is broad rather than concentrated, and a cap
+// would refuse correct work to save almost nothing. The measurement is on ST-257.
+const INPUT_KINDS = {
+  Write: (i) => String(i.content || '').length,
+  Edit: (i) => String(i.new_string || '').length + String(i.old_string || '').length,
+  Bash: (i) => String(i.command || '').length,
+  PowerShell: (i) => String(i.command || '').length,
+};
+
+function tallyInput (hook, state) {
+  const out = {
+    inputChars: state.inputChars || 0,
+    writeChars: state.writeChars || 0,
+    writeCalls: state.writeCalls || 0,
+  };
+  const name = String(hook.tool_name || '');
+  const fn = INPUT_KINDS[name];
+  if (!fn) return out;
+  let n = 0;
+  try { n = fn(hook.tool_input || {}); } catch (e) { return out; }
+  if (!n || !isFinite(n)) return out;
+  out.inputChars += n;
+  // WRITE IS SEPARATED FROM THE REST BECAUSE IT IS THE ONE A SESSION CAN CHOOSE DIFFERENTLY. It
+  // costs 5,704 characters a call against 1,736 for an edit, and the largest calls in the whole
+  // measurement are Write calls carrying a SCRIPT that then writes a document, so the transcript
+  // pays for the wrapper and the payload both. Naming it separately is what makes that visible at
+  // the moment it can still be changed.
+  if (name === 'Write') { out.writeChars += n; out.writeCalls += 1; }
+  return out;
+}
+
+// ST-259. THE MCQ GATE, AND IT IS HERE RATHER THAN IN THE BOARD FOR ONE REASON.
+//
+// The founder asked on 2026-09-17 whether the work includes ENFORCING the clickable prompt for
+// any input needed from them. It did not. The rule reaches 6 of 6 project sessions and the
+// instrument that reads it, check-decision-shape.js, ran in the wind-down set only: after every
+// decision of the sitting had already been put. By construction it recorded breaches and
+// prevented none.
+//
+// WHY NOT IN board.js, WHICH IS WHERE `answer` LIVES. That file is PUBLISHED. It runs for readers
+// who are not using this host and have no transcript to read, so a transcript-reading refusal
+// there would either break for them or degrade to nothing, and the published board would carry a
+// dependency on one specific coding agent. That is the ST-055 defect, a claim true here and false
+// for the reader. This hook is studio-local and registered in this machine's own settings, so the
+// enforcement lands exactly where it was decided to land: ST-259 d1, studio only, prove it here
+// first, then come back for the other five.
+//
+// WHY PreToolUse AND NOT THE RELEASE GATE. A release refusal is unrecoverable for this class: a
+// decision already written to the board with no prompt cannot be un-written, so refusing at the
+// release would reintroduce the exact defect ST-237 removed when it took reply-shape-recent out of
+// the gating sets for blocking four of five releases over something no customer reads. The moment
+// BETWEEN the board `ask` and the board `answer` is the one where the remedy is performable:
+// raise the prompt, run the answer again. An unperformable remedy is the S148, S177, S178 class.
+//
+// IT FAILS OPEN LIKE EVERYTHING ELSE IN THIS FILE. Any error, any missing field, any unreadable
+// transcript allows the call. The only thing that blocks is the unambiguous case the tool exits 1
+// on, and even that is cleared by doing the thing the rule asks for.
+// THE PROGRAM IS CAPTURED, NOT JUST THE REF, because the program is what says where the board is.
+// AND THE PATH MAY BE QUOTED. Every absolute path on this machine contains a space, so a bare \S*
+// run silently failed to match `node "C:/.../board.js" answer ST-1` and the gate never fired at
+// all. A gate that a quotation mark turns off is worse than no gate, because the transcript shows
+// the call sailing through with no refusal and nothing to read. Three alternates: double quoted,
+// single quoted, bare.
+const ANSWER_CMD = new RegExp(
+  '(?:^|[\\s&|;])(?:node\\s+)?'
+  + '(?:"([^"]*board(?:-cli)?\\.js)"'
+  + "|'([^']*board(?:-cli)?\\.js)'"
+  + '|(\\S*board(?:-cli)?\\.js))'
+  + '\\s+answer\\s+([A-Za-z]+-\\d+)');
+
+// WHERE THE BOARD IS, ANSWERED THE WAY board.js ANSWERS IT, from the same input the caller used.
+//
+// check-decision-shape.js defaults the board to <root>/.board/tickets and looks nowhere else.
+// board.js:97-113 resolves one in FOUR ordered steps. The two disagreed, and the disagreement was
+// not theoretical: the one other project on this machine runs a live board of 154 tickets at board/tickets, resolved
+// by rule 2 because its project.json sits beside its own copy of the program. The gate fired there,
+// looked for .board/tickets, found nothing, exited 3 for CANNOT TELL and ALLOWED the answer. The
+// one other project with a board was the one the gate was blind to, over a directory name.
+//
+// This mirrors resolveRoot() step for step INCLUDING the .git boundary on the walk, with one
+// substitution: board.js uses __dirname because it IS the program, and here the program is the
+// path the caller typed, resolved against the cwd the hook was handed. Deriving it from the
+// command rather than from a second hand-kept list is what stops the two drifting again (S201).
+function boardTicketsFor (cwd, program) {
+  const base = path.resolve(String(cwd || process.cwd()));
+  // 1. BOARD_HOME, explicit, always wins.
+  if (process.env.BOARD_HOME) return path.join(path.resolve(process.env.BOARD_HOME), 'tickets');
+  // 2. A project.json sitting NEXT TO the program. Ahead of the walk, exactly as board.js has it,
+  //    so a stray .board above the directory cannot silently retarget an existing board.
+  if (program) {
+    const progDir = path.dirname(path.resolve(base, String(program)));
+    if (fs.existsSync(path.join(progDir, 'project.json'))) return path.join(progDir, 'tickets');
+  }
+  // 3. A .board found by walking up, stopping at a repository boundary.
+  let dir = base;
+  for (;;) {
+    if (fs.existsSync(path.join(dir, '.board', 'project.json'))) {
+      return path.join(dir, '.board', 'tickets');
+    }
+    if (fs.existsSync(path.join(dir, '.git'))) break;
+    const up = path.dirname(dir);
+    if (up === dir) break;
+    dir = up;
+  }
+  // 4. Otherwise .board in the working directory.
+  return path.join(base, '.board', 'tickets');
+}
+
+function decisionGate (hook) {
+  if (String(hook.tool_name || '') !== 'Bash') return;
+  const input = hook.tool_input || {};
+  const cmd = String(input.command || '');
+  if (!cmd) return;
+  const m = ANSWER_CMD.exec(cmd);
+  if (!m) return;
+  const program = m[1] || m[2] || m[3] || '';
+  const ref = m[4];
+
+  // The decision key, when the command names one. Without it the whole ticket is judged, which is
+  // right for a ticket holding one open question and wrong for a ticket holding several, so the
+  // key is passed through whenever the command carries it.
+  const keyMatch = /--decision\s+(\S+)/.exec(cmd);
+  const key = keyMatch ? keyMatch[1] : '';
+
+  const root = String(hook.cwd || process.cwd());
+  const tool = path.join(__dirname, 'check-decision-shape.js');
+  if (!fs.existsSync(tool)) return;
+
+  let r;
+  try {
+    r = require('child_process').spawnSync(process.execPath,
+      [tool, '--root', root, '--board', boardTicketsFor(root, program), '--at-answer', ref]
+        .concat(key ? ['--decision', key] : []),
+      {
+        encoding: 'utf8',
+        timeout: 5000,
+        // THE SESSION IS NAMED BY THE PAYLOAD, NOT BY THE AMBIENT ENVIRONMENT. check-decision-shape
+        // selects a transcript by CLAUDE_CODE_SESSION_ID with no fallback to newest-by-mtime, which
+        // is deliberate (S186, ST-229): this machine holds dozens of transcripts and a peer session
+        // writing at the same moment would otherwise be measured instead of this one. A hook
+        // subprocess is not guaranteed to inherit that variable, and inheriting it is the wrong
+        // source anyway: the payload states which session is making the call, so it is passed
+        // explicitly. Found by the gate silently ALLOWING a fixture it was supposed to block.
+        env: Object.assign({}, process.env, { CLAUDE_CODE_SESSION_ID: String(hook.session_id || '') })
+      });
+  } catch (e) { return; }
+  // A crash, a timeout, or anything other than the one refusing code ALLOWS the call. Exit 3 is
+  // CANNOT TELL and exit 2 is usage, and neither is evidence of a breach.
+  if (!r || r.status !== 1) return;
+
+  process.stderr.write(
+    'BLOCKED. This would record an answer to a decision the founder was never shown as a\n'
+    + 'clickable prompt.\n\n'
+    + (r.stdout || '').trim() + '\n\n'
+    + 'The rule, from base/fragments/decisions-are-numbered.md: a decision goes to the CEO\n'
+    + 'through the host interactive multiple-choice prompt, so they answer by CLICKING. Two to\n'
+    + 'four options, a recommendation marked (Recommended) in the first, an explicit escape last,\n'
+    + 'and the ticket reference in the question text. A numbered list typed into a reply is the\n'
+    + 'fallback for a host that has no prompt, and this host has one.\n\n'
+    + 'Do this now:\n'
+    + '  1. Raise the prompt with AskUserQuestion, options matching the board ask exactly.\n'
+    + '  2. Run this same answer command again. It will pass.\n');
+  process.exit(2);   // blocking error, fed back to the model
+}
+
 function main () {
   let raw = readStdin();
   let hook = {};
   try { hook = JSON.parse(raw) || {}; } catch (e) { return; }
+
+  // ST-259. THE MCQ GATE RUNS FIRST, and deliberately before the session-id guard. A decision
+  // answered in a session this file cannot identify is still a decision answered with no
+  // prompt, and the gate needs no id: it reads the board and the transcript the hook names.
+  // It is inside main()'s own try/catch at the bottom of this file, so it fails open too.
+  decisionGate(hook);
 
   const id = String(hook.session_id || '').replace(/[^A-Za-z0-9_-]/g, '');
   if (!id) return;
@@ -182,6 +375,7 @@ function main () {
   } catch (e) { state = {}; hadState = false; }
 
   const calls = (state.calls || 0) + 1;
+  const sent = tallyInput(hook, state);
   const t = tally(hook.transcript_path, state);
   const fired = state.fired || 0;
   // TWO MARKS, NOT ONE, AND A SINGLE MARK IS WHY A SPEND STOP GOES MISSING. `due` used to be the
@@ -214,6 +408,8 @@ function main () {
   // cost of the fix: one delayed stop where the file was lost once, against a session that can
   // never be walled where it is lost repeatedly.
   const next = { calls: calls, tokens: t.tokens, offset: t.offset,
+                 inputChars: sent.inputChars, writeChars: sent.writeChars,
+                 writeCalls: sent.writeCalls,
                  fired: hadState ? Math.max(fired, due) : 0,
                  firedWeighted: hadState ? Math.max(firedWeighted, dueWeighted) : 0,
                  firedCalls: hadState ? Math.max(firedCalls, dueCalls) : 0 };
@@ -255,6 +451,13 @@ function main () {
   const msg =
     'STOP. Session budget checkpoint: ' + calls + ' tool calls, ' + est + ', ' + perCall + '.\n' +
     'Fired on: ' + why + '.\n' +
+    'You have SENT ' + Math.round(sent.inputChars / 1000) + 'k characters of tool input this\n' +
+    'session, of which Write is ' + Math.round(sent.writeChars / 1000) + 'k over ' + sent.writeCalls + ' call(s)'
+      + (sent.writeCalls ? ', ' + Math.round(sent.writeChars / sent.writeCalls) + ' per call' : '') + '.\n' +
+    'Measured over 62 transcripts here, tool input is 48 per cent of everything in one, and\n' +
+    'the studio writing its own record is 42 per cent of that. A size cap is NOT the remedy:\n' +
+    'the twenty largest calls of 11,427 carry 4.1 per cent. Writing a document through a\n' +
+    'script pays for the wrapper AND the payload, so edit the document directly.\n' +
     'A segment of this work is budgeted at ' + Math.round(FIRST_WEIGHTED / 1000) + 'k weighted, ' +
     'from the measured shape in this file.\n' +
     'Every request re-sends the whole conversation, so cost grows with the SQUARE of session\n' +

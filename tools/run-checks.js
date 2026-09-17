@@ -243,14 +243,36 @@ function definitions (root) {
     },
     {
       name: 'mutation-coverage',
-      // Thirty minutes per run, in the path between a built change and a testable one. Its
-      // findings are real but they are never urgent: the two open at the time of this change
-      // were fragments of a diagnostic message. A slow check belongs on a schedule, not a gate.
+      // Thirty minutes per run, in the path between a built change and a testable one. A slow
+      // check belongs on a schedule, not a gate, and that part still holds.
+      //
+      // WHAT DID NOT HOLD IS THE REST OF THIS COMMENT, AND IT IS CORRECTED RATHER THAN TIDIED
+      // (S198). It used to argue the findings are never urgent because the two open at the time
+      // were fragments of a diagnostic message. There are SEVEN now. It went from two to seven
+      // over five days with nothing reporting it, because 'deep' is a set no gate triggers, so a
+      // baseline only this check reads was watched only by a check nobody ran, and the comment
+      // saying not to worry was the reason nobody looked. ST-263.
       sets: ['deep'],
       where: ['tools/check-mutation-coverage.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
       // Minutes, not milliseconds: one full suite run per line. Hence release and not session start.
       about: 'every line of the release gate is one an assertion depends on, or is accepted with a reason'
+    },
+    {
+      name: 'mutation-stale',
+      // The cheap half of the question above, in a set that actually runs. It does not derive
+      // anything: it reads the stamp the derivation recorded and compares it to the pair on disk,
+      // in milliseconds. It cannot say WHICH line went silent and does not pretend to. It says
+      // the answer you are holding was computed about a file that has since changed, which is the
+      // fact that was missing for five days while every other instrument reported clean.
+      sets: ['session-start', 'wind-down'],
+      where: ['tools/check-mutation-coverage.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--stale-only', '--quiet'] }),
+      // Exit 3 is a baseline carrying no stamp, which is CANNOT TELL and not a pass. Advisory,
+      // because a reader who has never run the derivation is not a reader in breach (S202), and
+      // the tool says in words that it is not a pass so the distinction cannot be read as clean.
+      advisory: [3],
+      about: 'the coverage baseline is still about the file it describes'
     },
     {
       name: 'decision-keys',
@@ -364,10 +386,18 @@ function definitions (root) {
       // ST-219 d1 SPLIT THIS IN TWO, AND THE TWO ROWS ARE THE WHOLE POINT. This one keeps the
       // ABSOLUTE count and stays in the wind-down, where the number is READ into the compliance
       // table: a slip a session recovered from still happened and the record must not lose it.
-      // The release runs `reply-shape-recent` below instead. They are separate NAMES rather than
-      // one name with different arguments, because the gate keys the ledger on the name, so a
+      // `reply-shape-recent` below is the windowed twin. They are separate NAMES rather than one
+      // name with different arguments, because the gate keys the ledger on the name, so a
       // windowed pass would otherwise overwrite the absolute row and the record would be gone
       // through the very change meant to preserve it.
+      //
+      // CORRECTED 2026-09-17, ST-259. This used to read "the release runs reply-shape-recent
+      // below instead", and that stopped being true at f342f07, where ST-237 moved six checks
+      // out of the gating sets. NEITHER brevity check gates a release now. That is a decision
+      // and not a defect, taken on a measurement: the windowed one blocked four of five
+      // releases over a banned character no customer reads. The comment is corrected rather
+      // than deleted because the founder's own top-two measures are these two rows, and a
+      // reader who believes one of them gates a release will not go looking for what does.
       sets: ['wind-down'],
       // ANCHORED ON THE TOOL, NOT ON CLAUDE.md, BECAUSE CLAUDE.md DOES NOT PUBLISH. This check
       // reads the session TRANSCRIPTS and nothing in the repository, so CLAUDE.md was never the
@@ -411,7 +441,10 @@ function definitions (root) {
       // this project record it blocked four of the last five releases. Nothing a customer
       // reads was ever at stake. The absolute count stays recorded at the wind-down.
       sets: ['deep'],
-      // WHY THE RELEASE ASKS A NARROWER QUESTION THAN THE WIND-DOWN. This check reads a
+      // WHY THIS ASKS A NARROWER QUESTION THAN THE WIND-DOWN ROW ABOVE. Read the sets line: it
+      // is `deep`, so it gates nothing. It was written for the release and ST-237 moved it out
+      // at f342f07 for the reason the first paragraph gives. The narrowing below is still the
+      // right design and is kept for whenever it gates again. This check reads a
       // transcript, and a sent reply cannot be unsent, so under the absolute rule one slip in the
       // first minute condemned every reply after it however clean. That blocked FOUR of the last
       // five releases. Measured before this was built: across 50 stored sittings, 43 of 50 would

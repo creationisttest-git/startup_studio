@@ -10,11 +10,19 @@
  *
  * WHAT MAKES IT DIFFERENT IS THAT THE RULES REFUSE. Only qa-tester moves a ticket to UAT, and
  * only with test notes written first. A ticket cannot be closed over a decision nobody
- * answered. A question put to the founder must carry numbered options and a recommendation, and
- * must reach them through the host's interactive prompt so they answer by clicking.
- * Work in progress has a ceiling. Every one of those is a refusal in this file rather than a
- * paragraph somebody is trusted to remember, because a rule nobody can break is the only kind
- * that survives a bad afternoon.
+ * answered. A question put to the founder must carry numbered options, a recommendation naming
+ * one of them, and an escape. Work in progress has a ceiling. Every one of those is a refusal in
+ * this file rather than a paragraph somebody is trusted to remember, because a rule nobody can
+ * break is the only kind that survives a bad afternoon.
+ *
+ * AND ONE RULE THAT IS NOT A REFUSAL HERE, WHICH THIS COMMENT USED TO CLAIM IT WAS. The decision
+ * has to reach the founder through the host's interactive prompt, so they answer by CLICKING, and
+ * this file cannot see a prompt: it reads its own JSON and never a session transcript. What
+ * measures the click is tools/check-decision-shape.js in the studio repository, which does not
+ * ship with this board. So the board records the SHAPE of a decision and enforces that; whether
+ * the question was put by clicking is real, is the CEO's own top rule, and is measured somewhere
+ * else. Listing it above sold a reader a guarantee they did not receive, which is worse than
+ * omitting it, because the reader stops looking for the instrument. ST-254.
  *
  * ONE INITIATIVE AT A TIME, AND THE WORK IN FLIGHT BELONGS TO IT. A small can be put UNDER a
  * large, and that relation is enforced rather than described: one large in progress; while it is

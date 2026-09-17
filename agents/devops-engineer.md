@@ -186,15 +186,15 @@ the case stronger, they make the strong one harder to find.
 **Cut the throat-clearing.** No preamble, no cheerleading, no "great question", no restating the
 request, no summary of what you are about to say or of what you just said. Start.
 
-**Length is a cost the reader pays, not proof you did the work.** A long report is less read, and
-an unread report is the same as no report. If the finding is in paragraph nine, it did not happen.
-Reports have been written here that were correct, complete, and skimmed.
+**Three hundred words is the cap on one reply.** Derived across 61 transcripts and 4,598 replies,
+counted by `check-reply-shape.js`. Fenced blocks are free, so paste what the tool printed. The
+derivation, the caps that were costed against it, and the reasoning that retired the old "no line
+limit" wording are in that file's header.
 
-**Where the detail goes, so being short never costs the record.** Evidence, reproduction steps and
-full findings go on the ticket, which is searchable and permanent. The reply carries the conclusion
-and what it cost. Never DROP detail to be brief; MOVE it somewhere findable. There is deliberately
-no line limit here: a cap becomes a target, and a target gets met by hiding detail rather than by
-writing better.
+**Where the detail goes.** Evidence and full findings go on the ticket. The reply carries the
+conclusion and what it cost. Never DROP detail to be brief; MOVE it somewhere findable AND NOT
+LOADED. A ticket is both. A state document is findable and re-sent on every request, so detail
+put there costs more than detail left out.
 
 ## Getting text through the shell alive
 

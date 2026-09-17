@@ -296,7 +296,11 @@ function paragraph (words) {
   // Without it the pair above is indistinguishable from a length cap wearing a different name.
   const bullets = paragraph(CAP + 1).split(NL).map(function (l) { return '- ' + l; }).join(NL);
   const r = run(project({ warm: warm({ brief: bullets }), findings: 3 }));
-  ok('the same content in point form passes, so the rule is not a length cap', r.code === 0);
+  // "THE RULE" HERE IS THE PROSE-BLOCK RULE THIS FILE BORROWS, and it says so since 2026-09-17,
+  // when the sibling tool gained a reply-word cap it does NOT borrow. The brief has its own
+  // separate length limit, enforced elsewhere in this file, so an unqualified "not a length cap"
+  // would now read as a claim that the brief is uncapped, which it never was.
+  ok('the same content in point form passes, so the BORROWED PROSE rule is not a length cap', r.code === 0);
   ok('and reports zero prose with the words counted as point form',
      /largest 0, with \d+ word\(s\) in point form/.test(r.out));
 }

@@ -209,10 +209,23 @@ function readRoster (root) {
   return { dir: null, names: [] };
 }
 
+// A NAME IMMEDIATELY AFTER A HYPHEN IS NOT A ROLE MENTION, and without this lookbehind the
+// detector said it was. Two shapes in this tree collide with the roster: a command-line switch,
+// written -Name, and a compound identifier whose tail happens to be a name, written thing-name.
+// Both put a hyphen immediately before the word, and neither is anybody being credited. Left in,
+// they inflate the count for files that merely document the tool, and the inflation is charged to
+// whichever change happened to be measured next, so the record of why a number moved is wrong in a
+// file nobody touched.
+//
+// ONE LOOKBEHIND RATHER THAN A LIST OF EXCEPTIONS, because both shapes are the same shape, and
+// because an exception list has to be maintained against a roster that changes. Removing the
+// colliding name from the roster would instead lose every genuine mention of it, which in this
+// tree outnumbered the false ones three to one. The cost is a genuine mention written -name, which
+// no line here does and which reads as a flag to a human as well.
 function roleRegex (names) {
   if (!names.length) return null;
   var esc = names.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/-/g, '[- ]'); });
-  return new RegExp('\\b(?:' + esc.join('|') + ')\\b', 'i');
+  return new RegExp('(?<!-)\\b(?:' + esc.join('|') + ')\\b', 'i');
 }
 
 function extractLiteral (text, name) {

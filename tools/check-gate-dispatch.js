@@ -145,9 +145,17 @@ const DISPATCH_TOOLS = ['Agent', 'Task']
 // required on the REVIEW rather than on the errand, deliberately, because the two directions fail
 // in opposite ways. Marking the errand fails OPEN: a forgotten marker on a WIP dispatch clears the
 // gate, which is exactly the hole this is closing. Marking the review fails CLOSED: a forgotten
-// marker refuses a release, and the reader clears it by putting three words in the prompt, which
-// the refusal prints. S148 -- a red row a reader can clear with one documented command is not a
-// lockout.
+// marker reads as an errand, so the gate reports that no method review ran rather than accepting
+// one that did not happen, and the reader clears the row by putting three words in the first line
+// of the prompt, which the report prints. S148 -- a row a reader can clear with one documented
+// command is not a lockout.
+//
+// ST-253. THIS COMMENT SAID "a forgotten marker refuses a release" AND HAS BEEN FALSE SINCE
+// f342f07, which is released. The method half carries exit 4 and `run-checks` declares that
+// advisory, so nothing here refuses on a missing method review and the release goes out green.
+// Failing closed now costs the RECORD rather than the release, which is a weaker guarantee and has
+// to be described as the weaker one. A comment is not a dated changelog entry: it mirrors live
+// source and has to track it.
 //
 // WHAT THIS PROVES AND WHAT IT STILL DOES NOT. It proves the dispatch was FOR a method review
 // rather than for an errand. It cannot prove the doctor reviewed anything, and never could:

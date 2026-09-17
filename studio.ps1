@@ -1149,6 +1149,15 @@ function Publish-Public ([string]$RepoUrl, [switch]$DryRun) {
     # The outward-facing writers. STUDIO_SAFE was added after an automated run wrote where
     # it should not have, and these two write to a PUBLIC remote, which is the one write
     # that cannot be undone by running the tool again.
+    #
+    # THIS GUARD IS DELIBERATELY UNTOUCHED, and two attempts to touch it were reverted at the
+    # twenty-sixth sitting. Moving the throw below the -DryRun return broke three assertions
+    # that it refuses BEFORE the leak scan. Exempting the dry run in the condition broke a
+    # fourth, which matches this statement as SOURCE TEXT and so is satisfied by the exact
+    # shape rather than the behaviour. Both tests are right: a safety flag that lets an
+    # automated run get as far as staging and scanning has already lost. The release
+    # pre-flight skips itself when this flag is set instead, which costs nothing, because
+    # with the flag set there was never going to be a publish for it to protect.
     if ($env:STUDIO_SAFE) {
         throw "publish refused: STUDIO_SAFE is set. Unset it to publish for real."
     }
@@ -1564,6 +1573,47 @@ function Invoke-ReleaseInner ($note) {
 
     if (-not (Test-CommentShape)) { return $false }
     if (-not (Test-StudioChecks)) { return $false }
+
+    # THE LEAK SCAN RUNS HERE, BEFORE ANYTHING IS COMMITTED OR PUSHED.
+    #
+    # It used to run only inside Publish-Public, which is called AFTER the private repo has
+    # been committed AND pushed. So a leak refused the publish with private advanced and
+    # public behind, leaving the two repositories split. That is the exact failure this
+    # command exists to prevent, and WARM_START already records that -Status cannot report
+    # public-repo drift, so nothing would have reported the gap afterwards either.
+    #
+    # Found at the twenty-sixth sitting, trying to ship four entries that had waited since
+    # 2026-09-13: ten hits naming two client projects, in CHANGELOG.md and four files under
+    # tools\, all of which publish wholesale.
+    #
+    # Publish-Public -DryRun stages the export and scans it and pushes nothing, so this is
+    # the same answer you would have got later, sooner, for one staging pass.
+    #
+    # -WhatIf IS STILL BLIND TO THIS, DELIBERATELY, AND IT IS RECORDED ON ST-266 RATHER THAN
+    # QUIETLY ACCEPTED. The preview prints "would publish" and never reaches the scan, so it
+    # can still certify a release that is about to refuse. Running the pre-flight under
+    # -WhatIf was tried first and reverted: this suite asserts that a preview
+    # stages NOTHING, and staging the whole export into .public is exactly the mutation that
+    # assertions exist to forbid. A preview that writes to check whether writing is safe has
+    # given up the property that makes it a preview. Closing the gap properly means scanning
+    # into a temporary directory that is not .public, which is its own change with its own
+    # gate. Until then the honest statement is that -WhatIf previews the COMMIT and not the
+    # PUBLISH, and the real run refuses before it can split the two repositories.
+    # STUDIO_SAFE skips the pre-flight rather than failing it, and the honest note is that this
+    # half is UNREACHABLE TODAY: Invoke-Release throws on the flag before this function is ever
+    # called, and it is the only caller. It is kept as belt and braces, named as such rather than
+    # left to read like a live path, because the reason still holds if that ever changes. With
+    # the flag set there is no publish for a pre-flight to protect, so calling it would turn a
+    # clean refusal into a thrown exception from inside a preparation step.
+    if (-not $WhatIf -and -not $env:STUDIO_SAFE) {
+        Write-Host ""
+        Write-Host "PRE-FLIGHT  staging the public export and scanning it before anything moves" -ForegroundColor Cyan
+        if (-not (Publish-Public $PublicRepo -DryRun)) {
+            Write-Host "  RELEASE STOPPED. Nothing was committed, nothing was pushed, and the two" -ForegroundColor Red
+            Write-Host "  repositories are still in step. Fix what the scan named, then run this again." -ForegroundColor Red
+            return $false
+        }
+    }
 
     # 1. the private repo, using the same note
     $dirty = @(git -C $StudioRoot status --porcelain 2>$null | Where-Object { $_ })

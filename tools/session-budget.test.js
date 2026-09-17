@@ -9,6 +9,9 @@ const os = require('os');
 const path = require('path');
 
 const GUARD = path.join(__dirname, 'session-budget.js');
+// ST-259. The gate resolves a transcript directory the same way every other tool here does,
+// through the one exported helper, so a fixture cannot drift from where the tool really looks.
+const gate = require('./check-gate-dispatch.js');
 let pass = 0, fail = 0;
 function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAIL  ' + name); } }
 
@@ -337,7 +340,286 @@ const FIRST_CALLS = 150;
   fs.unlinkSync(s.file); fs.unlinkSync(tr);
 }
 
-const EXPECTED_ASSERTIONS = 36;
+
+// ST-259. THE MCQ GATE. The founder asked on 2026-09-17 whether the work includes ENFORCING the
+// clickable prompt for any input needed from them. Until this, nothing did: the rule reached 6 of 6
+// project sessions and the only instrument reading it ran in the wind-down set, after every
+// decision of the sitting had already been put. These assertions cover the refusal, the pass, and
+// every way the gate is required to stay out of the way, because a PreToolUse hook that blocks
+// wrongly is worse than one that never fires.
+{
+  const gateWorld = (tag, opts) => {
+    const o = opts || {};
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), 'sbg-' + tag + '-'));
+    const root = path.join(base, 'proj');
+    // ST-260. WHERE the board sits is a parameter now, because the defect was a directory name:
+    // the gate looked only at .board and the other project here keeps 154 live tickets in board.
+    // The project.json is written for the same reason board.js demands one, so the fixture is a
+    // real board that its own resolution rules can find rather than a directory of the right shape.
+    const bdir = path.join(root, o.boardAt || '.board');
+    fs.mkdirSync(path.join(bdir, 'tickets'), { recursive: true });
+    fs.writeFileSync(path.join(bdir, 'project.json'),
+      JSON.stringify({ slug: 'fixture', prefix: 'ST', assignees: ['studio'] }), 'utf8');
+    // The transcript has to live where the tool actually looks, which is under the REAL home for
+    // this root's own mangled name. Writing it anywhere else would exercise a path the tool does
+    // not use, and the assertion would prove nothing about the gate (S55).
+    const tdir = path.join(os.homedir(), '.claude', 'projects', gate.projectDirName(root));
+    fs.mkdirSync(tdir, { recursive: true });
+    const sid = 'fixture-session-budget-gate-' + tag;
+    const lines = [JSON.stringify({
+      timestamp: '2026-01-01T00:00:00.000Z',
+      message: { role: 'assistant', content: [{ type: 'text', text: 'the session opens' }] },
+    })];
+    if (o.prompt) {
+      lines.push(JSON.stringify({
+        timestamp: '2026-01-01T00:10:00.000Z',
+        message: { role: 'assistant', content: [{ type: 'tool_use', name: 'AskUserQuestion', input: {} }] },
+      }));
+    }
+    const tfile = path.join(tdir, sid + '.jsonl');
+    fs.writeFileSync(tfile, lines.join('\n') + '\n', 'utf8');
+    if (o.ticket !== false) {
+      fs.writeFileSync(path.join(bdir, 'tickets', 'ST-801.json'), JSON.stringify({
+        ref: 'ST-801', title: 'fixture', status: 'in_progress',
+        decisions: [{ key: 'd1', at: '2026-01-01 00:05:00', by: 'studio',
+          question: 'fixture question', options: ['a', 'b'], recommend: 1,
+          answer: o.answered ? 2 : undefined,
+          answered_at: o.answered ? '2026-01-01 00:06:00' : undefined }],
+      }), 'utf8');
+    }
+    return { root: root, sid: sid, tfile: tfile, tdir: tdir };
+  };
+  const payload = (w, command) => ({
+    session_id: w.sid, cwd: w.root, tool_name: 'Bash', tool_input: { command: command },
+    transcript_path: w.tfile,
+  });
+  const cleanup = (w) => { try { fs.rmSync(w.tfile, { force: true }); } catch (e) {} };
+
+  // 1. THE REFUSAL. An open decision, no prompt in the transcript, and the answer being written.
+  {
+    const w = gateWorld('block', { prompt: false });
+    const r = run(payload(w, 'node base/board/board.js answer ST-801 2 --decision d1'));
+    cleanup(w);
+    ok('the gate BLOCKS a board answer for a decision with no clickable prompt: got exit ' + r.code,
+      r.code === 2);
+    ok('the block says what the rule is rather than only that it failed', /CLICKING/.test(r.err));
+    // THE REMEDY MUST BE PERFORMABLE NOW. This is the whole reason the gate sits at `answer` and
+    // not at the release: raising the prompt clears it, where a release refusal could not be.
+    ok('the block tells the session to raise the prompt and run the command again',
+      /Raise the prompt with AskUserQuestion/.test(r.err) && /run this same answer command again/i.test(r.err));
+    ok('the block quotes the tool own finding rather than paraphrasing it', /ST-801 d1/.test(r.err));
+  }
+
+  // 2. THE PASS. Same world, same command, one prompt raised after the ask.
+  {
+    const w = gateWorld('pass', { prompt: true });
+    const r = run(payload(w, 'node base/board/board.js answer ST-801 2 --decision d1'));
+    cleanup(w);
+    ok('the gate ALLOWS the same answer once a prompt has been raised: got exit ' + r.code,
+      r.code === 0);
+  }
+
+  // 3. EVERY WAY IT MUST STAY OUT OF THE WAY. A hook that blocks the wrong call is worse than one
+  // that never fires, so each of these is a separate assertion rather than one combined case.
+  {
+    const w = gateWorld('quiet', { prompt: false });
+    const other = [
+      ['a board command that is not an answer', 'node base/board/board.js note ST-801 "hello" --by studio'],
+      ['an ask on the same ticket, which is what comes BEFORE the prompt', 'node base/board/board.js ask ST-801 "q" --options "a|b" --by studio'],
+      ['an unrelated shell command that merely mentions the word answer', 'grep -rn "answer" tools/'],
+      ['a board answer for a ticket holding no open decision', 'node base/board/board.js answer ST-899 1 --decision d1'],
+    ];
+    for (const [name, cmd] of other) {
+      const r = run(payload(w, cmd));
+      ok('the gate does not block ' + name + ': got exit ' + r.code, r.code === 0);
+    }
+    // A DIFFERENT TOOL ENTIRELY. tool_name is the first thing read, and a payload from Read or
+    // Write carries no command at all.
+    const rw = run({ session_id: w.sid, cwd: w.root, tool_name: 'Write',
+      tool_input: { file_path: 'x', content: 'node board.js answer ST-801 2' }, transcript_path: w.tfile });
+    ok('the gate does not block a non-Bash tool whose payload contains the command text: got exit '
+      + rw.code, rw.code === 0);
+    cleanup(w);
+  }
+
+  // 4. IT FAILS OPEN, which is this file's own standing rule and the one thing that cannot be
+  // traded away: a hook that crashes and denies every call blocks the wind-down too.
+  {
+    const w = gateWorld('open', { prompt: false });
+    fs.rmSync(w.tfile, { force: true });
+    const r = run(payload(w, 'node base/board/board.js answer ST-801 2 --decision d1'));
+    ok('with the transcript gone the gate ALLOWS rather than blocks: got exit ' + r.code,
+      r.code === 0);
+  }
+
+  // ST-260. 5. THE BOARD THE GATE COULD NOT SEE, AND THE QUOTATION MARK THAT TURNED IT OFF.
+  //
+  // ST-259 shipped the gate and ST-260 asked what it does in the other five projects. Measured
+  // before anything was built: the hook already fires in all of them, registered PreToolUse in
+  // this machine's own settings with an absolute path, and no sibling project overrides it. It
+  // could still never block, for a reason with nothing to do with hooks. check-decision-shape
+  // defaults the board to <root>/.board/tickets and looks nowhere else, while board.js resolves
+  // one in four ordered steps. The other project here runs 154 live tickets at board/tickets,
+  // resolved by board.js rule 2 because its project.json sits beside its own copy of the program.
+  // The gate fired there, found no .board, exited 3 for CANNOT TELL and ALLOWED the answer. The
+  // one other project with a board was the one project the gate was blind to.
+  //
+  // The second half was never about boards at all. Every absolute path on this machine contains
+  // a space, so the command is quoted, and the old trigger needed a bare run of non-space
+  // characters ending in board.js. A quoted path did not match, the gate never fired, and
+  // nothing appeared in the transcript to say so. A gate a quotation mark can switch off looks
+  // exactly like a gate with nothing to complain about.
+  {
+    // 5a. THE NESTED-BOARD SHAPE BLOCKS. project.json beside the program, no .board anywhere.
+    const w = gateWorld('nested-board', { prompt: false, boardAt: 'board' });
+    const r = run(payload(w, 'node board/board.js answer ST-801 2 --decision d1'));
+    ok('a board at board/ rather than .board/ is FOUND and the gate blocks: got exit ' + r.code,
+      r.code === 2);
+    ok('the block names the decision it found on that board', /ST-801 d1/.test(r.err));
+    cleanup(w);
+
+    // 5b. THE SAME WORLD PASSES ONCE A PROMPT IS RAISED. Without this, 5a would also pass if the
+    // gate had started blocking everything, which is the S55 shape: an assertion that cannot
+    // tell the effect it names from a blanket refusal proves nothing.
+    const w2 = gateWorld('nested-board-pass', { prompt: true, boardAt: 'board' });
+    const r2 = run(payload(w2, 'node board/board.js answer ST-801 2 --decision d1'));
+    ok('the same board/ world ALLOWS once a prompt has been raised: got exit ' + r2.code,
+      r2.code === 0);
+    cleanup(w2);
+  }
+  {
+    // 5c. A QUOTED PROGRAM PATH CONTAINING A SPACE STILL FIRES. The path is built from the
+    // fixture's own root, which is a real absolute path, so this is the command a session in a
+    // directory like 'AI Projects' actually writes.
+    const w = gateWorld('quoted', { prompt: false });
+    const prog = path.join(w.root, 'a dir with spaces', 'board.js');
+    const r = run(payload(w, 'node "' + prog + '" answer ST-801 2 --decision d1'));
+    ok('a DOUBLE quoted program path containing a space still fires the gate: got exit ' + r.code,
+      r.code === 2);
+    const r2 = run(payload(w, "node '" + prog + "' answer ST-801 2 --decision d1"));
+    ok('a SINGLE quoted program path containing a space still fires the gate: got exit ' + r2.code,
+      r2.code === 2);
+    cleanup(w);
+  }
+  {
+    // 5d. RULE 2 SITS AHEAD OF RULE 3, and this is the assertion that proves the ORDER rather
+    // than the lookup. board.js says the other order would let a stray .board above the directory
+    // silently retarget an existing board's tickets. So the world holds BOTH: a board/ whose
+    // decision is open, and a .board/ whose decision is already answered. Answered decisions are
+    // skipped, so .board alone would exit 3 and ALLOW. A block can only come from board/.
+    const w = gateWorld('order', { prompt: false, boardAt: 'board' });
+    fs.mkdirSync(path.join(w.root, '.board', 'tickets'), { recursive: true });
+    fs.writeFileSync(path.join(w.root, '.board', 'project.json'),
+      JSON.stringify({ slug: 'decoy', prefix: 'ST', assignees: ['studio'] }), 'utf8');
+    fs.writeFileSync(path.join(w.root, '.board', 'tickets', 'ST-801.json'), JSON.stringify({
+      ref: 'ST-801', title: 'decoy', status: 'in_progress',
+      decisions: [{ key: 'd1', at: '2026-01-01 00:05:00', by: 'studio', question: 'decoy',
+        options: ['a', 'b'], recommend: 1, answer: 2, answered_at: '2026-01-01 00:06:00' }],
+    }), 'utf8');
+    const r = run(payload(w, 'node board/board.js answer ST-801 2 --decision d1'));
+    ok('a project.json beside the program WINS over a .board in the same directory: got exit '
+      + r.code, r.code === 2);
+    cleanup(w);
+  }
+  {
+    // 5e. BOARD_HOME WINS OVER BOTH, which is board.js rule 1 and the way its own tests isolate.
+    // Pointed at a directory holding no tickets, it must produce CANNOT TELL and therefore ALLOW,
+    // in a world whose board/ would otherwise block. That separates rule 1 from rule 2 cleanly.
+    const w = gateWorld('boardhome', { prompt: false, boardAt: 'board' });
+    const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'sbg-empty-'));
+    let code = 0;
+    try {
+      execFileSync('node', [GUARD], {
+        input: JSON.stringify(payload(w, 'node board/board.js answer ST-801 2 --decision d1')),
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: Object.assign({}, process.env, { BOARD_HOME: empty }),
+      });
+    } catch (e) { code = e.status; }
+    ok('BOARD_HOME overrides the board beside the program: got exit ' + code, code === 0);
+    cleanup(w);
+  }
+  {
+    // 5f. NO BOARD ANYWHERE STILL ALLOWS. Four of the six projects have no board at all, and the
+    // gate has to stay silent in every one of them. This is the fail-open contract, restated
+    // against the new resolution rather than inherited from the old one.
+    const w = gateWorld('noboard', { prompt: false, ticket: false });
+    fs.rmSync(path.join(w.root, '.board'), { recursive: true, force: true });
+    const r = run(payload(w, 'node board.js answer ST-801 2 --decision d1'));
+    ok('with no board anywhere the gate ALLOWS rather than blocks: got exit ' + r.code,
+      r.code === 0);
+    cleanup(w);
+  }
+}
+
+
+// ST-257 part two. THE SESSION NOW COUNTS WHAT IT SENDS, AND THE STOP MESSAGE READS THE NUMBER.
+// Until 2026-09-17 this file read message.usage and nothing else, so it knew what a session had
+// cost and never what the cost was made of. These assertions exist in the shape they do because of
+// S211: a number nothing reads is a number nothing tests, and the counting is only defensible
+// while the message below still quotes it. If the line comes out of the message, these go too.
+{
+  // A Write of known size, driven to a stop, so the figure in the message can be named exactly.
+  const s = fresh();
+  const tr = transcript(s.id, 3000000);
+  running(s);
+  const body = 'x'.repeat(20000);
+  const r = drive(s.id, 1, {
+    transcript_path: tr, tool_name: 'Write', tool_input: { file_path: 'a.txt', content: body },
+  });
+  ok('a stopped session is told how many characters of tool input it has SENT: got ' + r.code,
+    r.code === 2 && /SENT \d+k characters of tool input/.test(r.err));
+  ok('Write is named separately, because it is the one a session can choose differently',
+    /Write is 20k over 1 call\(s\), 20000 per call/.test(r.err));
+  // THE MEASUREMENT IS QUOTED WITH THE RULE IT RULES OUT. A session told only that it has sent a
+  // lot will reach for a size cap, which was measured and is worth 4.1 per cent.
+  ok('the message says a size cap is NOT the remedy and gives the number that settles it',
+    /size cap is NOT the remedy/.test(r.err) && /4\.1 per cent/.test(r.err));
+  fs.unlinkSync(s.file); fs.unlinkSync(tr);
+}
+{
+  // IT ACCUMULATES ACROSS CALLS. Counting one call and reporting it as the session total is the
+  // failure this is most likely to have, because the state file is where it would be lost.
+  const s = fresh();
+  const tr = transcript(s.id, 3000000);
+  running(s);
+  // The guard fires ONCE per threshold, so a run of three expensive calls blocks on the FIRST
+  // and the last one says nothing. The two cheap calls come first and the expensive one last, so
+  // the message being read is the one that has already counted all three.
+  // ONE transcript throughout, made expensive only before the LAST call. The tally reads a
+  // transcript INCREMENTALLY from a stored byte offset, so handing the guard a different file
+  // mid-session makes it read from an offset that belongs to the other one and see almost
+  // nothing. Found by this fixture failing while the counter underneath it was already correct.
+  // ONE transcript throughout, made expensive only before the LAST call. The tally reads a
+  // transcript INCREMENTALLY from a stored byte offset, so handing the guard a different file
+  // mid-session makes it read from an offset belonging to the other one and see almost nothing.
+  // Found by this fixture failing while the counter underneath it was already correct, which is
+  // the good case: the assertion was wrong about the world, not about the tool.
+  const usage = (n) => JSON.stringify({ message: { usage: { input_tokens: n } } }) + '\n';
+  fs.writeFileSync(tr, usage(1000));
+  const payload = { session_id: s.id, cwd: __dirname, transcript_path: tr,
+    tool_name: 'Write', tool_input: { file_path: 'a.txt', content: 'y'.repeat(10000) } };
+  run(payload); run(payload);
+  fs.appendFileSync(tr, usage(3000000));
+  const r = run(payload);
+  ok('the count is carried in the state file rather than reset on every call',
+    /Write is 30k over 3 call\(s\)/.test(r.err));
+  fs.unlinkSync(s.file); fs.unlinkSync(tr);
+}
+{
+  // A TOOL THAT SENDS NO COUNTED INPUT MOVES NEITHER FIGURE, and a Bash command counts toward the
+  // total without counting as a Write. Both in one fixture so they cannot disagree.
+  const s = fresh();
+  const tr = transcript(s.id, 3000000);
+  running(s);
+  const r = drive(s.id, 1, {
+    transcript_path: tr, tool_name: 'Bash', tool_input: { command: 'z'.repeat(5000) },
+  });
+  ok('a Bash command counts toward tool input but not toward Write',
+    /SENT 5k characters/.test(r.err) && /Write is 0k over 0 call\(s\)/.test(r.err));
+  fs.unlinkSync(s.file); fs.unlinkSync(tr);
+}
+
+const EXPECTED_ASSERTIONS = 60;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

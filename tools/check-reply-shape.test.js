@@ -52,7 +52,7 @@ const TOOL = path.join(__dirname, 'check-reply-shape.js')
 const { projectDirName } = require('./check-gate-dispatch.js')
 const { shapeOf, main } = require('./check-reply-shape.js')
 
-const EXPECTED_ASSERTIONS = 96
+const EXPECTED_ASSERTIONS = 119
 
 let pass = 0
 let fail = 0
@@ -146,14 +146,33 @@ const asBullets = BODY.map((wd, i) => (i % 8 === 0 ? '\n- ' + wd : wd)).join(' '
   session(w, 's1.jsonl', [reply(asBullets)])
   const r = at(w, [])
   ok('THE SAME WORDS in point form pass, so this is shape and not length', r.code === 0)
+  // THIS PAIR IS 111 WORDS ON PURPOSE, held under the reply cap so the two rules cannot be
+  // confused for each other. If it ever grows past 300 the bulleted half starts refusing and
+  // the pair silently stops proving the thing it was written to prove.
+  ok('and it passes on words as well, so the pair is isolating shape rather than riding the word cap',
+    /111 word\(s\) written to the founder, 0 repl\(ies\) past the reply limit of 300/.test(r.out))
 }
+// --- the case that was passing and should not have been ---------------------------------
+// THIS ASSERTION USED TO READ THE OTHER WAY, and its old name said "because there is no length
+// cap". That was an accurate description of the tool and of the rule, and both were wrong: the
+// founder complained for four sittings, the rule reached 11 of 11 sessions, and a reply of two
+// hundred bullets carrying 2,200 words was fully compliant the whole time (S209). The fixture is
+// left at exactly the same size so the inversion is visible in the diff rather than tidied away.
 {
   const w = world()
   const long = []
   for (let i = 0; i < 200; i++) long.push('- line ' + i + ' of a very long but correctly shaped reply')
   session(w, 's1.jsonl', [reply(long.join('\n'))])
   const r = at(w, [])
-  ok('a two hundred line bulleted reply passes, because there is no length cap', r.code === 0)
+  ok('a two hundred line bulleted reply REFUSES, because point form is not a way around the word cap', r.code === 1)
+  ok('and the refusal names the size it actually measured', /2000 words/.test(r.out))
+  ok('and it names the remedy, so the cheapest way to satisfy it is not deleting the finding',
+    /move the detail to the ticket/.test(r.out))
+  // THE SEPARATOR THAT PROVES THE WORD CAP IS WHAT FIRED. Same fixture, same shape, same
+  // em-dash count of zero: only the limit moves. Without this, a refusal from any other branch
+  // would read identically and the case above would prove nothing about length at all.
+  ok('and the same reply passes under a generous word limit, so it was the length that refused it',
+    at(w, ['--max-words', '5000']).code === 0)
 }
 
 // --- preamble ---------------------------------------------------------------------------
@@ -240,11 +259,20 @@ const asBullets = BODY.map((wd, i) => (i % 8 === 0 ? '\n- ' + wd : wd)).join(' '
 
 // --- what counts as point form ------------------------------------------------------------
 {
-  ok('a dash bullet counts as point form', shapeOf('- one two three').pointWords === 4 && shapeOf('- one two three').proseWords === 0)
-  ok('a numbered item counts as point form', shapeOf('1. one two three').pointWords === 4)
-  ok('a heading counts as point form', shapeOf('## one two three').pointWords === 4)
-  ok('a table row counts as point form', shapeOf('| one | two |').pointWords === 5)
-  ok('a quote counts as point form', shapeOf('> one two three').pointWords === 4)
+  // THESE COUNTS EACH DROPPED BY ONE, AND THE PIPE ROW BY THREE, when the marker stopped being
+  // counted as a word. The old numbers were never the claim these cases were making, which is
+  // about CLASSIFYING a line as point form rather than prose; the marker rode along in them
+  // unnoticed while nothing read the total. They are corrected here rather than left, because a
+  // word limit now reads exactly this number.
+  ok('a dash bullet counts as point form', shapeOf('- one two three').pointWords === 3 && shapeOf('- one two three').proseWords === 0)
+  ok('a numbered item counts as point form', shapeOf('1. one two three').pointWords === 3)
+  ok('a heading counts as point form', shapeOf('## one two three').pointWords === 3)
+  ok('a table row counts as point form', shapeOf('| one | two |').pointWords === 2)
+  ok('a quote counts as point form', shapeOf('> one two three').pointWords === 3)
+  // PINNED IN ITS OWN RIGHT, so a revert of the strip reddens a case that names the reason
+  // rather than five that look like arithmetic drift.
+  ok('the marker itself is not a word, so point form is not charged for its own bullets',
+    shapeOf('- one two three').pointWords === shapeOf('one two three.').proseWords)
   ok('a plain line counts as prose', shapeOf('one two three').proseWords === 3)
 }
 {
@@ -608,6 +636,96 @@ function dashSession (w, name, before, after) {
   // twenty replies chosen by an alphabet. Refused rather than approximated.
   ok('a window across every session is a usage error, because those replies have no order',
     run(['--root', w.root, '--home', w.home, '--recent', '5', '--all']).code === 2)
+}
+
+// --- the reply-word limit, both sides of its boundary ------------------------------------
+// A BULLETED REPLY IS USED THROUGHOUT, so no case can be satisfied by the prose branch and a
+// green run means the word measure itself is doing the work.
+function bulletsOf (count) {
+  const out = []
+  for (let i = 0; i < count; i++) out.push('- alpha bravo charlie delta echo foxtrot golf hotel nine')
+  return out.join('\n')
+}
+{
+  const w = world()
+  // Nine words a line, so thirty-three lines is 297 and thirty-four is 306. The limit is 300.
+  session(w, 's1.jsonl', [reply(bulletsOf(33))])
+  ok('a reply just under the limit passes', at(w, []).code === 0)
+}
+{
+  const w = world()
+  session(w, 's1.jsonl', [reply(bulletsOf(34))])
+  const r = at(w, [])
+  ok('a reply just over the limit refuses, so the boundary is proved from both sides', r.code === 1)
+  ok('and the summary line carries the total written to the founder, not only the count over it',
+    /306 word\(s\) written to the founder, 1 repl\(ies\) past the reply limit of 300/.test(r.out))
+}
+{
+  const w = world()
+  session(w, 's1.jsonl', [reply(bulletsOf(34))])
+  ok('--report lists the long reply with its size', /^ {2}LONG {2}306 words/m.test(at(w, ['--report']).out))
+}
+// FENCED BLOCKS ARE EXCLUDED FROM THE COUNT, for the same reason they are excluded from the
+// em-dash count: pasting what a tool printed is the behaviour every other rule here asks for,
+// and charging a session for its own evidence teaches it to stop showing the numbers.
+{
+  const w = world()
+  const fenced = '- the suite result is below\n\n```\n' + bulletsOf(200) + '\n```\n'
+  session(w, 's1.jsonl', [reply(fenced)])
+  ok('a reply that is mostly pasted tool output passes, because fenced blocks are not counted',
+    at(w, []).code === 0)
+}
+// --- usage errors on the new flag ---------------------------------------------------------
+{
+  const w = world()
+  session(w, 's1.jsonl', [reply('- clean')])
+  ok('--max-words with no number after it is a usage error',
+    at(w, ['--max-words', '--quiet']).code === 2)
+  ok('--max-words zero is a usage error, not a way of switching the cap off',
+    at(w, ['--max-words', '0']).code === 2)
+  ok('--max-words with something that is not a number is a usage error',
+    at(w, ['--max-words', 'plenty']).code === 2)
+  // A REPLY CONTAINS ITS OWN PROSE, so a reply cap under the prose cap makes the prose branch
+  // unreachable and every refusal would name the wrong rule. Refused rather than reconciled.
+  const r = at(w, ['--max-words', '50', '--max-prose', '80'])
+  ok('a reply cap below the prose cap is a usage error', r.code === 2)
+  ok('and the refusal prints both numbers, so the caller can see which pair disagreed',
+    /--max-words \(50\) cannot be below --max-prose \(80\)/.test(r.out))
+  ok('a reply cap equal to the prose cap is accepted, because that is consistent rather than wrong',
+    at(w, ['--max-words', '80', '--max-prose', '80']).code === 0)
+}
+// --- the window applies to length as well as to em-dashes ---------------------------------
+{
+  const w = world()
+  session(w, 's1.jsonl', [reply(bulletsOf(34)), reply('- short and clean'), reply('- also short')])
+  const r = at(w, ['--recent', '2'])
+  ok('a long reply earlier in the session no longer refuses once it is outside the window', r.code === 0)
+  ok('and the pass says so rather than reading like a session that never slipped',
+    /1 repl\(ies\) past the word limit, which is recorded and no longer refused on/.test(r.out))
+}
+{
+  const w = world()
+  session(w, 's1.jsonl', [reply('- short and clean'), reply(bulletsOf(34))])
+  ok('a long reply INSIDE the window still refuses', at(w, ['--recent', '2']).code === 1)
+}
+// --- the measure itself, read directly rather than through the exit code -------------------
+{
+  const s = shapeOf('Some prose words here.\n\n- a bullet line\n- another bullet line')
+  ok('totalWords is prose and point form together', s.totalWords === s.proseWords + s.pointWords)
+  ok('and point-form words are counted rather than being free', s.pointWords > 0 && s.totalWords > s.proseWords)
+}
+{
+  const s = shapeOf('- one\n\n```\nalpha bravo charlie delta echo\n```\n')
+  ok('and a fenced block adds nothing to it', s.totalWords === 1)
+}
+// THE PASS LINE MUST NAME THE LIMIT IT CHECKED. A session reading "every reply is point form"
+// cannot tell whether length was measured at all, which is the state this tool was in for four
+// sittings while the founder complained about exactly that.
+{
+  const w = world()
+  session(w, 's1.jsonl', [reply('- clean and short')])
+  ok('the clean pass names the word limit it held the session to',
+    /stays under 300 words/.test(at(w, []).out))
 }
 
 for (const d of junk) { try { fs.rmSync(d, { recursive: true, force: true }) } catch (e) { /* a temp dir */ } }

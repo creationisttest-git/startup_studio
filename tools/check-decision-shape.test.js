@@ -73,9 +73,18 @@ function world (tag, opts) {
     for (const d of (o.decisions || [])) {
       fs.writeFileSync(path.join(board, d.ref + '.json'), JSON.stringify({
         ref: d.ref, title: 'fixture', status: 'backlog',
-        decisions: [{ key: 'd1', at: d.at, by: 'studio', question: d.q || 'fixture question',
-          options: ['a', 'b'], recommend: 1, answer: 1, answered_at: d.answered }],
+        decisions: [Object.assign({ key: 'd1', at: d.at, by: 'studio',
+          question: d.q || 'fixture question', options: ['a', 'b'], recommend: 1 },
+        // AN OPEN DECISION IS NOT AN ANSWERED ONE WITH A BLANK, it is one carrying neither
+        // field, which is what the board writes between `ask` and `answer`. Spelling that
+        // out here rather than passing answer: null matters, because the tool's own
+        // readable-answer test treats null and absent alike and a fixture that only ever
+        // produced one of them would prove nothing about the other.
+        d.unanswered ? {} : { answer: 1, answered_at: d.answered })],
       }), 'utf8');
+    }
+    for (let i = 0; i < (o.corrupt || 0); i++) {
+      fs.writeFileSync(path.join(board, 'ST-99' + i + '.json'), '{ "ref": "ST-99' + i + '", oops', 'utf8');
     }
   }
   return { base: base, root: root, board: board, env: { CLAUDE_CODE_SESSION_ID: SID } };
@@ -188,7 +197,132 @@ ok('two numbered items and a question IS a candidate',
 ok('numbered lines inside a fenced block do not count, so quoted tool output is not a candidate',
   mod.proseAskCandidates([{ at: 1, text: '```\n1. one\n2. two\n```\nwhich?' }]).length === 0);
 
-const EXPECTED_ASSERTIONS = 27;
+// 9. ST-252. A BOARD NOBODY CAN READ IS NOT A BOARD WITH NOTHING ON IT, and the exit code cannot
+// tell them apart: both are CANNOT TELL at 3. That is exactly why the first assertion here is
+// worth little on its own and the two below it are the measure. Reverting the new branch leaves
+// this fixture at exit 3 and changes only the words, which is the S190 check made before running:
+// name the input on which mutant and original differ, and here it is the message and not the code.
+{
+  const w = world('allcorrupt', { corrupt: 3 });
+  const r = run(['--root', w.root, '--home', w.base, '--board', w.board], w.env);
+  ok('a board whose every ticket file fails to parse is CANNOT TELL, not a pass and not a '
+    + 'refusal: got exit ' + r.code, r.code === 3);
+  ok('and it says the files could not be parsed, so the reader knows the reading never happened',
+    /3 ticket file\(s\) on the board failed to parse/.test(r.out));
+  ok('and it does NOT claim no decision was written, which is asserting more than it measured '
+    + '(S207)', !/No decision was written to the board/.test(r.out));
+}
+
+// 9b. THE ESCALATION MUST NOT SWALLOW A REAL REFUSAL. Widening its predicate from nothing was
+// readable to something was unreadable turns this fixture from exit 1 into exit 3, which is a
+// breach reported as unknowable. One corrupt file beside one readable decision with no prompt in
+// its window is the input that separates the two.
+{
+  const w = world('partcorrupt', { corrupt: 1, decisions: [{ ref: 'ST-905', at: '2026-01-01 00:12:00', answered: '2026-01-01 00:18:00' }] });
+  const r = run(['--root', w.root, '--home', w.base, '--board', w.board], w.env);
+  ok('a PARTLY corrupt board still judges what it could read, so the refusal survives: got exit '
+    + r.code, r.code === 1);
+  ok('and the note says how many files of how many were skipped, so the verdict carries its own '
+    + 'coverage', /note  1 of 2 ticket file\(s\) could not be parsed/.test(r.out));
+}
+
+// 9c. THE DEFECT ITSELF. The note used to print only on the path where a decision had been found,
+// so the one case that most needs it, an empty result, was the one case that never got it. A
+// corrupt file beside a decision dated outside the session reaches the empty path with something
+// genuinely unread, and moving the note back below the branch reddens this and nothing else.
+{
+  const w = world('corruptempty', { corrupt: 1, decisions: [{ ref: 'ST-906', at: '2025-12-31 00:00:00', answered: '2025-12-31 00:01:00' }] });
+  const r = run(['--root', w.root, '--home', w.base, '--board', w.board], w.env);
+  ok('an empty result still reports the files it could not read: got exit ' + r.code, r.code === 3);
+  ok('the note reaches the path where NO decision was found, which is where it was missing',
+    /could not be parsed/.test(r.out));
+}
+
+
+// 13. ST-259. THE GATE AT THE MOMENT THE SESSION CAN STILL ACT, which is the whole reason this
+// second entry point exists. The wind-down reading above runs after every decision of the sitting
+// has been put and can only record; --at-answer runs before the board answer is written, so a
+// refusal is cleared by raising the prompt and running the command again. These assertions were
+// watched failing by mutation against a saved copy of the working file, not against git (S200).
+{
+  // THE PASS. An OPEN decision with a prompt raised after its ask.
+  const w = world('gate-pass', {
+    decisions: [{ ref: 'ST-911', at: '2026-01-01 00:05:00', unanswered: true }],
+  });
+  const r = run(['--root', w.root, '--home', w.base, '--board', w.board, '--at-answer', 'ST-911'], w.env);
+  ok('--at-answer passes an open decision that has a prompt after its ask: got exit ' + r.code,
+    r.code === 0);
+  ok('the pass names the ticket it cleared', /ST-911/.test(r.out));
+}
+{
+  // THE REFUSAL, and it is the one the founder asked for. Same fixture, no prompt anywhere.
+  const w = world('gate-fail', {
+    noPrompt: true,
+    decisions: [{ ref: 'ST-912', at: '2026-01-01 00:05:00', unanswered: true, q: 'park it or carry it' }],
+  });
+  const r = run(['--root', w.root, '--home', w.base, '--board', w.board, '--at-answer', 'ST-912'], w.env);
+  ok('--at-answer REFUSES an open decision with no prompt raised since the ask: got exit ' + r.code,
+    r.code === 1);
+  ok('the refusal names the ticket so the reader can find it', /ST-912/.test(r.out));
+  ok('the refusal quotes the question, not only the reference', /park it or carry it/.test(r.out));
+  // THE REMEDY HAS TO BE PERFORMABLE, WHICH IS THE DIFFERENCE FROM THE ORDER FAULT ABOVE. Nothing
+  // clears a decision already stamped before its prompt; this one is cleared by raising the prompt
+  // now. An unperformable remedy is the S148, S177, S178 class and it is what this avoids.
+  ok('the refusal tells the session what to do NOW rather than next time',
+    /then run this answer again/i.test(r.out));
+  ok('the refusal names the clicking, because that is the rule being enforced',
+    /CLICKING/.test(r.out));
+}
+{
+  // A PROMPT RAISED BEFORE THE ASK DOES NOT COUNT, which is the ordering rule enforced at the only
+  // moment it can still be obeyed. The prompt sits at 00:10 and the ask at 00:15.
+  const w = world('gate-order', {
+    decisions: [{ ref: 'ST-913', at: '2026-01-01 00:15:00', unanswered: true }],
+  });
+  const r = run(['--root', w.root, '--home', w.base, '--board', w.board, '--at-answer', 'ST-913'], w.env);
+  ok('--at-answer refuses when the only prompt predates the ask: got exit ' + r.code, r.code === 1);
+}
+{
+  // AN ALREADY ANSWERED DECISION IS NOT HELD UP. Re-answering is how a wrong answer gets corrected,
+  // and a gate that blocked the repair would be worse than the defect.
+  const w = world('gate-answered', {
+    decisions: [{ ref: 'ST-914', at: '2026-01-01 00:05:00', answered: '2026-01-01 00:15:00' }],
+  });
+  const r = run(['--root', w.root, '--home', w.base, '--board', w.board, '--at-answer', 'ST-914'], w.env);
+  ok('--at-answer does not refuse a decision that already carries an answer: got exit ' + r.code,
+    r.code === 3);
+}
+{
+  // A TICKET WITH NO DECISION AT ALL IS CANNOT TELL, NOT A BREACH. Most board commands touch
+  // tickets that were never put to the founder, and refusing on those would make the gate noise.
+  const w = world('gate-none', {
+    decisions: [{ ref: 'ST-915', at: '2026-01-01 00:05:00', unanswered: true }],
+  });
+  const r = run(['--root', w.root, '--home', w.base, '--board', w.board, '--at-answer', 'ST-999'], w.env);
+  ok('--at-answer on a ticket holding no open decision reports rather than refuses: got exit '
+    + r.code, r.code === 3);
+}
+{
+  // --decision NARROWS TO ONE KEY. Without it a ticket holding several open questions is judged as
+  // a whole, which would refuse a correct answer to the one question that did get its prompt.
+  const w = world('gate-key', {
+    decisions: [{ ref: 'ST-916', at: '2026-01-01 00:05:00', unanswered: true }],
+  });
+  const r = run(['--root', w.root, '--home', w.base, '--board', w.board,
+    '--at-answer', 'ST-916', '--decision', 'd9'], w.env);
+  ok('--at-answer with a key that matches no open decision reports rather than refuses: got exit '
+    + r.code, r.code === 3);
+}
+{
+  // USAGE. A flag with no value is a typo, and answering it with a pass would let the gate be
+  // switched off by accident.
+  const w = world('gate-usage', { decisions: [] });
+  const r = run(['--root', w.root, '--home', w.base, '--board', w.board, '--at-answer'], w.env);
+  ok('--at-answer with no reference after it exits 2 rather than passing: got exit ' + r.code,
+    r.code === 2);
+}
+
+const EXPECTED_ASSERTIONS = 46;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

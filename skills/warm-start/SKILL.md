@@ -93,18 +93,32 @@ STALE     points at the block dated <old>, which this document marks superseded 
 BROKEN    the resume section carries no fenced block, so there was nothing to extract
 ```
 
-## Step 4: archive first if it is over budget, and change nothing else
+## Step 4: archive the dated history, EVERY sitting, and change nothing else
 
-Run the context budget check before handing anything over:
+Archive before you do any work, then read the budget:
 
 ```
+node <studio>/tools/archive-sittings.js <path-to-the-state-document>
+node <studio>/tools/archive-sittings.js <path-to-the-state-document> --write
+node <studio>/tools/archive-decisions.js --file <path-to-the-state-document> --write
 node <studio>/tools/check-context-budget.js <project-dir>
 ```
 
-**If it refuses, archive BEFORE you do any work, not at the wind-down.** Move the superseded rows
-out with `archive-decisions.js`, and move the superseded dated blocks and session-log entries by
-hand into the archive file beside the document, unedited and in the same order, leaving a pointer
-that names what moved.
+**Do not wait for the budget check to refuse.** That was the rule until 2026-09-17 and it made the
+limit into the target: the document was cut back to just under the ceiling, grew to it again by the
+next wind-down, and never once went below. Six consecutive sittings of this studio's own record
+describe the move as "the documented fallback rather than the plan". A saving you take only when
+you are forced to is a saving you never compound. `archive-sittings.js` keeps the most recent
+sitting in Current state and in Session log, moves the rest to the archive file beside the
+document, and exits 0 when there is nothing to move, so running it every sitting is free.
+
+Run each one without `--write` first: that is a dry run and touches nothing.
+
+**It refuses rather than guessing, and the refusal names a remedy you can perform.** It bounds the
+dated history at the first paragraph naming the archive file, because in a Current state section
+the blocks are followed by LIVE state that looks identical to a block and must never be moved. If
+there is no such paragraph it writes nothing and tells you to name the boundary yourself with
+`--boundary "<a phrase from the first paragraph that is not dated history>"`.
 
 Do it first for a structural reason rather than a tidy one. At wind-down the session is out of
 budget and archiving is the last act before stopping, so it is the thing that gets deferred: one

@@ -278,12 +278,19 @@ If the studio is not reachable from this project, say so and check by reading in
 newest dated block, then confirm the prompt names that date and no other. Say which way you
 checked. An unrun check reported as run is worse than no check.
 
-**Fourth, archive the decisions table, and this one WRITES rather than reports.**
+**Fourth, archive the decisions table and the dated history, and these WRITE rather than report.**
 
 ```
 node <studio>/tools/archive-decisions.js --file <path-to-the-state-document>
 node <studio>/tools/archive-decisions.js --file <path-to-the-state-document> --write
+node <studio>/tools/archive-sittings.js <path-to-the-state-document>
+node <studio>/tools/archive-sittings.js <path-to-the-state-document> --write
 ```
+
+`archive-sittings.js` is the same job for the two sections that actually dominate the file: it
+keeps the most recent sitting in Current state and in Session log and moves the rest out. Note the
+one difference in how they answer: it exits 0 when there is nothing to move, because a healthy
+document is success, while `archive-decisions.js` exits 1 in the same case. ST-263 carries that.
 
 Run it without `--write` first: that is a dry run and touches nothing. It keeps the most recent
 twenty decisions in the loaded document and moves the rest to `DECISIONS-ARCHIVE.md` beside it,

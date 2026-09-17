@@ -56,14 +56,31 @@ node tools/check-reply-shape.js --root <project root>
 ```
 
 It reads the session's own replies and reports the largest unbroken block of prose WORDS against
-the limit, how many replies are past it, and how many open with preamble. **Paste the numbers it
+the limit, the TOTAL WORDS written to the founder and how many replies ran past the reply limit,
+how many are past the prose limit, and how many open with preamble. **Paste the numbers it
 printed.** Then quote the offending replies: the reply, its measured length, and its opening
 line. A count with no example is unactionable, and an example with no count is an anecdote.
 
-**It measures SHAPE and it is deliberately not a length cap.** A two hundred line bulleted reply
-passes; one dense paragraph does not. Do not report a reply as too long because it was long; a
-cap becomes a target that gets met by hiding detail rather than by writing better, and the rule
-forbids one in its own text.
+**It measures SHAPE AND AMOUNT, and until 2026-09-17 it measured only shape.** This paragraph used
+to say it was deliberately not a length cap and that a two hundred line bulleted reply passes. That
+was an accurate description of the tool, and it was the defect: the founder complained for four
+sittings, the rule reached 11 of 11 sessions, and a forty-bullet reply was fully compliant the
+whole time (S209). There are now two limits and they fail for different reasons, so name which one
+fired. A dense paragraph trips the prose limit. A long reply of clean bullets trips the reply
+limit of 300 words, derived across 61 transcripts and 4,598 replies.
+
+**The old reasoning was right about the hazard and wrong about the conclusion, so hold the hazard
+yourself.** A cap does become a target met by hiding detail rather than by writing better. The tool
+cannot see that happening. When you report a reply over the limit, check that the detail it lost
+landed on a ticket, and say so if it did not.
+
+**Say what a reply cap is worth before anyone spends a sitting on it, and NAME THE DENOMINATOR.**
+Measured 2026-09-17 by characters, over 61 transcript files of this project. Of everything IN A
+TRANSCRIPT: replies to the founder 7.1 per cent, tool call inputs 48.0, tool results 39.2, and the
+founder's own messages 5.7. Against what the session actually WRITES, which is replies plus tool
+call inputs, replies are 12.8 per cent. Quote whichever you mean and say which, because an earlier
+version of this line called 7.1 a share of "what a session generates" and that total includes the
+founder talking. Either way reply words are the small lever.
 
 **It is NOT in the release set and you must not tell anyone it is.** Read the sets from the
 tool rather than from any prose, this file included: `reply-shape` is in `wind-down`, where its
@@ -213,9 +230,17 @@ by hand and say what you read, so a later reader can tell a measurement from a j
 ## Reporting breaches is an ERRAND, and it is not a method review
 
 You have two jobs now and the release gate can tell them apart. A dispatch that only asks you to
-report in-flight breaches does **not** satisfy the method half of `check-gate-dispatch`: the
-marker is the words "method review" in the prompt you were given, and it sits on the review rather
-than on the errand deliberately, so a forgotten marker refuses a release instead of clearing one.
+report in-flight breaches does **not** satisfy the method half of `check-gate-dispatch`. The marker
+is the words "method review" in the FIRST LINE of the prompt you were given, with nothing negating
+them before they appear: a substring match anywhere in the text counted "this is an errand, NOT a
+method review" as a method review, so the more careful the errand prompt the more likely it cleared
+the gate. It sits on the review rather than on the errand because you are dispatched for both and
+your name alone cannot say which, so the absent marker has to read as the errand.
+
+**A forgotten marker does not refuse anything, and this file said for weeks that it did.** The gate
+prints NO METHOD REVIEW RAN and carries exit 4, which `run-checks` declares advisory, so the release
+goes out green and what is lost is the record of whether the method was read at all. That is the
+whole reason the paragraph below matters: nothing else in the release path will say it for you.
 
 **If you were dispatched without those words, say so in your report.** You are the only party who
 can see which of the two you were asked for, and a session that thinks it has a method review when
@@ -414,15 +439,15 @@ the case stronger, they make the strong one harder to find.
 **Cut the throat-clearing.** No preamble, no cheerleading, no "great question", no restating the
 request, no summary of what you are about to say or of what you just said. Start.
 
-**Length is a cost the reader pays, not proof you did the work.** A long report is less read, and
-an unread report is the same as no report. If the finding is in paragraph nine, it did not happen.
-Reports have been written here that were correct, complete, and skimmed.
+**Three hundred words is the cap on one reply.** Derived across 61 transcripts and 4,598 replies,
+counted by `check-reply-shape.js`. Fenced blocks are free, so paste what the tool printed. The
+derivation, the caps that were costed against it, and the reasoning that retired the old "no line
+limit" wording are in that file's header.
 
-**Where the detail goes, so being short never costs the record.** Evidence, reproduction steps and
-full findings go on the ticket, which is searchable and permanent. The reply carries the conclusion
-and what it cost. Never DROP detail to be brief; MOVE it somewhere findable. There is deliberately
-no line limit here: a cap becomes a target, and a target gets met by hiding detail rather than by
-writing better.
+**Where the detail goes.** Evidence and full findings go on the ticket. The reply carries the
+conclusion and what it cost. Never DROP detail to be brief; MOVE it somewhere findable AND NOT
+LOADED. A ticket is both. A state document is findable and re-sent on every request, so detail
+put there costs more than detail left out.
 
 ## Getting text through the shell alive
 

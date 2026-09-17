@@ -6,6 +6,171 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-18
+
+### A release that refused halfway would have left your two repositories out of step
+
+**What this gives you.** The release command now finds out whether it is allowed to publish
+before it changes anything, instead of halfway through. Nothing about what it publishes has
+changed.
+
+- **The order was wrong, and only a refusal could reveal it.** Releasing does two things: it
+  commits and pushes the private repository, then it builds the public export and pushes that.
+  The scan that blocks a publish for naming something private ran inside the second half. So a
+  release that tripped the scan had already pushed the first half. You would be left with a
+  private repository one release ahead of the public one, no publish, and a status command that
+  has never been able to report that gap. The command exists to keep those two in step, and this
+  was the one path where it did the opposite.
+
+- **What changed.** The export is now staged and scanned first, before a single commit. If the
+  scan finds something, the release stops with both repositories still in step and tells you what
+  to fix. It costs one extra staging pass and no network.
+
+- **The preview still cannot see this, and that is said here rather than left to be discovered.**
+  Asking for a preview prints that it would publish and returns before it reaches the scan, so a
+  preview can still tell you a release is fine when the real run will refuse. Making the preview
+  run the scan was the first attempt and it was reverted: the preview would then have to stage the
+  whole export to disk, and a check exists to guarantee a preview stages nothing. A preview that
+  writes in order to find out whether writing is safe has stopped being a preview.
+  Closing it properly means scanning somewhere other than the publish staging folder, which is a
+  change of its own. Until then, the preview covers what would be committed and not what would be
+  published.
+
+- **Found by trying to ship.** Four entries had been waiting since 13 September. The release was
+  attempted, the check that reads the changelog refused, and pulling that thread found eleven
+  places across five published files carrying a client project's name in passing, in comments and
+  test fixtures where it served no purpose. All eleven are reworded. Two of those projects are
+  named and linked deliberately on the showcase page, so this is about not scattering their names
+  through unrelated internals rather than about hiding them.
+
+- **The eleventh was found by a reviewer and not by the scanner, and that is the useful part.**
+  Ten matched the blocked pattern. The eleventh was a directory name with two letters transposed,
+  which no pattern anchored on the correct spelling can ever catch. The scanner reported clean and
+  was right about the question it was asked. This is the same shape as an older defect in this
+  file where a name with a suffix slipped past a word boundary: a scanner proves the strings you
+  thought of are absent, and never that a name is.
+
+
+### The record of the work stopped being charged for on every request
+
+**What this gives you.** The document this project reads at the start of every session is a third
+smaller, and it will stay that way without anybody remembering to make it so. Nothing was deleted.
+
+- **The old rule made the limit into a target.** History was only ever moved out of the loaded
+  document when a budget check refused, so the file was cut back to just under the ceiling, grew
+  to it again by the next sitting, and never once went below. Six sittings in a row describe that
+  move as the fallback rather than the plan. A saving you take only when you are forced to is a
+  saving you never compound.
+
+- **The two sections that dominate the file had no tool.** A record of each sitting is written in
+  two places every time work stops, and neither is read again after the sitting that follows it.
+  The decisions table already had an archiver that runs unattended. These two were moved by hand,
+  at the end of a session, by whoever had least budget left to do it carefully.
+
+- **What changed.** A new tool moves all but the most recent sitting out of both sections into the
+  archive files that already sit beside the document, and the session start now runs it every time
+  rather than only when something refuses. Measured on this project: the loaded set went from
+  135,142 characters to 96,791, which is about 9,600 tokens off every single request for the life
+  of every session. Every one of the 1,178 distinct lines it started with was proved present at
+  its destination and read back from disk before a byte was removed.
+
+- **It refuses rather than guessing, and says what to do about it.** The dated history in that
+  document is followed by live state that looks exactly like more history. Moving that by mistake
+  would delete facts a session needs today, so the tool works out where history stops from the
+  pointer an earlier archive left behind, and if there is no pointer it writes nothing and tells
+  you how to name the boundary yourself.
+
+- **A no-op is reported as success.** Its older sibling reports "nothing to archive" with the same
+  failure code it uses for a real fault, which teaches every reader that the code means nothing.
+  This one exits clean, because a healthy document is not a failure.
+
+### A guard that could only ever watch one project can now see a second
+
+**What this gives you.** The rule that a decision reaches you as a prompt you click is now
+enforced in the one other project on this machine running a board, as well as here. It was meant to reach every project already.
+It could not, and the reason had nothing to do with where the guard was installed.
+
+- **The guard was already running everywhere.** It is registered once for this machine, so it
+  fires in every project on it, and no project overrides it. There was nothing to install.
+
+- **It was looking for the board in one place.** A project keeps its tickets in a folder, and
+  the board itself has four rules for finding that folder. The guard had one. That
+  project keeps 154 live tickets where the guard's single rule could not reach, so the guard
+  found nothing, decided it could not tell, and allowed every answer through. The one other
+  project running a board was the one project the guard was blind to. It now finds the folder
+  the same way the board does, working from the command it is holding, so the two cannot
+  disagree about where a board is.
+
+- **A quotation mark switched it off completely.** Every folder path on this machine contains
+  a space, so the command that records an answer is quoted. The guard recognised unquoted
+  paths only, so in those cases it never fired at all and nothing appeared anywhere to say so.
+  A guard that a quotation mark turns off looks exactly like a guard with nothing to report.
+
+- **What it still cannot do.** Four projects keep no tickets at all, so there is no record of
+  a decision for any guard to read. Installing something there changes nothing until those
+  projects track their work somewhere it can be checked.
+
+### Your session can now see where its own spend goes, and the obvious saving turned out to be worth nothing
+
+**What this gives you.** When a session is stopped for going over budget, it is now told how
+many characters it has sent and how much of that was writing files. Until now the guard could
+say what a session had cost and never what the cost was made of, although every tool call hands
+it the information.
+
+- **The obvious fix was measured first and is not worth building.** Refusing calls above some
+  size looks like the answer. Across 62 sessions of this project, the twenty largest calls out
+  of eleven thousand carry four per cent of the total. The cost is spread thin rather than piled
+  up, so a size limit would refuse correct work to save almost nothing. That finding is written
+  into the stop message itself, so the next session does not spend a day building it.
+
+- **What the spend is actually made of.** Half of everything sent is shell commands, and nearly
+  half of those are long inline scripts. Writing files is another quarter. Classified by what
+  the characters are for rather than by which tool carried them, the largest single thing is
+  this project writing its own records: state documents, changelogs and ticket notes together
+  are 42 per cent. That is the method describing itself, not work on anything you use.
+
+- **And the biggest calls pay for the same thing twice.** Seventeen of the twenty largest are a
+  script being written whose only job is to then write a document, so both the script and the
+  document are paid for. Editing the document directly is the cheaper path and is now named in
+  the stop message.
+### The rule that you answer by clicking is now enforced, not counted afterwards
+
+**What this gives you.** When an agent is about to record your answer to a decision it never showed
+you as a clickable prompt, the tool call is now refused before it writes anything. Until this, the
+rule was measured only at the end of a session, which is after every decision had already been put.
+The measure could report a breach and could never prevent one.
+
+- **Where it sits is the whole design.** The refusal lands between the moment a question is written
+  to the board and the moment an answer is recorded against it. That is the only point where the
+  remedy can actually be carried out: raise the prompt, run the command again, and it passes. A
+  refusal at the release gate would have been unrecoverable, because a question already written
+  down with no prompt behind it cannot be un-written. That is the same defect that had the older
+  brevity check blocking four releases in five, and it was removed for that reason.
+
+- **It is not in the board program, and that is deliberate.** The board is published for anyone to
+  install. Putting a refusal there that has to read a session transcript would either break for
+  readers who run a different agent, or quietly do nothing for them, and the published board would
+  have grown a dependency on one specific coding agent. The refusal lives in this project's own
+  hook instead.
+
+- **It stays out of the way, and that was tested as hard as the refusal.** A hook that blocks the
+  wrong call is worse than one that never fires. Four separate checks prove it leaves alone: a
+  board command that is not an answer, the question-writing command itself, an unrelated shell
+  command that merely contains the word, and a ticket with no open question. It also allows the
+  call on any error at all, including a transcript it cannot read.
+
+- **It caught its own author first.** The first version silently allowed the very case it was
+  written to block, because it read the session identity from the environment instead of from the
+  payload that names it. A hook does not reliably inherit that variable. Without a test that
+  watched the refusal actually fire, it would have shipped as a gate that never fires.
+
+- **Two comments in the gate definition were wrong and are corrected.** Both said the brevity check
+  is one a release runs. It has not been for several releases. Neither of the two measures you
+  named as your top priorities gates a release today. That is a decision taken on evidence rather
+  than an oversight, and it is now written where a reader will see it instead of the old claim.
+
+---
+
 ## 2026-09-13
 
 ### A decision now reaches you as something you click, and the release gate no longer demands a reviewer nobody could prove existed

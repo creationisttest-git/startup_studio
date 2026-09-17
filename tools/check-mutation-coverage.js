@@ -82,16 +82,43 @@
  *   node tools/check-mutation-coverage.js --tool tools/x.js  x against tools/x.test.js
  *   node tools/check-mutation-coverage.js --report            every line and its classification
  *   node tools/check-mutation-coverage.js --write-baseline    record the accountable lines as they are
+ *   node tools/check-mutation-coverage.js --stale-only        is the baseline still about this file? milliseconds
  *   options: --tool <file>  --suite <file>  --root <dir>  --baseline <file>  --quiet
  *
- * Exit 0 clean, 1 refused, 2 on a usage or read error.
+ * Exit 0 clean, 1 refused, 2 on a usage or read error, 3 from --stale-only when it CANNOT TELL.
  *
  * IT IS SLOW ON PURPOSE AND BELONGS IN THE RELEASE SET, NOT AT SESSION START. One full suite run
- * per line of the tool is the only way to know, and there is no cheaper honest version of this.
+ * per line of the tool is the only way to know, and there is no cheaper honest version of THIS
+ * question.
+ *
+ * BUT THERE IS A CHEAPER HONEST VERSION OF A DIFFERENT QUESTION, AND NOT HAVING IT COST FIVE DAYS.
+ * Because the derivation takes half an hour it was put in a set no gate triggers, so a baseline
+ * that only this check reads was watched only by a check nobody ran. It drifted from two accepted
+ * lines to seven, unnoticed, while the comment justifying the placement still said two. Every
+ * instrument in the repository reported clean, because none of them was looking (S218).
+ *
+ * `--stale-only` answers the question that IS cheap: is this baseline still about the file it
+ * describes? It reads a stamp recorded by --write-baseline and compares it to the pair on disk. It
+ * cannot tell you WHICH line went silent, and it does not pretend to. It tells you the answer you
+ * are holding was computed about a file that has since changed, which is the fact that was missing
+ * for five days, and it costs milliseconds so it can sit in a set that actually runs.
+ *
+ * THE STAMP IS OVER CODE LINES ONLY, ON BOTH SIDES OF THE PAIR, AND THAT IS NOT A DETAIL. A hash
+ * of the whole file changes when somebody fixes a typo in a comment, and a check that cries wolf
+ * over a comment is one people learn to pass over, which is how the first one got ignored. What
+ * the slow derivation depends on is the set of lines it would delete and the assertions that
+ * would redden, so that is what is stamped. It uses candidates(), the SAME function the experiment
+ * uses to choose those lines, so the fast check and the slow one cannot come to disagree about
+ * what counts as code (S201).
+ *
+ * WHAT IT DELIBERATELY DOES NOT DO IS GUESS. A baseline written before stamps existed carries
+ * none, and that is exit 3, CANNOT TELL, not a pass. Stamping a baseline without re-deriving it
+ * would record that a stale answer is current, which is worse than the silence it replaces.
  */
 
 'use strict'
 
+const crypto = require('crypto')
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
@@ -108,6 +135,15 @@ const DEFAULT_BASELINE = 'tools/mutation-coverage-baseline.json'
 // left off must not silently change the subject (S140 in a new costume), so the pair is now
 // derived and a missing suite is a usage error naming the file it looked for.
 function suiteFor (toolRel) { return toolRel.replace(/\.js$/, '.test.js') }
+
+// The stamp --stale-only reads. Code lines only, via the same candidates() the experiment uses,
+// so a comment edit is not reported as drift and the two halves cannot disagree about what code
+// is. Trimmed, because reindenting a line changes nothing any assertion can observe.
+function codeHash (abs) {
+  const lines = fs.readFileSync(abs, 'utf8').split('\n')
+  const text = candidates(lines).map(i => lines[i].trim()).join('\n')
+  return crypto.createHash('sha256').update(text).digest('hex')
+}
 
 const COUNT = /(\d+) passed, (\d+) failed/
 
@@ -274,6 +310,44 @@ function main (argv) {
     }
   }
   const root = path.resolve(rootRel)
+  const baselinePathEarly = path.join(root, baselineRel)
+
+  // BEFORE classify(), deliberately. The whole value of this branch is that it does not run the
+  // experiment, so anything that makes it reach classify() first has given the saving away.
+  if (has(argv, 'stale-only')) {
+    const toolAbs = path.resolve(root, toolRel)
+    const suiteAbs = path.resolve(root, suiteRel)
+    for (const pair of [[toolRel, toolAbs], [suiteRel, suiteAbs]]) {
+      if (!fs.existsSync(pair[1])) {
+        process.stderr.write('check-mutation-coverage: no such file: ' + pair[0] + '\n')
+        return 2
+      }
+    }
+    const store = readBaseline(baselinePathEarly)
+    if (store.__unreadable) {
+      process.stderr.write('check-mutation-coverage: the baseline could not be read: ' + store.__unreadable + '\n')
+      return 2
+    }
+    const stamp = (store.__stamps || {})[toolRel]
+    if (!stamp) {
+      process.stdout.write('CANNOT TELL  ' + baselineRel + ' carries no stamp for ' + toolRel
+        + ', so whether it still describes that file is unknown. It is NOT a pass. Run '
+        + '--write-baseline to derive the answer and record the stamp in the same pass.\n')
+      return 3
+    }
+    const moved = []
+    if (stamp.tool !== codeHash(toolAbs)) moved.push(toolRel)
+    if (stamp.suite !== codeHash(suiteAbs)) moved.push(suiteRel)
+    if (moved.length) {
+      process.stdout.write('FAIL  ' + baselineRel + ' was derived on ' + (stamp.at || 'an unrecorded date')
+        + ' and ' + moved.join(' and ') + ' has changed since, so what it says about coverage is '
+        + 'about an older file. Re-derive with --write-baseline.\n')
+      return 1
+    }
+    say(quiet, 'OK  ' + baselineRel + ' was derived on ' + (stamp.at || 'an unrecorded date')
+      + ' and neither ' + toolRel + ' nor ' + suiteRel + ' has changed in any code line since')
+    return 0
+  }
 
   const res = classify(root, toolRel, suiteRel, quiet || !report)
   if (res.error) {
@@ -310,8 +384,18 @@ function main (argv) {
       return 2
     }
     store[toolRel] = entries
+    // Stamped in the SAME pass that derived it, never separately. A stamp written by any other
+    // command would be a claim that an answer is current, made by something that did not compute
+    // the answer.
+    store.__stamps = store.__stamps || {}
+    store.__stamps[toolRel] = {
+      tool: codeHash(path.resolve(root, toolRel)),
+      suite: codeHash(path.resolve(root, suiteRel)),
+      at: new Date().toISOString().slice(0, 10)
+    }
     fs.writeFileSync(baselinePath, JSON.stringify(store, null, 2) + '\n', 'utf8')
-    say(quiet, 'recorded ' + entries.length + ' accepted line(s) for ' + toolRel)
+    say(quiet, 'recorded ' + entries.length + ' accepted line(s) for ' + toolRel + ', stamped '
+      + store.__stamps[toolRel].at)
     return 0
   }
 
@@ -366,4 +450,4 @@ function main (argv) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)))
 
-module.exports = { main, candidates, accountable, suiteFor }
+module.exports = { main, candidates, accountable, suiteFor, codeHash }
