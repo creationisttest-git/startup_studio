@@ -71,17 +71,42 @@ editorialises about every line is one people stop reading.
    IS the answer: print it. If it does not, take the four facts from the top of the prompt and
    say you did.
 2. **The corrections**, under a plain heading, in the table below.
-3. **The prompt in full, verbatim**, underneath, for the session to work from.
+3. **THE GOAL AND BUSINESS VALUE of this session, in two lines**, and nothing else.
 
 Why the order and not a trim. The founder asked what we are working on and received 98 lines. The
 CEO's words on ST-069: *"warm start does not really help me as it just gives me this massive
 verbose message, but I only care about what."*
 
-**The prompt is still printed in full, deliberately.** The founder should see what the record
-CLAIMS and what is actually TRUE, because the gap between them is itself information about how
-long it has been since a wind-down. That reasoning was right when it was written and it survives
-here. What was wrong was making the founder read the operating manual to reach the four facts.
-Ordering, not deletion.
+**Part 3 used to be "the prompt in full, verbatim", and deleting it is ST-275.** Its stated reason
+was that the founder should see what the record CLAIMS against what is TRUE, because the gap is
+itself information. But part 2 already prints that gap, computed and labelled CURRENT, STALE,
+BROKEN, two paragraphs above. So part 3 was redundant with the instrument printed directly above
+it, at roughly 2,000 words per session start in every project, serving neither reader: the founder
+did not want it and the session had already read the document from disk.
+
+**That redundancy is why five sittings of delivering a 300-word reply cap changed nothing.** A cap
+cannot beat a direct instruction to print the manual. S227. Do not restore it; if you need the
+prompt, read the file.
+
+### What goes in part 3
+
+Two lines, written BEFORE any work starts, in the founder's terms rather than the board's:
+
+```
+GOAL AND BUSINESS VALUE
+Goal:  <the one thing this session will FINISH, naming the tickets>
+Value: <what the founder gets that they did not have, in their terms>
+```
+
+**Write the same two lines onto the board as a note before you touch a line of code**, on the
+initiative in flight. The order matters for the same reason the board `ask` is written before the
+CEO prompt (S225): a goal recorded at the end is a description of what happened, not a commitment
+the session can be measured against, and the two are indistinguishable once written down.
+`check-session-goal.js` reads both and refuses when the goal first appears at wind-down.
+
+**The goal is FINISHED in this session, not carried.** The CEO's words on 2026-09-18: *"unless its
+genuinely too large context we should finish the goal for that sesssion without carying over."* If
+the context genuinely will not hold it, say so EARLY and say which items you are dropping.
 
 Never silently rewrite the prompt.
 

@@ -241,6 +241,9 @@ the case stronger, they make the strong one harder to find.
 **Cut the throat-clearing.** No preamble, no cheerleading, no "great question", no restating the
 request, no summary of what you are about to say or of what you just said. Start.
 
+**No em-dash.** Not in a reply, not in product copy, not in a commit message. A comma, a colon or
+a full stop instead. `check-reply-shape.js` counts them and the evidence is in its header.
+
 **Three hundred words is the cap on one reply.** Derived across 61 transcripts and 4,598 replies,
 counted by `check-reply-shape.js`. Fenced blocks are free, so paste what the tool printed. The
 derivation, the caps that were costed against it, and the reasoning that retired the old "no line

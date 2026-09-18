@@ -1583,8 +1583,15 @@ function Invoke-ReleaseInner ($note) {
     # public-repo drift, so nothing would have reported the gap afterwards either.
     #
     # Found at the twenty-sixth sitting, trying to ship four entries that had waited since
-    # 2026-09-13: ten hits naming two client projects, in CHANGELOG.md and four files under
-    # tools\, all of which publish wholesale.
+    # 2026-09-13: ELEVEN places naming two client projects, across CHANGELOG.md and four files
+    # under tools\, all of which publish wholesale.
+    #
+    # TEN of the eleven matched the blocked pattern and this pre-flight would have caught them.
+    # The eleventh was a directory name with two letters transposed, which no pattern anchored
+    # on the correct spelling can ever match; a reviewer found it by reading. Both numbers are
+    # true of different things, and until ST-270 this comment said ten while CHANGELOG.md said
+    # eleven, so a reader holding both published files got two counts for one event and no way
+    # to tell which was wrong. State the total and say what the scanner's share of it was.
     #
     # Publish-Public -DryRun stages the export and scans it and pushes nothing, so this is
     # the same answer you would have got later, sooner, for one staging pass.
@@ -2860,7 +2867,6 @@ if ($Autoload) {
         $lines += ("Studio could not rebuild the roster: " + $_.Exception.Message +
                    " Agents in this session may be missing a rule. Run studio.ps1 -Doctor.")
     }
-    Write-HookLog 'autoload' $hookFrom $hookOutcome
     # ONE write, or nothing. Two ConvertTo-Json documents on the same stream is not valid JSON and
     # the consumer reads whichever it can, which is a worse failure than saying nothing.
     if ($lines.Count -or $briefText) {
@@ -2877,6 +2883,79 @@ if ($Autoload) {
         # a ten-line brief fit inside 15 lines. Put to the CEO rather than settled by quietly
         # widening their number, and they ruled TWO caps on 2026-08-31: 25 for the whole message,
         # 12 for the brief alone, so the spare room belongs to findings and not to the brief.
+        # ST-276. THE DOCTOR SUMMARY, AND IT IS FOR THE SESSION RATHER THAN FOR THE FOUNDER.
+        # ST-244 made a finding durable and ST-245 made it refuse. Neither put it in front of the
+        # session that plans the work, so the loop the CEO described was enforced and not closed.
+        # Their words on ST-240 d1: "when studio is doing a warm start it knows what happened in
+        # each project and is able to plan improvements". A check that refuses is not a session
+        # that knows.
+        #
+        # STUDIO SESSIONS ONLY. The reader walks every project, but the sentence above is about the
+        # studio's own warm start, and a project session has no use for another project's faults.
+        # Compared against $PSScriptRoot rather than against the string '_STUDIO', because this
+        # script IS the studio and a name comparison breaks the day the folder is renamed.
+        #
+        # ITS OWN try/catch AND ITS OWN OUTCOME NAME. The brief above is wrapped for a reason this
+        # file records: a session that got no brief used to log identically to a healthy one, so
+        # the log said the hook worked on exactly the runs where half of it did not. A broken
+        # reader here loses the summary and never the session.
+        #
+        # THE OUTCOME IS LOGGED AFTER THIS BLOCK, NOT BEFORE IT, AND THAT IS ST-277 HIGH-1. The
+        # Write-HookLog call used to sit ninety-one lines above, so this catch assigned to a
+        # variable that had already been written out and nothing ever read it. The comment here
+        # said the branch had its own outcome name, which was true of the string and false of the
+        # log, and a reader checking whether the defect above had been repeated would have been
+        # told by this very comment that it had not. It is repeated as a LINE as well as an
+        # outcome, exactly as brief-failed is, because a line appears in output a person sees
+        # while a log field is only ever read by somebody who already suspects something.
+        #
+        # IT PRINTS NOTHING WHEN THERE IS NOTHING TO ACT ON, which is the tool's decision and not
+        # this block's. additionalContext is injected once and then re-sent on EVERY request for
+        # the life of the session, so a reassuring line carries no information at the same price as
+        # a useful one. The cap is enforced in the tool, where it can be tested.
+        $doctorText = ''
+        try {
+            $doctorTool = Join-Path $PSScriptRoot 'tools\doctor-across.js'
+            if ((Test-Path $doctorTool) -and $proj -and
+                ((Resolve-Path $proj).Path.TrimEnd('\') -eq (Resolve-Path $PSScriptRoot).Path.TrimEnd('\'))) {
+                $doctorRaw = (& node $doctorTool '--brief' | Out-String).Trim()
+                # POWERSHELL DOES NOT THROW ON A NATIVE NON-ZERO EXIT (S219). Without reading the
+                # code, a reader that crashed produced empty output and was byte-identical to a
+                # reader with nothing to report, which is the one pair this block exists to tell
+                # apart. Any non-zero here is a FAULT rather than a verdict, and the reason is
+                # narrower than an earlier version of this comment claimed: the --brief block
+                # itself always exits 0, deliberately, so a hook can never be taken down by a
+                # finding. It does not follow that the PROGRAM always exits 0, and it does not: an
+                # unreadable projects root exits 2 before that block is reached. Both cases are
+                # worth reporting and neither should be silent, which is what this branch does.
+                $doctorExit = $LASTEXITCODE
+                if ($doctorExit -ne 0) { throw ("doctor-across exited " + $doctorExit + " before or instead of printing a brief.") }
+                if ($doctorRaw) {
+                    $doctorText = ("DOCTOR, ACROSS THE STUDIO. This is for YOU and not for the founder, " +
+                                   "so do not print it verbatim. Every class below has come back in a later " +
+                                   "sitting and carries no ticket, which is the exact failure ST-240 exists " +
+                                   "to stop. Raise or attach each one before you plan this session." + "`n`n" +
+                                   $doctorRaw)
+                }
+            }
+        } catch {
+            # Named apart from brief-failed, because the two send a reader to different places.
+            # TWO LINES BECAUSE THEY ARE TWO THINGS, the fault and what to run about it, and the
+            # second is asserted on its own for that reason. The paragraph that stood here said
+            # this block runs AFTER the wrap and that moving the wrap was not worth the risk. The
+            # very commit that wrote it moved the block instead, so the comment described the
+            # arrangement it had just replaced. Third instance of S230 on this ticket, and the
+            # first two were HIGH findings against exactly this file.
+            $hookOutcome = 'doctor-failed'
+            $lines += ("Studio could not read the doctor summary: " + $_.Exception.Message)
+            $lines += "A fault that came back may not be on the board. Run node tools/doctor-across.js --full."
+        }
+
+        # WRAPPED AFTER EVERYTHING THAT CAN ADD A LINE, which is why the doctor block above this
+        # one moved. It used to run below, so the one line it appends on failure was the single
+        # $lines entry that escaped the wrapping this comment justifies, and it was 103 characters
+        # in the exact case the suite drives. An exception message is unbounded, so splitting that
+        # line by hand fixed the fixture and not the case. ST-277.
         $wrapped = @()
         foreach ($ln in (($lines -join "`n") -split "`r?`n")) {
             if ($ln.Length -le 100) { $wrapped += $ln; continue }
@@ -2914,12 +2993,27 @@ if ($Autoload) {
         # systemMessage:"" and an empty warning-coloured line is still a warning-coloured line,
         # which is the entire complaint. It could not show up before this change because the brief
         # lived in $lines and was never empty.
+
         $sysText = ($lines -join "`n").Trim()
         $out = @{ suppressOutput = $true }
         if ($sysText)   { $out.systemMessage = $sysText }
-        if ($briefText) { $out.hookSpecificOutput = @{ hookEventName = 'SessionStart'; additionalContext = $briefText } }
+        # Built as a list rather than by concatenation, so that either half being empty produces no
+        # stray blank lines and no empty additionalContext. An empty context element is the same
+        # defect as the empty systemMessage this file caught by running the hook.
+        $ctxParts = @()
+        if ($briefText)  { $ctxParts += $briefText }
+        if ($doctorText) { $ctxParts += $doctorText }
+        if ($ctxParts.Count) { $out.hookSpecificOutput = @{ hookEventName = 'SessionStart'; additionalContext = ($ctxParts -join "`n`n") } }
         $out | ConvertTo-Json -Compress -Depth 5
     }
+
+    # LOGGED HERE, AFTER EVERYTHING THAT CAN SET AN OUTCOME, AND THE POSITION IS THE FIX. ST-277
+    # HIGH-1: this call ran ninety-one lines earlier, above a catch that sets doctor-failed, so
+    # that branch wrote to a variable already spent and a session whose doctor reader crashed
+    # logged identically to a healthy one. Write-HookLog appends to a file and returns nothing on
+    # the pipeline, so it cannot corrupt the single JSON document emitted above; that is the only
+    # reason the call is safe to move past the emit, and it is why it must stay a file writer.
+    Write-HookLog 'autoload' $hookFrom $hookOutcome
     return
 }
 
@@ -2998,9 +3092,28 @@ if ($Governance) {
     # Before the first writer, as on every path that distributes. This one had none, so a marker
     # that cannot resolve threw part-way down the project list with no record of how far it got.
     Assert-BaseComposable
-    foreach ($p in Find-Projects) {
+    # ST-273. -Project was ACCEPTED AND IGNORED on this path, so this command walked every
+    # project on the machine whatever you asked for. -Compose has honoured -Project since it
+    # was written; governance never did, and nothing said so. That is worse than rejecting the
+    # argument, because the caller reads success and believes the scope they asked for was
+    # honoured. It is S206 in a new place: the name stayed the same and the set underneath it
+    # did not. Found when a founder instruction named exactly two projects and the only command
+    # that delivers governance could not be pointed at two.
+    $govTargets = if ($Project) { @(Resolve-Project $Project) } else { @(Find-Projects) }
+    if ($Project) { Write-Host ("  scoped to 1 project by -Project: {0}" -f $Project) -ForegroundColor DarkGray }
+    $govPlaced = 0
+    foreach ($p in $govTargets) {
         $gr = Get-GovRoot $p
-        if ($gr) { Write-Host "  $($gr.Replace("$ProjectsRoot\",''))"; Sync-Governance $gr (Split-Path $gr -Leaf) }
+        if ($gr) { $govPlaced++; Write-Host "  $($gr.Replace("$ProjectsRoot\",''))"; Sync-Governance $gr (Split-Path $gr -Leaf) }
+    }
+    # A named project that holds no governance root must SAY so. Get-GovRoot returns null for a
+    # project that carries none of the shared files, and the loop above then does nothing at all
+    # while the command still exits zero. Silence there reads exactly like success, which is the
+    # same defect this block was opened to fix, one level down.
+    if ($Project -and $govPlaced -eq 0) {
+        Write-Host "  NOTHING PLACED. That project holds no governance root, so there was nothing to update." -ForegroundColor Yellow
+        Write-Host "  Governance is found by walking UP from the project for one of the shared files." -ForegroundColor DarkGray
+        Write-Host "  If the documents live in a subfolder, name that subfolder: -Project 'Name\\subfolder'." -ForegroundColor DarkGray
     }
     Write-Host ""
     return

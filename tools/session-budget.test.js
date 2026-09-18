@@ -348,6 +348,19 @@ const FIRST_CALLS = 150;
 // every way the gate is required to stay out of the way, because a PreToolUse hook that blocks
 // wrongly is worse than one that never fires.
 {
+  let gateN = 0;
+  const gateState = (sid) => path.join(os.tmpdir(), 'studio-session-budget-' + sid + '.json');
+  /* SWEPT ON EXIT AND NOT BY THE CASES, because the cases were already doing it and one of them
+   * was not. Ten fixtures are built here and nine call cleanup: the fail-open case deliberately
+   * deletes its own transcript to prove the guard survives a missing one, and never sweeps the
+   * DIRECTORY that held it. That directory lives under the real home, so one was left behind per
+   * run of that one case, for as long as this file has existed.
+   *
+   * A sweep each case has to remember is one edit away from being wrong again, and the case that
+   * forgot was the one whose whole point is that something is missing. An exit handler runs
+   * whether a case returns early, throws, or asserts its way to a failure. */
+  const gateWorlds = [];
+  let gateSweepArmed = false;
   const gateWorld = (tag, opts) => {
     const o = opts || {};
     const base = fs.mkdtempSync(path.join(os.tmpdir(), 'sbg-' + tag + '-'));
@@ -365,7 +378,27 @@ const FIRST_CALLS = 150;
     // not use, and the assertion would prove nothing about the gate (S55).
     const tdir = path.join(os.homedir(), '.claude', 'projects', gate.projectDirName(root));
     fs.mkdirSync(tdir, { recursive: true });
-    const sid = 'fixture-session-budget-gate-' + tag;
+    /* UNIQUE PER RUN, AND THE FIXED NAME THIS REPLACES COST A GREEN SUITE ITS MEANING. The guard
+     * keeps its per-session counters in a file named from the session id, in the OS temp
+     * directory, and that file OUTLIVES the run. With a constant id, every execution of this
+     * suite on this machine appended to the same counter: measured at 362 calls and 3 firings in
+     * a fixture that makes six calls per run, on a day the suite had been run four times.
+     *
+     * WHAT WAS OBSERVED, and it is narrower than "it fails", which is the point. The guard fires
+     * on the call that CROSSES a threshold and then allows the next one, deliberately, so it does
+     * not brick a session. So the poisoned counter does not break this suite every time: it
+     * breaks whichever run happens to cross a backstop, and every run either side of it is green.
+     * One case here returned exit 2 inside a full suite run and the same case passed on its own
+     * two minutes later, and restoring the constant id against the 362-call file did NOT
+     * reproduce it, because that counter had already fired at its thresholds.
+     *
+     * That is worse than a test that fails, not better. An intermittent red whose trigger is the
+     * machine's own history reads as a flake, and a flake gets re-run rather than read. The thing
+     * this suite measured was partly how often the machine had been asked the question. A fixture
+     * that accumulates state outside its own directory is not a fixture. S59 is the same rule one
+     * level down: each case builds its own file so no case can pass on bytes an earlier one left
+     * behind, and this is that rule applied to the files a fixture makes the TOOL write. */
+    const sid = 'fixture-session-budget-gate-' + tag + '-' + process.pid + '-' + (gateN++);
     const lines = [JSON.stringify({
       timestamp: '2026-01-01T00:00:00.000Z',
       message: { role: 'assistant', content: [{ type: 'text', text: 'the session opens' }] },
@@ -387,13 +420,52 @@ const FIRST_CALLS = 150;
           answered_at: o.answered ? '2026-01-01 00:06:00' : undefined }],
       }), 'utf8');
     }
-    return { root: root, sid: sid, tfile: tfile, tdir: tdir };
+    const w = { root: root, sid: sid, tfile: tfile, tdir: tdir, base: base };
+    gateWorlds.push(w);
+    if (!gateSweepArmed) {
+      gateSweepArmed = true;
+      process.on('exit', () => { for (const g of gateWorlds) cleanup(g); });
+    }
+    return w;
   };
   const payload = (w, command) => ({
     session_id: w.sid, cwd: w.root, tool_name: 'Bash', tool_input: { command: command },
     transcript_path: w.tfile,
   });
-  const cleanup = (w) => { try { fs.rmSync(w.tfile, { force: true }); } catch (e) {} };
+  /* Both files, because the transcript was the only one being removed and the counter file was
+   * the one that accumulated. Cleaning half of what a fixture creates is how the other half
+   * becomes invisible. */
+  /* FOUR THINGS, BECAUSE THE FIXTURE CREATES FOUR, and each count in this comment has been wrong
+   * once. The transcript was swept, then the counter was added, then the directory holding the
+   * transcript, and the fixture ROOT under the temp directory was still left behind every time:
+   * measured at 825 of them, growing by eleven per run. A sweep is only ever as complete as the
+   * last person's inventory of what gets made, which is why this one is now written next to the
+   * thing that makes them rather than kept in a reader's head.
+   *
+   * It used to say THREE. The directory under the real home was the one it
+   * missed then: it sits under the REAL home, because that is where the tool looks and a fixture
+   * that wrote anywhere else would prove nothing (S55). Its name is mangled from the fixture root,
+   * which is unique per run, so one was left per fixture per run and 282 of the 291 directories in
+   * ~/.claude/projects were this suite's residue when it was counted.
+   *
+   * The guard on the name is not decoration. This removes a directory under the user's own home,
+   * so it removes only one whose mangled name still carries the temp-fixture marker, and it
+   * removes nothing if that marker is absent. A sweep that trusts its own construction is how a
+   * test deletes something real. */
+  const cleanup = (w) => {
+    try { if (w.tfile) fs.rmSync(w.tfile, { force: true }); } catch (e) {}
+    try { if (w.sid) fs.rmSync(gateState(w.sid), { force: true }); } catch (e) {}
+    try {
+      if (w.tdir && path.basename(w.tdir).indexOf('sbg-') !== -1) fs.rmSync(w.tdir, { recursive: true, force: true });
+    } catch (e) {}
+    /* The fixture root itself. Guarded on BOTH the temp directory and the marker, because this one
+     * is a recursive delete of a directory tree rather than of a file or an empty directory. */
+    try {
+      if (w.base && path.dirname(w.base) === os.tmpdir() && path.basename(w.base).indexOf('sbg-') === 0) {
+        fs.rmSync(w.base, { recursive: true, force: true });
+      }
+    } catch (e) {}
+  };
 
   // 1. THE REFUSAL. An open decision, no prompt in the transcript, and the answer being written.
   {
@@ -526,7 +598,14 @@ const FIRST_CALLS = 150;
     // Pointed at a directory holding no tickets, it must produce CANNOT TELL and therefore ALLOW,
     // in a world whose board/ would otherwise block. That separates rule 1 from rule 2 cleanly.
     const w = gateWorld('boardhome', { prompt: false, boardAt: 'board' });
+    /* Registered on the world so the exit sweep takes it too. Made here rather than inside
+     * gateWorld because it is deliberately NOT a board, and it was the fourth thing the sweep
+     * did not know about. */
     const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'sbg-empty-'));
+    /* Every field the sweep touches, so it does not throw a swallowed TypeError twice per run on
+     * the ones this entry does not have. A cleanup that is safe only because its errors are
+     * caught is a cleanup nobody can tell has stopped working. */
+    gateWorlds.push({ base: empty, tfile: null, sid: null, tdir: null });
     let code = 0;
     try {
       execFileSync('node', [GUARD], {

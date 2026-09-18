@@ -68,6 +68,27 @@ Advocacy: Fight for an interface true to the design spec and good to use. Make y
 
 - **Deleting copy can delete the element that other code writes into.** A screen was trimmed to remove text that a reviewer called redundant. One of the removed lines was the container that several error handlers rendered their messages into, and every one of those handlers was written as "find the target, and write to it only if it exists". So the feature did not break, it went silent: an unreadable file produced no message, a parse exception produced no message, and a read failure produced no message. Silence reads as success to the person using it. Two rules follow. Before removing an element, search for its identifier across the whole file rather than judging it by what it looks like on screen. And never guard a render behind a bare existence check on its own target, because that turns a missing container into a silent no-operation instead of a loud failure; render into a container that is guaranteed to exist, or throw.
 
+- **An ERROR is not a VERDICT, and collapsing the two told buyers a live event was closed.** A
+  buying page rendered "this event is not taking bookings" while the record behind it said enabled,
+  open, three places left, at a real price. The loader set its config object to null when the
+  request threw, and the renderer read a null config as the event being switched off. Three
+  conditions, TWO renderings, and the one that went missing was the only one the visitor could act
+  on, because a stop message gives them no reason to try again. Observed once on the live site by
+  mobile QA, then confirmed from source. The fix is a THIRD STATE, not a better message: a distinct
+  load-failed value, presented as something to retry rather than something to accept, and answered
+  BEFORE any verdict in the render path. Placed after the enabled check it is unreachable, which is
+  why the ordering carries its own assertion and its own mutant. The rule is wider than one page:
+  any code path that turns "we could not ask" into an answer about the thing being asked about is
+  this defect, and a catch that sets a value to the same empty shape a real negative uses has
+  DELETED A STATE. Give the failure its own value and answer it first.
+
+- **A new bound needs its own check, because the rule that looks like it covers the case is often
+  the one that cannot.** A promotional price of 0 passed validation, because 0 SATISFIES a "cheaper
+  than the standard price" rule. The money formatter then rendered 0 as "Free" and the visitor was
+  told to bring Free with them. When you add a floor or a ceiling, give it its own check and its
+  own assertion, and make the assertion prove WHICH rule refused the bad value. Without that, a fix
+  applied to the wrong rule passes the test.
+
 ## Asking the CEO for a decision
 
 **A decision goes to the CEO through the interactive multiple-choice prompt, so they answer by
@@ -188,6 +209,9 @@ the case stronger, they make the strong one harder to find.
 
 **Cut the throat-clearing.** No preamble, no cheerleading, no "great question", no restating the
 request, no summary of what you are about to say or of what you just said. Start.
+
+**No em-dash.** Not in a reply, not in product copy, not in a commit message. A comma, a colon or
+a full stop instead. `check-reply-shape.js` counts them and the evidence is in its header.
 
 **Three hundred words is the cap on one reply.** Derived across 61 transcripts and 4,598 replies,
 counted by `check-reply-shape.js`. Fenced blocks are free, so paste what the tool printed. The

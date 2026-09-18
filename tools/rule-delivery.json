@@ -1,0 +1,65 @@
+{
+  "_why": "Every rule this studio has CLAIMED to ship, with the destination that claim rests on. A rule goes in here at the moment it is first described as delivered, not later. See tools/check-rule-delivery.js for the two findings that made this file necessary: a rule reported as shipped that was in no fragment at all (ST-272), and a rule shipped faithfully into 34 role files and 0 of the documents either session loads (ST-271, S224).",
+  "_kinds": "files = read that path directly. loaded_by = resolve that CLAUDE.md's @-imports all the way down and require the text somewhere in the set. present = every string must appear. retired = no string may appear.",
+  "rules": [
+    {
+      "name": "no-em-dash",
+      "ticket": "ST-272",
+      "why": "Reported to the founder as a delivered rule more than once while base/fragments/brevity.md contained no em-dash rule at all. Measured before the fix: 3,243 em-dashes across 1,675 of one project's 7,427 replies, 777 across 449 of another's 2,512.",
+      "present": ["No em-dash"],
+      "files": ["base/fragments/brevity.md"],
+      "loaded_by": ["CLAUDE.md"]
+    },
+    {
+      "name": "reply-word-cap",
+      "ticket": "ST-271",
+      "why": "Present in 17 of 17 role files in each of two projects and in 0 of the 8 documents either session loads. The roles govern dispatched subagents; the session that writes to the founder loads CLAUDE.md and its imports. The retired wording is the line this cap REPLACED, and one project was still carrying both.",
+      "present": ["Three hundred words is the cap"],
+      "retired": ["there is deliberately no line limit"],
+      "files": ["base/fragments/brevity.md"],
+      "loaded_by": ["CLAUDE.md"]
+    },
+    {
+      "name": "point-form-not-prose",
+      "ticket": "ST-135",
+      "why": "The CEO reversed the older no-lists-by-default rule themselves on 2026-09-05. The reversal has to be readable in the document the session loads, or the retired rule is what is in force.",
+      "present": ["Point form, not prose"],
+      "files": ["base/fragments/brevity.md"],
+      "loaded_by": ["CLAUDE.md"]
+    },
+    {
+      "name": "decisions-reach-the-ceo-by-click",
+      "ticket": "ST-259",
+      "why": "The CEO's own top rule, raised 2026-09-13 in their words: the other projects do not give them MCQ prompts to respond to via click inputs. It was written into the fragment the roles compose and, for four sittings, nowhere the founder-facing session read. S091 and S039 are the same defect.",
+      "present": ["AskUserQuestion", "so they answer by CLICKING"],
+      "retired": ["so the reply can be a single character"],
+      "files": ["base/fragments/decisions-are-numbered.md"],
+      "loaded_by": ["CLAUDE.md"],
+      "exempt": [
+        {
+          "file": "base/fragments/decisions-are-numbered.md",
+          "reason": "The fragment QUOTES the retired sentence in order to retire it, under the heading 'Until that day this rule said the wrong thing'. Keeping the superseded wording visible beside its replacement is deliberate and is why the rule reads as a correction rather than as an arbitrary preference. Delete this exemption if that paragraph ever goes."
+        },
+        {
+          "file": "WARM_START.md",
+          "reason": "The Known gaps entry records the 2026-09-13 supersession and quotes the old wording as the thing that was superseded. It is a dated record of a change, not an instruction in force."
+        }
+      ]
+    },
+    {
+      "name": "read-the-decision-archive",
+      "ticket": "ST-257",
+      "why": "Archiving moves a decision out of what is loaded. That only avoids retiring the decision by accident if everyone looking for one knows to open the archive, so the instruction has to be in the loaded set itself.",
+      "present": ["DECISIONS-ARCHIVE.md"],
+      "files": ["base/fragments/read-the-decision-archive.md"],
+      "loaded_by": ["CLAUDE.md"]
+    },
+    {
+      "name": "session-states-its-goal",
+      "ticket": "ST-275",
+      "why": "Raised by the CEO on 2026-09-18 in their own words: a session should summarise its goals and business value at the start, wind-down should compare against that, and the goal should be finished rather than carried over. It is delivered through the globally installed skills, which is how it reaches every project without touching one.",
+      "present": ["GOAL AND BUSINESS VALUE"],
+      "files": ["base/skills/warm-start/SKILL.md", "base/skills/wind-down/SKILL.md"]
+    }
+  ]
+}

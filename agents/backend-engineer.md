@@ -67,6 +67,20 @@ Advocacy: Fight for correct, secure, and durable data. Make your strongest case 
 
 - **Defaults written during parsing poison every later path built on that parse.** A file importer filled in sensible defaults while reading each row, which is correct for creating a new record and silently destructive for updating an existing one. When an update path was later built on the same parse, its guard for "the file said nothing about this field" could never fire, because the parse had already written a value into every one of those fields. A typo in one cell then planned a change to several fields the person never mentioned, including flipping a private record to public and emptying columns the schema declares as not null, so the write failed only after the screen had reported it as fine. Defaults belong in the writer that creates a record, never in the reader that parses input. Keep the parsed representation faithful to what the input actually said, including absence, and let each write path apply its own policy. Where a create path and an update path share a parser, prove the update path against a record whose stored values all DIFFER from the defaults, or the leak is invisible.
 
+- **A NAME is not a BODY, and a ledger keyed on names launders guesses into evidence.** An object
+  existing in a live system does not mean the file that defines it ever ran there. A production
+  environment held two routines by name, so every name-level check passed and the parity view
+  reported both present. Compared by CONTENTS against the definitions in the tree, they were 2 of
+  20 and 0 of 18 lines. A name-keyed backfill would have written a record asserting that the fix
+  for an identity-disclosure defect had been applied to production. It had not been. What made
+  those zeroes mean anything was a positive control in the same run, two other files that returned
+  16 of 16 and 24 of 24; without one, a run of zeroes means only that your matcher is broken. This
+  generalises past databases: any check that asks "is the thing there" rather than "is the thing
+  the version we shipped" has this hole. And the three verdicts are NOT equal, which is the half
+  people skip. ABSENT is strong evidence, because a file cannot have run and left nothing behind.
+  PARTIAL is evidence of nothing on its own. PRESENT is the WEAK one and must never be reported as
+  "applied". Naming them differently in the output is what stops the next reader collapsing them.
+
 ## Asking the CEO for a decision
 
 **A decision goes to the CEO through the interactive multiple-choice prompt, so they answer by
@@ -187,6 +201,9 @@ the case stronger, they make the strong one harder to find.
 
 **Cut the throat-clearing.** No preamble, no cheerleading, no "great question", no restating the
 request, no summary of what you are about to say or of what you just said. Start.
+
+**No em-dash.** Not in a reply, not in product copy, not in a commit message. A comma, a colon or
+a full stop instead. `check-reply-shape.js` counts them and the evidence is in its header.
 
 **Three hundred words is the cap on one reply.** Derived across 61 transcripts and 4,598 replies,
 counted by `check-reply-shape.js`. Fenced blocks are free, so paste what the tool printed. The

@@ -96,6 +96,7 @@ function git (root, args) {
 }
 
 function walkFingerprint (root, ignoreRel) {
+  const ignored = new Set([].concat(ignoreRel || []).filter(Boolean))
   const skip = new Set(['.git', 'node_modules', '.public', '.archive'])
   const h = crypto.createHash('sha256')
   let seen = 0
@@ -111,7 +112,7 @@ function walkFingerprint (root, ignoreRel) {
       const child = rel ? rel + '/' + e.name : e.name
       if (e.isDirectory()) { stack.push(child); continue }
       if (!e.isFile()) continue
-      if (child === ignoreRel) continue
+      if (ignored.has(child)) continue
       if (seen >= WALK_CAP) { truncated = true; continue }
       seen++
       let st
@@ -138,8 +139,14 @@ function walkFingerprint (root, ignoreRel) {
 // The cost, stated rather than discovered: two different commits carrying identical content now
 // share a fingerprint. They also carry identical code, so a result measured on one is evidence
 // about the other, which is the only question this hash is asked.
+// ignoreRel takes a list as of ST-244, because there is now a SECOND record file written beside
+// the work: the doctor findings. It is appended to at wind-down, after the suite, by the same
+// session that just recorded these rows, so leaving it in the fingerprint would invalidate every
+// row the moment the doctor wrote one and the release would refuse with everything NOT PROVED.
+// That is the identical self-invalidating loop this function already closes for checks.json, and
+// the only thing that was missing was room for more than one name.
 function treeState (root, ignoreRel) {
-  const skip = ignoreRel ? [':(exclude)' + ignoreRel] : []
+  const skip = [].concat(ignoreRel || []).filter(Boolean).map(r => ':(exclude)' + r)
   const head = git(root, ['rev-parse', 'HEAD'])
   if (head === null) return walkFingerprint(root, ignoreRel)
   // -z, because git quotes any path it considers unusual, and a quoted path fails to open and
@@ -161,6 +168,20 @@ function treeState (root, ignoreRel) {
 function treeKey (t) { return t.by + ':' + t.hash }
 
 function relOf (root, file) { return path.relative(root, file).split(path.sep).join('/') }
+
+// Every file that is WRITTEN BESIDE THE WORK as a record of it, and therefore cannot be part of
+// the fingerprint of the tree it describes. Two of them now: this runner's own ledger, and the
+// doctor findings the wind-down appends after the suite has gone quiet (ST-244). Derived from the
+// ledger's own location rather than hard-coded, so a project with BOARD_HOME set excludes the
+// files where they actually are instead of where they would be by default (S201, S218).
+function recordRels (root, file) {
+  const dir = path.dirname(file)
+  return [
+    relOf(root, file),
+    relOf(root, path.join(dir, 'doctor-findings.jsonl')),
+    relOf(root, path.join(dir, 'doctor-findings-archive.jsonl'))
+  ]
+}
 
 // ------------------------------------------------------------------ the instruments
 
@@ -282,6 +303,80 @@ function definitions (root) {
       build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
       advisory: [3],
       about: 'no decision key names two different decisions'
+    },
+    {
+      // ST-272. A rule claimed as shipped is PRESENT where it is claimed. In the session-start
+      // set on purpose: the two rules it guards are the two the CEO watches most closely, and a
+      // rule that has silently stopped reaching the loaded documents should be the first thing a
+      // session learns rather than something found five sittings later.
+      name: 'rule-delivery',
+      sets: ['session-start', 'release'],
+      where: ['tools/check-rule-delivery.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
+      // Exit 2 is no manifest, which is every copy installed from the public export, because the
+      // manifest names this studio's own destinations. Without this the check is red forever on
+      // a reader's machine and no reader can clear it.
+      advisory: [2],
+      about: 'every rule claimed as shipped is present in the documents that claim it'
+    },
+    {
+      // ST-269, S223. An assertion satisfied by either of two print sites is satisfied by the
+      // wrong one. In 'deep' rather than a gating set BECAUSE it is a ratchet over 41 existing
+      // findings: gating on it today would refuse every release until all of them are fixed,
+      // which is how a check gets switched off. It refuses a RISE, and the rise is what matters.
+      name: 'print-anchors',
+      sets: ['deep', 'wind-down'],
+      where: ['tools/check-print-anchors.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
+      advisory: [2],
+      about: 'no new assertion matches a string its tool prints from more than one place'
+    },
+    {
+      // ST-275. Raised by the CEO: a session states its goal and business value at the start and
+      // is measured against it at wind-down. wind-down only, because that is when the verdict
+      // exists; at session start there is nothing yet to compare.
+      name: 'session-goal',
+      sets: ['wind-down'],
+      where: ['tools/check-session-goal.js'],
+      needs: ['WARM_START.md'],
+      build: (f, t) => ({ exe: process.execPath, args: [f.abs, t.abs] }),
+      // Exit 3 is no Session goal section, which is every project that has not adopted it yet.
+      // Blocking those would lock a project out of committing over a section it has never had.
+      advisory: [3],
+      about: 'the session committed to a goal before it worked, and answered it with a verdict'
+    },
+    {
+      // ST-244. The doctor runs at every wind-down and its findings are the only thing standing
+      // between a defect class and its fifth appearance. This asks whether the row was actually
+      // written. It is in the wind-down set and nowhere else: at session start there is nothing
+      // to have written yet, and gating a RELEASE on it would refuse a stranger's install that
+      // has never run a doctor, which is the lockout this file already learned about the hard way.
+      //
+      // Exit 3 is not reachable here and is listed anyway: the tool reports CANNOT TELL for show
+      // and archive, and a future gate path that grows one must not arrive as a silent pass.
+      name: 'doctor-record',
+      sets: ['wind-down'],
+      where: ['tools/doctor-record.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs, 'gate'] }),
+      advisory: [3],
+      about: 'this wind-down wrote a doctor row, so the findings outlive the session that had them'
+    },
+    {
+      // ST-245. The reading half. It walks every project on the machine, finds each board the way
+      // board.js DEFINES one rather than by guessing a directory name (S218), and refuses when a
+      // finding class has come back in a second sitting carrying no ticket. That is the only thing
+      // it refuses on, and it is the exact failure ST-240 was raised about: a fault found, written
+      // down, found again, and never turned into work.
+      //
+      // Session-start and nowhere else. This is the set that actually runs, and a new gate with its
+      // own runner would join the nine checks already sitting in a set nothing triggers (ST-241).
+      // Exit 3 is no record anywhere, which is every project until it has run one wind-down.
+      name: 'doctor-across',
+      sets: ['session-start'],
+      where: ['tools/doctor-across.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs] }),
+      advisory: [3],
+      about: 'a fault that came back in a second sitting is on the board rather than in a file'
     },
     {
       name: 'governance-core',
@@ -528,6 +623,21 @@ function runOne (root, def) {
   if (def.advisory && def.advisory.indexOf(code) !== -1)
     return { status: 'advisory', exit: code, cmd: cmd, ms: ms, tail: tail,
       why: tail || ('exit ' + code + ' is advisory for this check') }
+  // ST-268. A CHECK THAT PRINTS A WARNING IS NOT 'ok', AND RECORDING IT AS ok COST A RELEASE.
+  // On 2026-09-18 the releases-page row went into .board/checks.json as status ok, exit 0, in
+  // the RELEASE set, with its own tail reading "WARNING: 1 heading(s) matched no release and
+  // were dropped from the page, the first being Unreleased". Five entries were one command from
+  // publishing under the 2026-09-13 headline, because Get-ReleaseNote matches only a dated
+  // heading. The gate passed while the only instrument that could see the condition printed it.
+  //
+  // 'warned' is a status the gate does NOT recognise as a pass, so it refuses and quotes the
+  // warning. That is deliberate rather than a softer signal: the whole defect was a real finding
+  // being recorded in a field that said everything was fine. If a warning is acceptable for a
+  // check, the honest fix is to stop printing it or to make the check exit non-zero and be
+  // listed as advisory, both of which are decisions somebody has to write down.
+  const warned = code === 0 && /(^|[^A-Za-z])WARNING[: ]/.test((r.stdout || '') + (r.stderr || ''))
+  if (warned) return { status: 'warned', exit: code, cmd: cmd, ms: ms, tail: tail,
+    why: 'exit 0 with a warning printed, which is not a clean run' }
   return { status: code === 0 ? 'ok' : 'failed', exit: code, cmd: cmd, ms: ms, tail: tail }
 }
 
@@ -573,7 +683,8 @@ function doRun (root, file, setName, quiet) {
   if (!defs.length) { process.stderr.write('run-checks: no checks in set ' + setName + '\n'); return 2 }
 
   const rel = relOf(root, file)
-  const before = treeState(root, rel)
+  const ignore = recordRels(root, file)
+  const before = treeState(root, ignore)
   const existing = readLedger(file)
   const data = existing.state === 'ok'
     ? existing.data
@@ -625,7 +736,7 @@ function doRun (root, file, setName, quiet) {
 
   // The tree is re-read after the run. Anything written while an instrument was reading it
   // makes every row above a measurement of a tree that no longer exists.
-  const after = treeState(root, rel)
+  const after = treeState(root, ignore)
   if (treeKey(after) !== treeKey(before)) {
     for (const def of defs) data.checks[def.name].tree = 'moved-during-run'
     say(quiet, '')
@@ -653,6 +764,7 @@ function allowedAdvisory (def, row) {
 function doGate (root, file, setName, quiet) {
   const led = readLedger(file)
   const rel = relOf(root, file)
+  const ignore = recordRels(root, file)
   const clear = 'node tools/run-checks.js --set ' + setName
 
   if (led.state !== 'ok') {
@@ -665,7 +777,7 @@ function doGate (root, file, setName, quiet) {
   }
 
   const defs = definitions(root).filter(d => setName === 'all' || d.sets.indexOf(setName) !== -1)
-  const now = treeKey(treeState(root, rel))
+  const now = treeKey(treeState(root, ignore))
   const problems = []
   let ok = 0
   let absent = 0
@@ -682,6 +794,11 @@ function doGate (root, file, setName, quiet) {
     }
     if (row.status === 'failed') {
       problems.push([def.name, 'failed with exit ' + row.exit + (row.tail ? ': ' + row.tail : ''),
+        (row.cmd || clear) + '   then: ' + clear])
+      continue
+    }
+    if (row.status === 'warned') {
+      problems.push([def.name, 'exited 0 but PRINTED A WARNING, so it is not a clean run: ' + (row.tail || '(no tail recorded)'),
         (row.cmd || clear) + '   then: ' + clear])
       continue
     }
@@ -724,11 +841,12 @@ function doGate (root, file, setName, quiet) {
 function doShow (root, file) {
   const led = readLedger(file)
   const rel = relOf(root, file)
+  const ignore = recordRels(root, file)
   if (led.state !== 'ok') {
     process.stdout.write(rel + ': ' + led.state + (led.why ? ' (' + led.why + ')' : '') + '\n')
     return 1
   }
-  const now = treeKey(treeState(root, rel))
+  const now = treeKey(treeState(root, ignore))
   process.stdout.write('\n' + rel + '   tree now ' + now + '\n')
   const names = Object.keys(led.data.checks).sort()
   for (const n of names) {
@@ -784,6 +902,12 @@ function main (argv) {
   return doRun(root, file, set, quiet)
 }
 
-module.exports = { main, treeState, treeKey, readLedger, definitions, runOne }
+// recordRels is exported so its DERIVATION can be asserted directly. It was added to the release
+// path and went unmeasured because every existing fingerprint assertion called treeState with an
+// exclusion list of its own, which is a seam BELOW this function: those assertions passed whether
+// recordRels returned one path or three, because it was never on the path they exercised. A
+// helper applied only at call sites has no coverage until either a call site or the helper itself
+// is tested, and reading the suite cannot tell you which of the two you have. ST-277 HIGH-3.
+module.exports = { main, treeState, treeKey, readLedger, definitions, runOne, recordRels }
 
 if (require.main === module) process.exit(main(process.argv.slice(2)))

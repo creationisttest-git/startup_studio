@@ -3,41 +3,67 @@
     {
       "text": "'use strict'",
       "count": 1,
+      "verdict": "silent",
       "reason": "Strict mode changes nothing any assertion in this suite can observe, because the file is written to behave identically under both. It is kept for the same reason every other file here keeps it, and no test could earn its place."
+    },
+    {
+      "text": "+ 'guessed from the newest file: the newest is whichever session wrote last, which during '",
+      "count": 1,
+      "verdict": "silent",
+      "reason": "A CONTINUATION CLAUSE INSIDE AN EXPLANATORY MESSAGE, NOT A VERDICT. The clause that carries the verdict, and the exit code that acts on it, are both asserted; this line only explains WHY the tool refuses to guess. Deleting it shortens the explanation and changes no decision the tool makes. Stated plainly because it is a real cost rather than a clean pass: the explanation CAN rot without the suite noticing, and the reason that is not good enough to pin every clause is that an assertion per clause of a prose paragraph makes the message unmaintainable while proving nothing a reader can act on. Derived 2026-09-18, ST-263."
+    },
+    {
+      "text": "+ want + ' is in this project directory. This session is being measured somewhere its '",
+      "count": 1,
+      "verdict": "silent",
+      "reason": "A CONTINUATION CLAUSE INSIDE AN EXPLANATORY MESSAGE, NOT A VERDICT. The clause that carries the verdict, and the exit code that acts on it, are both asserted; this line only explains WHY the tool refuses to guess. Deleting it shortens the explanation and changes no decision the tool makes. Stated plainly because it is a real cost rather than a clean pass: the explanation CAN rot without the suite noticing, and the reason that is not good enough to pin every clause is that an assertion per clause of a prose paragraph makes the message unmaintainable while proving nothing a reader can act on. Derived 2026-09-18, ST-263."
     },
     {
       "text": "if (!line || line.indexOf('subagent_type') === -1) continue",
       "count": 1,
+      "verdict": "silent",
       "reason": "Half of a pair, and the pair is proved together rather than apart. This prefilter is what makes the record-is-truthy test below it unreachable: a line must carry the dispatch key to reach the parser, and no line carrying it parses to null. Remove this alone and the truthiness test catches what gets through; remove that alone and this never lets anything reach it. Remove BOTH and the null-line fixture crashes the check at exit 1, measured at 63 passed 2 failed. So it is silent under single deletion and load bearing in fact."
     },
     {
-      "text": "process.stdout.write('  Mentioning it further down, or after a \"not\", is how an errand disclaiming\\n')",
+      "text": "process.stdout.write('  So any remedy below naming one of those is unperformable, and a\\n')",
       "count": 1,
-      "reason": "Explanatory prose inside one refusal message, and prose is where this file deliberately stops asserting. The assertions on this branch bind the three things a reader ACTS on: that it refused, that the director WAS started so nobody hunts for a tool defect, that the dispatch was an ERRAND, that the remedy names the FIRST LINE, and which transcript was read. Binding every sentence as well would make the wording unmaintainable and would turn a copy edit into a red suite, which is how a suite teaches people to edit assertions instead of code. Deleting this line removes advice and changes no verdict, no exit code and no fact. Stated as a judgement rather than derived, because whether a sentence is load bearing is not something a mutation can answer."
+      "verdict": "silent",
+      "reason": "THE CONSEQUENCE HALF OF A MESSAGE WHOSE FINDING AND REMEDY ARE BOTH PINNED. The two lines above it, naming the reviewers that cannot be dispatched and the directory they were read from, are covered, and the REMEDY line below it was silent until ST-263 added an assertion for it on 2026-09-18, because a consequence with no remedy is a report the reader cannot act on. What is left here is the explanation joining the two, and deleting it changes no verdict, no exit code and nothing a reader would do next. Derived 2026-09-18, ST-263."
     },
     {
-      "text": "process.stdout.write('  itself used to clear this gate. The ask has to BE the first line.\\n')",
+      "text": "process.stdout.write('  release can never satisfy that half however many times it is run.\\n')",
       "count": 1,
+      "verdict": "silent",
+      "reason": "THE CONSEQUENCE HALF OF A MESSAGE WHOSE FINDING AND REMEDY ARE BOTH PINNED. The two lines above it, naming the reviewers that cannot be dispatched and the directory they were read from, are covered, and the REMEDY line below it was silent until ST-263 added an assertion for it on 2026-09-18, because a consequence with no remedy is a report the reader cannot act on. What is left here is the explanation joining the two, and deleting it changes no verdict, no exit code and nothing a reader would do next. Derived 2026-09-18, ST-263."
+    },
+    {
+      "text": "process.stdout.write('  them counts as one. Dispatching the doctor to report a breach is not a review of\\n')",
+      "count": 1,
+      "verdict": "silent",
       "reason": "Explanatory prose inside one refusal message, and prose is where this file deliberately stops asserting. The assertions on this branch bind the three things a reader ACTS on: that it refused, that the director WAS started so nobody hunts for a tool defect, that the dispatch was an ERRAND, that the remedy names the FIRST LINE, and which transcript was read. Binding every sentence as well would make the wording unmaintainable and would turn a copy edit into a red suite, which is how a suite teaches people to edit assertions instead of code. Deleting this line removes advice and changes no verdict, no exit code and no fact. Stated as a judgement rather than derived, because whether a sentence is load bearing is not something a mutation can answer."
     },
     {
       "text": "process.stdout.write('  the method, and one name cannot stand for both.\\n')",
       "count": 1,
+      "verdict": "silent",
       "reason": "Explanatory prose inside one refusal message, and prose is where this file deliberately stops asserting. The assertions on this branch bind the three things a reader ACTS on: that it refused, that the director WAS started so nobody hunts for a tool defect, that the dispatch was an ERRAND, that the remedy names the FIRST LINE, and which transcript was read. Binding every sentence as well would make the wording unmaintainable and would turn a copy edit into a red suite, which is how a suite teaches people to edit assertions instead of code. Deleting this line removes advice and changes no verdict, no exit code and no fact. Stated as a judgement rather than derived, because whether a sentence is load bearing is not something a mutation can answer."
     },
     {
-      "text": "process.stdout.write('  them counts as one. Dispatching the doctor to report a breach is not a review of\\n')",
+      "text": "process.stdout.write('  Mentioning it further down, or after a \"not\", is how an errand disclaiming\\n')",
       "count": 1,
+      "verdict": "silent",
       "reason": "Explanatory prose inside one refusal message, and prose is where this file deliberately stops asserting. The assertions on this branch bind the three things a reader ACTS on: that it refused, that the director WAS started so nobody hunts for a tool defect, that the dispatch was an ERRAND, that the remedy names the FIRST LINE, and which transcript was read. Binding every sentence as well would make the wording unmaintainable and would turn a copy edit into a red suite, which is how a suite teaches people to edit assertions instead of code. Deleting this line removes advice and changes no verdict, no exit code and no fact. Stated as a judgement rather than derived, because whether a sentence is load bearing is not something a mutation can answer."
     },
     {
       "text": "process.stdout.write('  Whoever made them, the reviewers read a tree that is not the one about to ship,\\n')",
       "count": 1,
+      "verdict": "silent",
       "reason": "Explanatory prose inside the tree-moved refusal, and prose is where this file deliberately stops asserting. What a reader ACTS on in this branch is asserted beside it: that it refused, that it refused for the TREE reason rather than a missing reviewer, the hash and subject of every commit that landed, the remedy, that the refusal is not an accusation, and which transcript was read. This sentence adds none of those; it restates why the verdicts are evidence about a different tree. Deleting it changes no verdict, no exit code and no fact a reader can use. Stated as a judgement rather than derived, because whether a sentence is load bearing is not something a mutation can answer."
     },
     {
       "text": "process.stdout.write('  a session committing its own work after dispatching its reviewers lands here too.\\n')",
       "count": 1,
+      "verdict": "silent",
       "reason": "The second half of the not-an-accusation sentence, and the FIRST half carries the claim: an assertion holds the words 'not an accusation', which is the thing a reader would otherwise misread as blaming a second writer who does not exist. This line is the example that follows it. Binding the example as well would turn a copy edit into a red suite, which is how a suite teaches people to edit assertions instead of code. Exempted rather than asserted for that reason, and NOT because nobody could think of a fixture."
     }
   ],
@@ -52,5 +78,12 @@
       "count": 1,
       "reason": "Masked by the role test below it, and the masking runs ONE WAY here rather than both, which is where this differs from its counterpart in check-gate-dispatch.js and why the reason was measured instead of copied. Deleting this prefilter alone is 60 passed, 0 failed, because every line it would have skipped is skipped again by the record-and-role test. Deleting that test alone is NOT silent, at 59 passed 1 failed on the founder-message fixture, so the two are not a mutual pair and only this half needs an exemption. It is load bearing in fact: with BOTH gone the suite is 56 passed, 4 failed, and one of the four is the bare-null fixture, which is the input the check cannot survive without one of the two."
     }
-  ]
+  ],
+  "__stamps": {
+    "tools/check-gate-dispatch.js": {
+      "tool": "80230369f43f27282550e71cb84275604ce2ecd0dabc8b26c74d073a2ea99834",
+      "suite": "1866da0441763b9a3082797764966c41464bbf8961df57e60c9c5bb5148ccd8c",
+      "at": "2026-09-18"
+    }
+  }
 }

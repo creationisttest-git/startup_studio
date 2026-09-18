@@ -38,6 +38,21 @@
  * enforced at whatever rate the hand is having a good day, and the hand here belonged to the
  * reviewer whose whole job was catching it.
  *
+ * AND THE BAN WAS NARROWER THAN ANYONE SAID, WHICH IS ST-272. The governance core of two sibling
+ * projects bans the em-dash in USER-VISIBLE CONTENT, permanently and retroactively, and both are
+ * imported by the documents those sessions load. So the product-copy ban was delivered. What was
+ * never written down anywhere is the REPLY-level ban: base/fragments/brevity.md carried no
+ * em-dash rule at all until 2026-09-18, and the string appeared only in roles about product copy.
+ * Measured before that line existed: one project 3,243 em-dashes across 1,675 of 7,427 replies,
+ * another 777 across 449 of 2,512. Both enforce it rigorously in product strings, where a check
+ * reads it, and not at all in replies, where nothing did.
+ *
+ * THE PROVENANCE LIVES HERE AND NOT IN THE FRAGMENT, DELIBERATELY. The fragment is @-imported and
+ * therefore re-sent on every request of every session, and again in every role that includes it;
+ * this header is read on demand. Three sentences of history in the fragment cost roughly ten
+ * thousand tokens a session to say what a reader needs once. That is S210, and it was caught by
+ * the content gate reading the first draft of this very rule.
+ *
  * TWO DELIBERATE EDGES ON THAT COUNT. Fenced blocks are EXCLUDED, because pasting a tool's output
  * that contains an em-dash is quoting evidence, which these rules ask for everywhere else;
  * refusing a session for showing its working teaches people to stop pasting the numbers, which
@@ -335,6 +350,10 @@ function main (argv) {
   const quiet = has(argv, 'quiet')
   const report = has(argv, 'report')
   const all = has(argv, 'all')
+  // ST-271. --per-session scores one transcript at a time and never claims to be this session,
+  // which is what makes it usable against a project other than the one it is running in.
+  const perSession = has(argv, 'per-session')
+  const since = flagOf(argv, 'since', null)
   const rootArg = flagOf(argv, 'root', process.cwd())
   const homeArg = flagOf(argv, 'home', os.homedir())
   const maxArg = flagOf(argv, 'max-prose', String(MAX_PROSE_WORDS))
@@ -344,6 +363,26 @@ function main (argv) {
       process.stderr.write('check-reply-shape: --' + pair[0] + ' needs a value after it\n')
       return 2
     }
+  }
+  if (has(argv, 'since') && !since) {
+    process.stderr.write('check-reply-shape: --since needs a date after it, as YYYY-MM-DD\n')
+    return 2
+  }
+  if (since !== null && !/^\d{4}-\d{2}-\d{2}$/.test(since)) {
+    process.stderr.write('check-reply-shape: --since takes a date as YYYY-MM-DD, got ' + JSON.stringify(since) + '\n')
+    return 2
+  }
+  // Combining these asks for one number computed two incompatible ways, so it is a usage error
+  // rather than a quiet precedence rule nobody can remember. Same reasoning as --recent with --all.
+  if (perSession && all) {
+    process.stderr.write('check-reply-shape: --per-session cannot be combined with --all, because '
+      + '--all pools every session into one score and --per-session exists to keep them apart\n')
+    return 2
+  }
+  if (since !== null && !perSession) {
+    process.stderr.write('check-reply-shape: --since only means something with --per-session, '
+      + 'which is the mode that reads more than one session and can therefore window them\n')
+    return 2
   }
   const max = Number(maxArg)
   if (!Number.isInteger(max) || max < 1) {
@@ -400,6 +439,69 @@ function main (argv) {
     say(quiet, 'REPLY SHAPE  CANNOT TELL. ' + t.why)
     return 3
   }
+  // ST-271. PER-SESSION, DRIVEN BY A PROJECT PATH, WHICH IS THE ONE QUESTION THIS TOOL COULD
+  // NOT ANSWER. It had exactly two modes and neither one measures a sibling project's conduct.
+  // --all pools every session ever written, so a sibling project's 2,512 replies and 777 em-dashes
+  // are one number that cannot move perceptibly no matter what happens next: a rule delivered
+  // today is invisible against months of history, which is precisely the question that mattered
+  // after the rule finally reached the documents those sessions load. The default mode asks the
+  // host which transcript is THIS session, and against a sibling the answer is correctly CANNOT
+  // TELL, because our session id names no file in that project's directory.
+  //
+  // So the missing mode is neither of those: score each transcript on its own and report a row
+  // per session, newest first, with --since to bound the window. That is what shows a change.
+  // It never claims to be this session and says so in its own header, because the whole reason
+  // the default mode refuses is that measuring one session and labelling it another is worse
+  // than measuring nothing (S207: a refusal may not assert more than its predicate measured).
+  if (perSession) {
+    const withTime = t.files.map(f => {
+      let mtime = 0
+      try { mtime = fs.statSync(f).mtimeMs } catch (e) { mtime = 0 }
+      return { file: f, mtime: mtime }
+    }).filter(r => !since || new Date(r.mtime).toISOString().slice(0, 10) >= since)
+      .sort((a, b) => b.mtime - a.mtime)
+
+    if (!withTime.length) {
+      say(quiet, 'REPLY SHAPE  CANNOT TELL. no session in ' + rootArg
+        + (since ? ' modified on or after ' + since : '') + '.')
+      return 3
+    }
+    say(quiet, 'REPLY SHAPE PER SESSION  ' + rootArg)
+    say(quiet, '  NOT THIS SESSION. One row per transcript, newest first'
+      + (since ? ', since ' + since : '') + '. ' + withTime.length + ' session(s).')
+    let breached = 0
+    let totalReplies = 0
+    for (const rec of withTime) {
+      const r = repliesIn(rec.file)
+      if (r.why) { say(quiet, '  ' + path.basename(rec.file).slice(0, 8) + '  UNREADABLE: ' + r.why); continue }
+      const sh = r.replies.map(shapeOf)
+      if (!sh.length) continue
+      totalReplies += sh.length
+      const dash = sh.reduce((s, x) => s + x.emDashes, 0)
+      const overCap = sh.filter(x => x.totalWords > maxWords).length
+      const overProse = sh.filter(x => x.biggestProseBlock > max).length
+      const throat = sh.filter(x => x.throat).length
+      const longest = sh.reduce((a, b) => (b.totalWords > a.totalWords ? b : a), sh[0]).totalWords
+      const bad = dash > 0 || overCap > 0 || overProse > 0 || throat > 0
+      if (bad) breached++
+      say(quiet, '  ' + new Date(rec.mtime).toISOString().slice(0, 10) + '  ' + (bad ? 'BREACH ' : 'clean  ')
+        + String(sh.length).padStart(4) + ' repl(ies)  '
+        + String(dash).padStart(4) + ' em-dash  '
+        + String(overCap).padStart(3) + ' over ' + maxWords + 'w  '
+        + String(overProse).padStart(3) + ' over ' + max + ' prose  '
+        + String(throat).padStart(3) + ' preamble  longest ' + longest
+        + '  ' + path.basename(rec.file).slice(0, 8))
+    }
+    say(quiet, '')
+    say(quiet, '  ' + breached + ' of ' + withTime.length + ' session(s) breach, ' + totalReplies + ' repl(ies) read.')
+    if (breached) {
+      say(quiet, '  A row per session is what shows a rule landing. A pooled total cannot: months of')
+      say(quiet, '  history swamp the sessions since the rule arrived, so the number never moves.')
+      return 1
+    }
+    return 0
+  }
+
   // --all IS THE ONE CASE THAT WANTS EVERY SESSION, so it keeps every file. Every other
   // caller is asking about THIS session, and asking the host beats ranking by mtime: see
   // sessionTranscript in check-gate-dispatch.js for what mtime was actually selecting.

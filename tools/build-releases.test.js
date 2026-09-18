@@ -298,6 +298,39 @@ test('an unrecognised heading is counted and warned about rather than silently d
   }
 });
 
+// ST-268. The asymmetry above is what the release of 2026-09-18 came through: a near-miss date
+// threw and "## Unreleased" carrying five entries only warned, although both make Get-ReleaseNote
+// select the PREVIOUS dated section's note for the private AND the public commit. These three
+// cases hold the line where it now sits: content under the heading throws, no content still warns.
+test('an undated heading CARRYING ENTRIES refuses, because the release note would come from the previous date', function () {
+  const text = '## 2026-08-21\n\n**What this gives you.** A.\n\n## Unreleased\n\n### Something shipped\n\n**What this gives you.** B.\n';
+  throws(function () { B.build(text); }, /carries release content and is not a date/);
+});
+
+test('an undated heading carrying a bulleted entry refuses as well, since that is the other entry shape', function () {
+  const text = '## 2026-08-21\n\n**What this gives you.** A.\n\n## Unreleased\n\n- **A thing.** B.\n';
+  throws(function () { B.build(text); }, /carries release content and is not a date/);
+});
+
+test('an undated heading with no entries under it still only WARNS, so a reader with prose dividers is not locked out', function () {
+  const text = '## 2026-08-21\n\n**What this gives you.** A.\n\n## Notes\n\nJust a paragraph, no entry.\n';
+  const r = B.build(text);
+  if (!r.warnings.some(function (w) { return /Notes/.test(w); })) {
+    throw new Error('an empty unconsumed heading should warn: ' + JSON.stringify(r.warnings));
+  }
+});
+
+test('an entry under a DATED heading is not mistaken for content under an earlier undated one', function () {
+  // The section tracker has to reset at every "## ". Without the reset, entries belonging to the
+  // dated section below would be attributed to the undated heading above it and the build would
+  // refuse a changelog that is completely correct, which is the reader lockout in a new costume.
+  const text = '## Notes\n\nJust a paragraph.\n\n## 2026-08-21\n\n### Real entry\n\n**What this gives you.** A.\n';
+  const r = B.build(text);
+  if (!r.warnings.some(function (w) { return /Notes/.test(w); })) {
+    throw new Error('expected a warning and not a refusal: ' + JSON.stringify(r.warnings));
+  }
+});
+
 test('a structural heading the build knows is not warned about, so the count is not noise', function () {
   const text = '## 2026-08-21\n\n**What this gives you.** A.\n\n## Earlier\n\nolder notes\n';
   const r = B.build(text);
@@ -788,7 +821,7 @@ test('the declaration set to $false is an opt OUT, not a word where a value shou
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 72;
+const EXPECTED_ASSERTIONS = 76;
 const ranBefore = pass + fail;
 test('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

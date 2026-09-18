@@ -52,7 +52,7 @@ const TOOL = path.join(__dirname, 'check-reply-shape.js')
 const { projectDirName } = require('./check-gate-dispatch.js')
 const { shapeOf, main } = require('./check-reply-shape.js')
 
-const EXPECTED_ASSERTIONS = 119
+const EXPECTED_ASSERTIONS = 131
 
 let pass = 0
 let fail = 0
@@ -726,6 +726,56 @@ function bulletsOf (count) {
   session(w, 's1.jsonl', [reply('- clean and short')])
   ok('the clean pass names the word limit it held the session to',
     /stays under 300 words/.test(at(w, []).out))
+}
+
+// ST-271. --per-session, the mode that can measure a project other than the one it runs in.
+// The default mode asks the host which transcript is THIS session, and against a sibling the
+// honest answer is CANNOT TELL. --all pools everything ever written, so a rule delivered today
+// is invisible against months of history. Neither answers "did this project's conduct change".
+{
+  const w = world()
+  session(w, 'a.jsonl', [reply('- short and clean')])
+  session(w, 'b.jsonl', [reply('this reply carries an em' + String.fromCharCode(8212) + 'dash')])
+  // No CLAUDE_CODE_SESSION_ID at all: the whole point is that this mode does not need one.
+  const env = baseEnv()
+  env.CLAUDE_CODE_SESSION_ID = ''
+  const r = run(['--per-session', '--root', w.root, '--home', w.home], env)
+  ok('--per-session works with no session id, which is the case a sibling project always is', r.code === 1)
+  ok('--per-session prints one row per transcript rather than one pooled score',
+    (r.out.match(/repl\(ies\) /g) || []).length >= 2)
+  ok('--per-session says plainly that it is NOT this session, so no row is mislabelled', /NOT THIS SESSION/.test(r.out))
+  ok('--per-session marks the breaching session and not the clean one',
+    /BREACH/.test(r.out) && /clean/.test(r.out))
+  ok('--per-session reports how many of the sessions breach', /1 of 2 session\(s\) breach/.test(r.out))
+}
+
+{
+  const w = world()
+  session(w, 'a.jsonl', [reply('- short and clean')])
+  const r = run(['--per-session', '--root', w.root, '--home', w.home])
+  ok('--per-session exits 0 when every session in the window is clean', r.code === 0)
+}
+
+{
+  const w = world()
+  session(w, 'a.jsonl', [reply('- short and clean')])
+  ok('--per-session with --all is a usage error, because one pools and the other keeps apart',
+    run(['--per-session', '--all', '--root', w.root, '--home', w.home]).code === 2)
+  ok('--since without --per-session is a usage error rather than a silently ignored flag',
+    run(['--since', '2026-09-01', '--root', w.root, '--home', w.home]).code === 2)
+  ok('--since with no date after it is a usage error',
+    run(['--per-session', '--since', '--root', w.root, '--home', w.home]).code === 2)
+  ok('--since with something that is not a date is a usage error',
+    run(['--per-session', '--since', 'yesterday', '--root', w.root, '--home', w.home]).code === 2)
+}
+
+{
+  const w = world()
+  session(w, 'a.jsonl', [reply('this reply carries an em' + String.fromCharCode(8212) + 'dash')])
+  const r = run(['--per-session', '--since', '2099-01-01', '--root', w.root, '--home', w.home])
+  ok('--since that excludes every session is CANNOT TELL, exit 3, and never a clean pass', r.code === 3)
+  ok('and the CANNOT TELL names the window it applied, so an empty result is not read as good news',
+    /2099-01-01/.test(r.out))
 }
 
 for (const d of junk) { try { fs.rmSync(d, { recursive: true, force: true }) } catch (e) { /* a temp dir */ } }

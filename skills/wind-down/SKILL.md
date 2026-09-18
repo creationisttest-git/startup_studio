@@ -65,6 +65,24 @@ edit.
 
 This is session state. It answers "where are we right now".
 
+- **Session goal.** The GOAL AND BUSINESS VALUE this session committed to at its start, copied
+  unchanged, and the verdict on it. Four fields, and the check refuses on any of them missing:
+
+  ```
+  ## Session goal
+  Goal:    <what this session set out to FINISH, verbatim from the start>
+  Value:   <what the founder gets, in their terms>
+  Stated:  <YYYY-MM-DD HH:MM, when it was committed to>
+  Verdict: MET | PARTLY MET | NOT MET
+  Carried: <required when the verdict is not MET: what is carried, and why>
+  ```
+
+  **Never rewrite the goal to match what happened.** A goal edited at wind-down to fit the work
+  is a description wearing a commitment's clothes, and the whole point is that the two can be
+  told apart. If the session did something else, the verdict is NOT MET and the Carried line
+  says so. `check-session-goal.js` reads the board note written at the start and refuses when
+  the two have drifted or when the goal first appears at the end. ST-275.
+
 - **Current state.** What is true of the project as of this moment.
 - **Next action.** The single next thing, specific enough to act on without asking.
 - **Session log.** Append what this session did. Do not rewrite earlier entries.
@@ -187,7 +205,19 @@ block under the resume heading; a prompt written as bare prose is not findable, 
 happens to sit nearby gets handed over instead. One project's prompt had no fence at all and
 nobody knew until it handed over the wrong thing.
 
-**Second, the founder brief.**
+**Second, the session goal, measured against what the session actually did.**
+
+```
+node <studio>/tools/check-session-goal.js <path-to-WARM_START.md>
+```
+
+- `0` the goal was committed to before the work and is answered with a verdict.
+- `1` the section is broken, or the goal was written after the work started. **This blocks the commit.**
+- `3` no `## Session goal` section at all. **This does NOT block the commit**, for the same
+  reason the brief check exits 3 rather than 1: a project that has not adopted the section yet
+  must still be able to commit, or shipping the check locks it out.
+
+**Third, the founder brief.**
 
 ```
 node <studio>/tools/check-session-brief.js <path-to-WARM_START.md>
@@ -197,6 +227,45 @@ It reports if the brief is missing, has no fenced block, is over 12 lines, has a
 characters, carries an em-dash, is the same string as the resume prompt, or disagrees with the
 board about what is in flight. It also adds up the WHOLE session-start message in its worst case,
 with every finding firing, against a cap of 25.
+
+**Fourth, the doctor's findings, written where the next session can read them.**
+
+Run the doctor for THIS project, then write what it found as a row. One row per finding, and a
+session that found nothing worth a row says so with a reason rather than silently writing none.
+
+```
+node <studio>/tools/doctor-record.js write --class <kebab-slug> \
+  --severity critical|major|minor|note --finding "<what went wrong>" \
+  --evidence "<the command that shows it>" [--ticket ST-000]
+node <studio>/tools/doctor-record.js gate
+node <studio>/tools/doctor-record.js archive --write
+```
+
+- `0` a row was written by this session.
+- `1` **this blocks the commit.** No row, and no reason given.
+- With no session id the gate asks a weaker question, whether ANY row exists today, and says so.
+
+**Do NOT pass `--session`, and do not type an id from anywhere on screen.** Both commands default
+to `CLAUDE_CODE_SESSION_ID`, which the host sets and both sides normalise the same way, so the
+row the writer keys and the row the gate looks for cannot be in different namespaces. This block
+used to say `--session <session id>`, a session obligingly typed one from its own attribution
+line, and the registered check then gated a uuid against rows keyed by a different string: it
+could never pass, in any project, and the only way past it was a written reason at every single
+wind-down. A control that always refuses trains its reader to override it, which is S232 (ST-277).
+
+**The escape is a written reason and it is printed on every run** (S232):
+`gate --reason "<why there is no row>"`, again with no `--session`. A session that ran the doctor
+and recorded nothing has to say that in words somebody can disagree with.
+
+**Why this blocks and the class field matters.** No instrument in this studio had ever opened a
+review transcript, so every finding any reviewer ever made lived in scrollback and died with the
+session that heard it. That is why the same classes keep coming back: one ran four consecutive
+sittings and another three, each time found fresh by somebody with no way of knowing. The class
+slug is what lets a reader COUNT recurrence, and a class seen twice is a standing defect rather
+than an incident. ST-240, ST-244.
+
+**Run `archive --write` every wind-down, including when it moves nothing.** The no-op is free,
+and a reduction taken only when a limit refuses turns that limit into a floor (S221).
 
 **Two caps, ruled by the CEO on 2026-08-31: 25 lines for the whole message, 12 for the brief.**
 The brief is capped separately on purpose. It is the part the founder reads at every single

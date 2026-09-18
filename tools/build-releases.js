@@ -457,14 +457,41 @@ function build(changelogText, options) {
   const nearMiss = [];
   const unconsumed = [];
   let fenced = false;
+  // ST-268. AN UNCONSUMED HEADING WITH RELEASE CONTENT UNDER IT NOW THROWS, exactly as a
+  // near-miss date does, and only a heading with NO release content stays a warning.
+  //
+  // The asymmetry was the hole the critical came through. "## Unreleased" carrying five entries
+  // produced a warning and exit 0, while "## 2026-09-1" produced a throw, although the two do
+  // the same damage: Get-ReleaseNote matches only a DATED heading, so an undated one silently
+  // selects the PREVIOUS release's note for both the private and the public commit. On
+  // 2026-09-18 that was one command from publishing five entries under the 2026-09-13 headline.
+  // A human caught it. No check did, and one was watching.
+  //
+  // WHAT COUNTS AS RELEASE CONTENT is a "### " entry heading or a "- **" bullet before the next
+  // "## ". That is the shape every entry in this changelog has, and it is what separates a
+  // heading somebody is drafting under from a prose divider like "Earlier". A heading with
+  // neither is still only a warning, because it genuinely costs the reader nothing.
+  let current = null;
+  const withContent = new Set();
   for (const line of String(changelogText).split(/\r?\n/)) {
     if (/^\s{0,3}(```|~~~)/.test(line)) { fenced = !fenced; continue; }
     if (fenced) continue;
     const h2 = /^##\s+(\S.*?)\s*$/.exec(line);
-    if (!h2) continue;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(h2[1])) continue;
-    if (/^\d{4}-\d{2}-\d{2}/.test(h2[1])) { nearMiss.push(h2[1]); continue; }
-    if (STRUCTURAL.indexOf(h2[1]) === -1) unconsumed.push(h2[1]);
+    if (h2) {
+      current = null;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(h2[1])) continue;
+      if (/^\d{4}-\d{2}-\d{2}/.test(h2[1])) { nearMiss.push(h2[1]); continue; }
+      if (STRUCTURAL.indexOf(h2[1]) === -1) { unconsumed.push(h2[1]); current = h2[1]; }
+      continue;
+    }
+    if (current && (/^###\s+\S/.test(line) || /^\s*-\s+\*\*/.test(line))) withContent.add(current);
+  }
+  const carrying = unconsumed.filter(h => withContent.has(h));
+  if (carrying.length) {
+    throw new Error('the heading "## ' + carrying[0] + '" carries release content and is not a ' +
+      'date, so everything under it would be dropped from the page AND the release note would be ' +
+      'taken from the previous dated section without a word. Give it a date heading: "## ' +
+      new Date().toISOString().slice(0, 10) + '". ST-268.');
   }
   if (unconsumed.length) {
     warnings.push('WARNING: ' + unconsumed.length + ' heading(s) matched no release and were ' +

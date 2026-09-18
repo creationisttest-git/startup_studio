@@ -2170,6 +2170,702 @@
       "from": 31.1,
       "to": 31.2,
       "reason": "ST-266 third pass. studio.ps1 only: the pre-flight's STUDIO_SAFE branch is unreachable today and the comment now says so instead of describing it as live. Found by the second review of the release tree. Provenance on ST-266."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 8,
+      "to": 10,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 31.2,
+      "to": 31.5,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/build-releases.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/build-releases.js",
+      "field": "ratio",
+      "from": 20.7,
+      "to": 21.6,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/build-releases.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/build-releases.test.js",
+      "field": "ratio",
+      "from": 14,
+      "to": 14.2,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "named",
+      "from": 8,
+      "to": 10,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-gate-dispatch.test.js",
+      "field": "ratio",
+      "from": 15.8,
+      "to": 16.2,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-print-anchors.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 9.7,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-reply-shape.js",
+      "field": "named",
+      "from": 1,
+      "to": 3,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-reply-shape.js",
+      "field": "ratio",
+      "from": 14,
+      "to": 14.7,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-reply-shape.test.js",
+      "field": "named",
+      "from": 2,
+      "to": 3,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-rule-delivery.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-rule-delivery.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 10.6,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-rule-delivery.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 2,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-rule-delivery.test.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 5.1,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-session-goal.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 6.8,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/patch.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/patch.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 16,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/patch.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/patch.test.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 8,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.js",
+      "field": "named",
+      "from": 4,
+      "to": 7,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 22.9,
+      "to": 24.3,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.test.js",
+      "field": "named",
+      "from": 2,
+      "to": 3,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 14.9,
+      "to": 15.8,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/session-budget.js",
+      "field": "ratio",
+      "from": 38.1,
+      "to": 38.9,
+      "reason": "Twenty-eighth sitting, the eight-item mechanism round. Fifteen files rose. FIVE ARE NEW INSTRUMENTS built this sitting: patch.js and its suite (ST-079), check-rule-delivery.js and its suite (ST-272), check-print-anchors.js and its suite (ST-269), check-session-goal.js and its suite (ST-275). Each carries the long why-header this repository requires of a tool, naming the defect it exists for, which is exactly what the named-line rule asks for and what the new-file cap of 5 per cent cannot accommodate for a file that is mostly its own argument. TEN ARE EDITS to existing files: run-checks.js and studio.ps1 gained the ST-268 and ST-270 reasoning, build-releases.js and check-reply-shape.js gained the ST-268 and ST-271 reasoning, and the four matching suites gained the cases. session-budget.js and check-gate-dispatch.test.js were the two carried RED from the twenty-seventh sitting: session-budget.js belongs to a sibling session's commit 125f354 and check-gate-dispatch.test.js is ST-263's three added assertions. Both were reviewed before this write rather than signed off blind, which is why they were left red for a sitting."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-session-goal.js",
+      "field": "ratio",
+      "from": 6.8,
+      "to": 11.4,
+      "reason": "Two files, both check-session-goal. Its first real run against this repository produced a refusal that asserted more than its predicate measured (S207): it said the goal was written after the work started when what it compared was the first ticket mutation of the CALENDAR DAY, and the earlier mutation it named belonged to a different session on this shared board. The message now states the comparison it performed, admits it cannot attribute a mutation to a session, and offers a written-reason escape printed on every run, which is the same shape as the exemptions in check-rule-delivery.js and --allow-rise here. Six assertions added for that behaviour, and a name collision found in the same edit where the board note array shadowed the ordering note array and silently swallowed it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-session-goal.test.js",
+      "field": "ratio",
+      "from": 3.2,
+      "to": 4.3,
+      "reason": "Two files, both check-session-goal. Its first real run against this repository produced a refusal that asserted more than its predicate measured (S207): it said the goal was written after the work started when what it compared was the first ticket mutation of the CALENDAR DAY, and the earlier mutation it named belonged to a different session on this shared board. The message now states the comparison it performed, admits it cannot attribute a mutation to a session, and offers a written-reason escape printed on every run, which is the same shape as the exemptions in check-rule-delivery.js and --allow-rise here. Six assertions added for that behaviour, and a name collision found in the same edit where the board note array shadowed the ordering note array and silently swallowed it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 9.9,
+      "reason": "ST-244. Two files. tools/doctor-record.js is new and opens at 9.9 per cent counted comment against a 5 per cent cap for a new file: it is a record format plus a refusal, and the header carries the reason each control exists, including the one mutation its suite cannot kill, written down rather than left silent. tools/run-checks.js rose from 7 to 13 named lines and 31 to 32 control lines because treeState now excludes a LIST of record files rather than one, and the comment says why a second self-invalidating loop appeared. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.js",
+      "field": "named",
+      "from": 7,
+      "to": 13,
+      "reason": "ST-244. Two files. tools/doctor-record.js is new and opens at 9.9 per cent counted comment against a 5 per cent cap for a new file: it is a record format plus a refusal, and the header carries the reason each control exists, including the one mutation its suite cannot kill, written down rather than left silent. tools/run-checks.js rose from 7 to 13 named lines and 31 to 32 control lines because treeState now excludes a LIST of record files rather than one, and the comment says why a second self-invalidating loop appeared. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 24.3,
+      "to": 25.3,
+      "reason": "ST-244. Two files. tools/doctor-record.js is new and opens at 9.9 per cent counted comment against a 5 per cent cap for a new file: it is a record format plus a refusal, and the header carries the reason each control exists, including the one mutation its suite cannot kill, written down rather than left silent. tools/run-checks.js rose from 7 to 13 named lines and 31 to 32 control lines because treeState now excludes a LIST of record files rather than one, and the comment says why a second self-invalidating loop appeared. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "ST-245. tools/doctor-across.js is new: it is a cross-project reader whose header carries why it looks for a board by SHAPE rather than by name (S218), why the obligation is two SITTINGS and not two rows, and why it is read-only. The correction it made to itself on its first real run is written at the line it corrected. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "ratio",
+      "from": 5,
+      "to": 5.7,
+      "reason": "ST-245. tools/doctor-across.js is new: it is a cross-project reader whose header carries why it looks for a board by SHAPE rather than by name (S218), why the obligation is two SITTINGS and not two rows, and why it is read-only. The correction it made to itself on its first real run is written at the line it corrected. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.js",
+      "field": "named",
+      "from": 13,
+      "to": 15,
+      "reason": "ST-245. tools/doctor-across.js is new: it is a cross-project reader whose header carries why it looks for a board by SHAPE rather than by name (S218), why the obligation is two SITTINGS and not two rows, and why it is read-only. The correction it made to itself on its first real run is written at the line it corrected. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 25.3,
+      "to": 25.6,
+      "reason": "ST-245. tools/doctor-across.js is new: it is a cross-project reader whose header carries why it looks for a board by SHAPE rather than by name (S218), why the obligation is two SITTINGS and not two rows, and why it is read-only. The correction it made to itself on its first real run is written at the line it corrected. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 10,
+      "to": 13,
+      "reason": "ST-276. tools/doctor-across.js gained a --brief mode and studio.ps1 gained the block that injects it at session start. Both carry the same reason at length, because it is the one reason a reader will not guess: this output is re-sent on EVERY request for the life of the session, so its cost is the session length rather than one read (S210), which is why it prints nothing when there is nothing to act on and is capped twice. studio.ps1 also carries why the reader is wrapped separately from the founder brief. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 31.5,
+      "to": 31.8,
+      "reason": "ST-276. tools/doctor-across.js gained a --brief mode and studio.ps1 gained the block that injects it at session start. Both carry the same reason at length, because it is the one reason a reader will not guess: this output is re-sent on EVERY request for the life of the session, so its cost is the session length rather than one read (S210), which is why it prints nothing when there is nothing to act on and is capped twice. studio.ps1 also carries why the reader is wrapped separately from the founder brief. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "named",
+      "from": 1,
+      "to": 2,
+      "reason": "ST-276. tools/doctor-across.js gained a --brief mode and studio.ps1 gained the block that injects it at session start. Both carry the same reason at length, because it is the one reason a reader will not guess: this output is re-sent on EVERY request for the life of the session, so its cost is the session length rather than one read (S210), which is why it prints nothing when there is nothing to act on and is capped twice. studio.ps1 also carries why the reader is wrapped separately from the founder brief. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "ratio",
+      "from": 5.7,
+      "to": 10.4,
+      "reason": "ST-276. tools/doctor-across.js gained a --brief mode and studio.ps1 gained the block that injects it at session start. Both carry the same reason at length, because it is the one reason a reader will not guess: this output is re-sent on EVERY request for the life of the session, so its cost is the session length rather than one read (S210), which is why it prints nothing when there is nothing to act on and is capped twice. studio.ps1 also carries why the reader is wrapped separately from the founder brief. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "ST-276. tools/doctor-across.js gained a --brief mode and studio.ps1 gained the block that injects it at session start. Both carry the same reason at length, because it is the one reason a reader will not guess: this output is re-sent on EVERY request for the life of the session, so its cost is the session length rather than one read (S210), which is why it prints nothing when there is nothing to act on and is capped twice. studio.ps1 also carries why the reader is wrapped separately from the founder brief. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.test.js",
+      "field": "ratio",
+      "from": 4.9,
+      "to": 6.5,
+      "reason": "ST-276. tools/doctor-across.js gained a --brief mode and studio.ps1 gained the block that injects it at session start. Both carry the same reason at length, because it is the one reason a reader will not guess: this output is re-sent on EVERY request for the life of the session, so its cost is the session length rather than one read (S210), which is why it prints nothing when there is nothing to act on and is capped twice. studio.ps1 also carries why the reader is wrapped separately from the founder brief. Reviewed: git status shows no sibling session wrote into this tree."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-session-goal.js",
+      "field": "ratio",
+      "from": 11.4,
+      "to": 13.6,
+      "reason": "ST-277 wind-down. check-session-goal.js gained the reason its drift predicate now reads ANY board note of the day rather than the earliest: two sittings ran on one calendar day and the check compared this document against the OTHER sitting's goal. Reviewed: all changes in this tree are this session's."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/check-session-goal.test.js",
+      "field": "ratio",
+      "from": 4.3,
+      "to": 5.9,
+      "reason": "ST-277 wind-down. check-session-goal.js gained the reason its drift predicate now reads ANY board note of the day rather than the earliest: two sittings ran on one calendar day and the check compared this document against the OTHER sitting's goal. Reviewed: all changes in this tree are this session's."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 13,
+      "to": 17,
+      "reason": "ST-277. Three HIGH defects fixed and each one pinned by assertions that were watched failing under the exact pre-fix code. The rise is the provenance of the three: why the session id has one source, why the hook outcome is logged after the block that sets it, and why an exclusion applied at a call site has no coverage until the call site is entered. Each comment names the defect it prevents rather than describing the line below it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 31.8,
+      "to": 32.2,
+      "reason": "ST-277. Three HIGH defects fixed and each one pinned by assertions that were watched failing under the exact pre-fix code. The rise is the provenance of the three: why the session id has one source, why the hook outcome is logged after the block that sets it, and why an exclusion applied at a call site has no coverage until the call site is entered. Each comment names the defect it prevents rather than describing the line below it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.js",
+      "field": "named",
+      "from": 0,
+      "to": 4,
+      "reason": "ST-277. Three HIGH defects fixed and each one pinned by assertions that were watched failing under the exact pre-fix code. The rise is the provenance of the three: why the session id has one source, why the hook outcome is logged after the block that sets it, and why an exclusion applied at a call site has no coverage until the call site is entered. Each comment names the defect it prevents rather than describing the line below it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.js",
+      "field": "ratio",
+      "from": 9.9,
+      "to": 12.3,
+      "reason": "ST-277. Three HIGH defects fixed and each one pinned by assertions that were watched failing under the exact pre-fix code. The rise is the provenance of the three: why the session id has one source, why the hook outcome is logged after the block that sets it, and why an exclusion applied at a call site has no coverage until the call site is entered. Each comment names the defect it prevents rather than describing the line below it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.test.js",
+      "field": "named",
+      "from": 0,
+      "to": 1,
+      "reason": "ST-277. Three HIGH defects fixed and each one pinned by assertions that were watched failing under the exact pre-fix code. The rise is the provenance of the three: why the session id has one source, why the hook outcome is logged after the block that sets it, and why an exclusion applied at a call site has no coverage until the call site is entered. Each comment names the defect it prevents rather than describing the line below it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.test.js",
+      "field": "ratio",
+      "from": 3.5,
+      "to": 6.3,
+      "reason": "ST-277. Three HIGH defects fixed and each one pinned by assertions that were watched failing under the exact pre-fix code. The rise is the provenance of the three: why the session id has one source, why the hook outcome is logged after the block that sets it, and why an exclusion applied at a call site has no coverage until the call site is entered. Each comment names the defect it prevents rather than describing the line below it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.js",
+      "field": "named",
+      "from": 15,
+      "to": 16,
+      "reason": "ST-277. Three HIGH defects fixed and each one pinned by assertions that were watched failing under the exact pre-fix code. The rise is the provenance of the three: why the session id has one source, why the hook outcome is logged after the block that sets it, and why an exclusion applied at a call site has no coverage until the call site is entered. Each comment names the defect it prevents rather than describing the line below it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.js",
+      "field": "ratio",
+      "from": 25.6,
+      "to": 26,
+      "reason": "ST-277. Three HIGH defects fixed and each one pinned by assertions that were watched failing under the exact pre-fix code. The rise is the provenance of the three: why the session id has one source, why the hook outcome is logged after the block that sets it, and why an exclusion applied at a call site has no coverage until the call site is entered. Each comment names the defect it prevents rather than describing the line below it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.test.js",
+      "field": "named",
+      "from": 3,
+      "to": 6,
+      "reason": "ST-277. Three HIGH defects fixed and each one pinned by assertions that were watched failing under the exact pre-fix code. The rise is the provenance of the three: why the session id has one source, why the hook outcome is logged after the block that sets it, and why an exclusion applied at a call site has no coverage until the call site is entered. Each comment names the defect it prevents rather than describing the line below it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/run-checks.test.js",
+      "field": "ratio",
+      "from": 15.8,
+      "to": 17.5,
+      "reason": "ST-277. Three HIGH defects fixed and each one pinned by assertions that were watched failing under the exact pre-fix code. The rise is the provenance of the three: why the session id has one source, why the hook outcome is logged after the block that sets it, and why an exclusion applied at a call site has no coverage until the call site is entered. Each comment names the defect it prevents rather than describing the line below it."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "named",
+      "from": 2,
+      "to": 5,
+      "reason": "ST-277, the remaining findings. Each rise is the provenance of a defect a reviewer found and a mutation proved: why a peer append inside the archive window used to be destroyed in the one file whose format was chosen for concurrent appends, why the archive has to be counted for recurrence when it is the number ST-240 drives to zero, why a refusal that names no way out gets its predicate weakened instead (S232), and why a board is found by shape rather than by name when the writer and the reader would otherwise look in different places (S218). Every one names the defect it prevents."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "ratio",
+      "from": 10.4,
+      "to": 15.6,
+      "reason": "ST-277, the remaining findings. Each rise is the provenance of a defect a reviewer found and a mutation proved: why a peer append inside the archive window used to be destroyed in the one file whose format was chosen for concurrent appends, why the archive has to be counted for recurrence when it is the number ST-240 drives to zero, why a refusal that names no way out gets its predicate weakened instead (S232), and why a board is found by shape rather than by name when the writer and the reader would otherwise look in different places (S218). Every one names the defect it prevents."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.test.js",
+      "field": "named",
+      "from": 1,
+      "to": 5,
+      "reason": "ST-277, the remaining findings. Each rise is the provenance of a defect a reviewer found and a mutation proved: why a peer append inside the archive window used to be destroyed in the one file whose format was chosen for concurrent appends, why the archive has to be counted for recurrence when it is the number ST-240 drives to zero, why a refusal that names no way out gets its predicate weakened instead (S232), and why a board is found by shape rather than by name when the writer and the reader would otherwise look in different places (S218). Every one names the defect it prevents."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.test.js",
+      "field": "ratio",
+      "from": 6.5,
+      "to": 12.1,
+      "reason": "ST-277, the remaining findings. Each rise is the provenance of a defect a reviewer found and a mutation proved: why a peer append inside the archive window used to be destroyed in the one file whose format was chosen for concurrent appends, why the archive has to be counted for recurrence when it is the number ST-240 drives to zero, why a refusal that names no way out gets its predicate weakened instead (S232), and why a board is found by shape rather than by name when the writer and the reader would otherwise look in different places (S218). Every one names the defect it prevents."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.js",
+      "field": "named",
+      "from": 4,
+      "to": 8,
+      "reason": "ST-277, the remaining findings. Each rise is the provenance of a defect a reviewer found and a mutation proved: why a peer append inside the archive window used to be destroyed in the one file whose format was chosen for concurrent appends, why the archive has to be counted for recurrence when it is the number ST-240 drives to zero, why a refusal that names no way out gets its predicate weakened instead (S232), and why a board is found by shape rather than by name when the writer and the reader would otherwise look in different places (S218). Every one names the defect it prevents."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.js",
+      "field": "ratio",
+      "from": 12.3,
+      "to": 15.6,
+      "reason": "ST-277, the remaining findings. Each rise is the provenance of a defect a reviewer found and a mutation proved: why a peer append inside the archive window used to be destroyed in the one file whose format was chosen for concurrent appends, why the archive has to be counted for recurrence when it is the number ST-240 drives to zero, why a refusal that names no way out gets its predicate weakened instead (S232), and why a board is found by shape rather than by name when the writer and the reader would otherwise look in different places (S218). Every one names the defect it prevents."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.test.js",
+      "field": "named",
+      "from": 1,
+      "to": 2,
+      "reason": "ST-277, the remaining findings. Each rise is the provenance of a defect a reviewer found and a mutation proved: why a peer append inside the archive window used to be destroyed in the one file whose format was chosen for concurrent appends, why the archive has to be counted for recurrence when it is the number ST-240 drives to zero, why a refusal that names no way out gets its predicate weakened instead (S232), and why a board is found by shape rather than by name when the writer and the reader would otherwise look in different places (S218). Every one names the defect it prevents."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.test.js",
+      "field": "ratio",
+      "from": 6.3,
+      "to": 9.1,
+      "reason": "ST-277, the remaining findings. Each rise is the provenance of a defect a reviewer found and a mutation proved: why a peer append inside the archive window used to be destroyed in the one file whose format was chosen for concurrent appends, why the archive has to be counted for recurrence when it is the number ST-240 drives to zero, why a refusal that names no way out gets its predicate weakened instead (S232), and why a board is found by shape rather than by name when the writer and the reader would otherwise look in different places (S218). Every one names the defect it prevents."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 32.2,
+      "to": 32.3,
+      "reason": "ST-277, the reviewer round. A code-reviewer read the exact tree that would ship and returned NOT SAFE TO INTEGRATE with two HIGH and eight MEDIUM. The rise is the provenance of those: why a usage line that INVENTS a flag is worse than one that omits a real mode, why a stale escape is reported rather than exited on so it cannot hide the finding, why a row in both the live record and the archive is one row because every archive failure exit deliberately leaves it in both, and why a note about what is NOT proved has to be re-read whenever the thing it describes is touched. That last one had gone stale and was understating its own gap."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "ratio",
+      "from": 15.6,
+      "to": 18.6,
+      "reason": "ST-277, the reviewer round. A code-reviewer read the exact tree that would ship and returned NOT SAFE TO INTEGRATE with two HIGH and eight MEDIUM. The rise is the provenance of those: why a usage line that INVENTS a flag is worse than one that omits a real mode, why a stale escape is reported rather than exited on so it cannot hide the finding, why a row in both the live record and the archive is one row because every archive failure exit deliberately leaves it in both, and why a note about what is NOT proved has to be re-read whenever the thing it describes is touched. That last one had gone stale and was understating its own gap."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.test.js",
+      "field": "ratio",
+      "from": 12.1,
+      "to": 13,
+      "reason": "ST-277, the reviewer round. A code-reviewer read the exact tree that would ship and returned NOT SAFE TO INTEGRATE with two HIGH and eight MEDIUM. The rise is the provenance of those: why a usage line that INVENTS a flag is worse than one that omits a real mode, why a stale escape is reported rather than exited on so it cannot hide the finding, why a row in both the live record and the archive is one row because every archive failure exit deliberately leaves it in both, and why a note about what is NOT proved has to be re-read whenever the thing it describes is touched. That last one had gone stale and was understating its own gap."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.js",
+      "field": "ratio",
+      "from": 15.6,
+      "to": 16.3,
+      "reason": "ST-277, the reviewer round. A code-reviewer read the exact tree that would ship and returned NOT SAFE TO INTEGRATE with two HIGH and eight MEDIUM. The rise is the provenance of those: why a usage line that INVENTS a flag is worse than one that omits a real mode, why a stale escape is reported rather than exited on so it cannot hide the finding, why a row in both the live record and the archive is one row because every archive failure exit deliberately leaves it in both, and why a note about what is NOT proved has to be re-read whenever the thing it describes is touched. That last one had gone stale and was understating its own gap."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.test.js",
+      "field": "ratio",
+      "from": 9.1,
+      "to": 10.3,
+      "reason": "ST-277, the reviewer round. A code-reviewer read the exact tree that would ship and returned NOT SAFE TO INTEGRATE with two HIGH and eight MEDIUM. The rise is the provenance of those: why a usage line that INVENTS a flag is worse than one that omits a real mode, why a stale escape is reported rather than exited on so it cannot hide the finding, why a row in both the live record and the archive is one row because every archive failure exit deliberately leaves it in both, and why a note about what is NOT proved has to be re-read whenever the thing it describes is touched. That last one had gone stale and was understating its own gap."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 17,
+      "to": 19,
+      "reason": "ST-277, the two reviewer rounds. Every rise in this record is the provenance of a defect a reviewer found IN THAT FILE and a mutation proved, written so the comment names the defect it prevents rather than describing the line below it. Two of the three HIGHs that started this ticket were comments asserting the opposite of the code beside them, so provenance here is the remedy for the class rather than decoration on the fix."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 32.3,
+      "to": 32.4,
+      "reason": "ST-277, the two reviewer rounds. Every rise in this record is the provenance of a defect a reviewer found IN THAT FILE and a mutation proved, written so the comment names the defect it prevents rather than describing the line below it. Two of the three HIGHs that started this ticket were comments asserting the opposite of the code beside them, so provenance here is the remedy for the class rather than decoration on the fix."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "ratio",
+      "from": 18.6,
+      "to": 21.7,
+      "reason": "ST-277, the two reviewer rounds. Every rise in this record is the provenance of a defect a reviewer found IN THAT FILE and a mutation proved, written so the comment names the defect it prevents rather than describing the line below it. Two of the three HIGHs that started this ticket were comments asserting the opposite of the code beside them, so provenance here is the remedy for the class rather than decoration on the fix."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.test.js",
+      "field": "named",
+      "from": 5,
+      "to": 6,
+      "reason": "ST-277, the two reviewer rounds. Every rise in this record is the provenance of a defect a reviewer found IN THAT FILE and a mutation proved, written so the comment names the defect it prevents rather than describing the line below it. Two of the three HIGHs that started this ticket were comments asserting the opposite of the code beside them, so provenance here is the remedy for the class rather than decoration on the fix."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.test.js",
+      "field": "ratio",
+      "from": 13,
+      "to": 15.6,
+      "reason": "ST-277, the two reviewer rounds. Every rise in this record is the provenance of a defect a reviewer found IN THAT FILE and a mutation proved, written so the comment names the defect it prevents rather than describing the line below it. Two of the three HIGHs that started this ticket were comments asserting the opposite of the code beside them, so provenance here is the remedy for the class rather than decoration on the fix."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.js",
+      "field": "ratio",
+      "from": 16.3,
+      "to": 16.8,
+      "reason": "ST-277, the two reviewer rounds. Every rise in this record is the provenance of a defect a reviewer found IN THAT FILE and a mutation proved, written so the comment names the defect it prevents rather than describing the line below it. Two of the three HIGHs that started this ticket were comments asserting the opposite of the code beside them, so provenance here is the remedy for the class rather than decoration on the fix."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.test.js",
+      "field": "ratio",
+      "from": 10.3,
+      "to": 10.7,
+      "reason": "ST-277, the two reviewer rounds. Every rise in this record is the provenance of a defect a reviewer found IN THAT FILE and a mutation proved, written so the comment names the defect it prevents rather than describing the line below it. Two of the three HIGHs that started this ticket were comments asserting the opposite of the code beside them, so provenance here is the remedy for the class rather than decoration on the fix."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/session-budget.test.js",
+      "field": "ratio",
+      "from": 25.1,
+      "to": 26.9,
+      "reason": "ST-277, the two reviewer rounds, plus ST-280. Every rise in this record is the provenance of a defect found IN THAT FILE and proved by a mutation or by a measurement on disk, written so the comment names the defect it prevents rather than describing the line below it. Two of the three HIGHs that started this ticket were comments asserting the opposite of the code beside them, so provenance here is the remedy for the class rather than decoration on the fix."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "ratio",
+      "from": 21.7,
+      "to": 23.2,
+      "reason": "ST-277 across three reviewer rounds, plus ST-280. Every rise here is the provenance of a defect found in that file and proved before the comment was written: by a mutation that reddens a named assertion for the tool and suite files, and by a measurement on disk for tools/session-budget.test.js, where the evidence was a counter file holding 362 calls for a fixture that makes six per run. Stated separately because they are different kinds of evidence and a single word for both would be the overclaim this ticket keeps catching."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.test.js",
+      "field": "ratio",
+      "from": 15.6,
+      "to": 16.5,
+      "reason": "ST-277 across three reviewer rounds, plus ST-280. Every rise here is the provenance of a defect found in that file and proved before the comment was written: by a mutation that reddens a named assertion for the tool and suite files, and by a measurement on disk for tools/session-budget.test.js, where the evidence was a counter file holding 362 calls for a fixture that makes six per run. Stated separately because they are different kinds of evidence and a single word for both would be the overclaim this ticket keeps catching."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-record.test.js",
+      "field": "ratio",
+      "from": 10.7,
+      "to": 11.2,
+      "reason": "ST-277 across three reviewer rounds, plus ST-280. Every rise here is the provenance of a defect found in that file and proved before the comment was written: by a mutation that reddens a named assertion for the tool and suite files, and by a measurement on disk for tools/session-budget.test.js, where the evidence was a counter file holding 362 calls for a fixture that makes six per run. Stated separately because they are different kinds of evidence and a single word for both would be the overclaim this ticket keeps catching."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/session-budget.test.js",
+      "field": "ratio",
+      "from": 26.9,
+      "to": 28.4,
+      "reason": "ST-277 across three reviewer rounds, plus ST-280. Every rise here is the provenance of a defect found in that file and proved before the comment was written: by a mutation that reddens a named assertion for the tool and suite files, and by a measurement on disk for tools/session-budget.test.js, where the evidence was a counter file holding 362 calls for a fixture that makes six per run. Stated separately because they are different kinds of evidence and a single word for both would be the overclaim this ticket keeps catching."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "ratio",
+      "from": 23.2,
+      "to": 23.4,
+      "reason": "ST-277 across four reviewer rounds, plus ST-280. Every rise here is the provenance of a defect found in that file and proved before the comment was written: by a mutation that reddens a named assertion for the tool and suite files, and by a count on disk for the two residue findings, where the evidence was 282 empty directories under the real home and 825 fixture roots in the temp directory. The two kinds of evidence are named separately because calling both a mutation would be the overclaim this ticket has now caught four times."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.test.js",
+      "field": "ratio",
+      "from": 16.5,
+      "to": 17.5,
+      "reason": "ST-277 across four reviewer rounds, plus ST-280. Every rise here is the provenance of a defect found in that file and proved before the comment was written: by a mutation that reddens a named assertion for the tool and suite files, and by a count on disk for the two residue findings, where the evidence was 282 empty directories under the real home and 825 fixture roots in the temp directory. The two kinds of evidence are named separately because calling both a mutation would be the overclaim this ticket has now caught four times."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/session-budget.test.js",
+      "field": "ratio",
+      "from": 28.4,
+      "to": 29.1,
+      "reason": "ST-277 across four reviewer rounds, plus ST-280. Every rise here is the provenance of a defect found in that file and proved before the comment was written: by a mutation that reddens a named assertion for the tool and suite files, and by a count on disk for the two residue findings, where the evidence was 282 empty directories under the real home and 825 fixture roots in the temp directory. The two kinds of evidence are named separately because calling both a mutation would be the overclaim this ticket has now caught four times."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "named",
+      "from": 5,
+      "to": 6,
+      "reason": "ST-277 across five reviewer rounds, plus ST-280 and ST-281. Every rise here is the provenance of a defect found in that file and proved before the comment was written: by a mutation that reddens a named assertion for the tool and suite files, and by a count on disk for the residue findings, where the evidence was 282 empty directories under the real home and 825 fixture roots in the temp directory. The two kinds of evidence are named separately because calling both a mutation would be the overclaim this ticket has now caught four times. One comment declares a branch UNREACHABLE rather than covered, which is the second such declaration in this codebase and is written down so it cannot be mistaken for coverage."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "ratio",
+      "from": 23.4,
+      "to": 24.8,
+      "reason": "ST-277 across five reviewer rounds, plus ST-280 and ST-281. Every rise here is the provenance of a defect found in that file and proved before the comment was written: by a mutation that reddens a named assertion for the tool and suite files, and by a count on disk for the residue findings, where the evidence was 282 empty directories under the real home and 825 fixture roots in the temp directory. The two kinds of evidence are named separately because calling both a mutation would be the overclaim this ticket has now caught four times. One comment declares a branch UNREACHABLE rather than covered, which is the second such declaration in this codebase and is written down so it cannot be mistaken for coverage."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.test.js",
+      "field": "named",
+      "from": 6,
+      "to": 7,
+      "reason": "ST-277 across five reviewer rounds, plus ST-280 and ST-281. Every rise here is the provenance of a defect found in that file and proved before the comment was written: by a mutation that reddens a named assertion for the tool and suite files, and by a count on disk for the residue findings, where the evidence was 282 empty directories under the real home and 825 fixture roots in the temp directory. The two kinds of evidence are named separately because calling both a mutation would be the overclaim this ticket has now caught four times. One comment declares a branch UNREACHABLE rather than covered, which is the second such declaration in this codebase and is written down so it cannot be mistaken for coverage."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/session-budget.test.js",
+      "field": "ratio",
+      "from": 29.1,
+      "to": 29.4,
+      "reason": "ST-277 across five reviewer rounds, plus ST-280 and ST-281. Every rise here is the provenance of a defect found in that file and proved before the comment was written: by a mutation that reddens a named assertion for the tool and suite files, and by a count on disk for the residue findings, where the evidence was 282 empty directories under the real home and 825 fixture roots in the temp directory. The two kinds of evidence are named separately because calling both a mutation would be the overclaim this ticket has now caught four times. One comment declares a branch UNREACHABLE rather than covered, which is the second such declaration in this codebase and is written down so it cannot be mistaken for coverage."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.js",
+      "field": "ratio",
+      "from": 24.8,
+      "to": 26.1,
+      "reason": "ST-282, the five findings a sixth review round made about tools/doctor-across.js and its suite. The rises in THESE TWO FILES are: a comment replaced because it claimed a branch was the only path that could cut a line it cannot reach, an arithmetic paragraph corrected to name the dedupe as the real bound rather than a trim that does not hold it, and two assertions rewritten because one was green at zero and the other compared against a literal where its own name promised the header. Every one was proved by a mutation that reddens a named assertion before the comment beside it was written."
+    },
+    {
+      "date": "2026-09-18",
+      "file": "tools/doctor-across.test.js",
+      "field": "ratio",
+      "from": 17.4,
+      "to": 18.5,
+      "reason": "ST-282, the five findings a sixth review round made about tools/doctor-across.js and its suite. The rises in THESE TWO FILES are: a comment replaced because it claimed a branch was the only path that could cut a line it cannot reach, an arithmetic paragraph corrected to name the dedupe as the real bound rather than a trim that does not hold it, and two assertions rewritten because one was green at zero and the other compared against a literal where its own name promised the header. Every one was proved by a mutation that reddens a named assertion before the comment beside it was written."
     }
   ],
   "files": {
@@ -2291,13 +2987,13 @@
       "ratio_all": 21.4
     },
     "studio.ps1": {
-      "nonblank": 2853,
-      "comment": 1033,
+      "nonblank": 2963,
+      "comment": 1111,
       "header": 36,
-      "controls": 107,
-      "named": 8,
-      "ratio": 31.2,
-      "ratio_all": 36.2
+      "controls": 116,
+      "named": 18,
+      "ratio": 32.4,
+      "ratio_all": 37.5
     },
     "tools/archive-decisions.js": {
       "nonblank": 191,
@@ -2336,22 +3032,22 @@
       "ratio_all": 17.9
     },
     "tools/build-releases.js": {
-      "nonblank": 686,
-      "comment": 180,
+      "nonblank": 713,
+      "comment": 194,
       "header": 23,
-      "controls": 15,
-      "named": 0,
-      "ratio": 20.7,
-      "ratio_all": 26.2
+      "controls": 17,
+      "named": 1,
+      "ratio": 21.6,
+      "ratio_all": 27.2
     },
     "tools/build-releases.test.js": {
-      "nonblank": 695,
-      "comment": 135,
+      "nonblank": 724,
+      "comment": 142,
       "header": 14,
-      "controls": 24,
-      "named": 0,
-      "ratio": 14,
-      "ratio_all": 19.4
+      "controls": 25,
+      "named": 1,
+      "ratio": 14.2,
+      "ratio_all": 19.6
     },
     "tools/check-changelog-leak.js": {
       "nonblank": 245,
@@ -2471,13 +3167,13 @@
       "ratio_all": 50.5
     },
     "tools/check-gate-dispatch.test.js": {
-      "nonblank": 1151,
-      "comment": 345,
+      "nonblank": 1182,
+      "comment": 360,
       "header": 134,
-      "controls": 29,
-      "named": 8,
-      "ratio": 15.8,
-      "ratio_all": 30
+      "controls": 35,
+      "named": 10,
+      "ratio": 16.2,
+      "ratio_all": 30.5
     },
     "tools/check-governance-core.js": {
       "nonblank": 221,
@@ -2551,6 +3247,24 @@
       "ratio": 8.3,
       "ratio_all": 20.3
     },
+    "tools/check-print-anchors.js": {
+      "nonblank": 289,
+      "comment": 75,
+      "header": 43,
+      "controls": 4,
+      "named": 0,
+      "ratio": 9.7,
+      "ratio_all": 26
+    },
+    "tools/check-print-anchors.test.js": {
+      "nonblank": 183,
+      "comment": 24,
+      "header": 11,
+      "controls": 6,
+      "named": 0,
+      "ratio": 3.8,
+      "ratio_all": 13.1
+    },
     "tools/check-published-counts.js": {
       "nonblank": 437,
       "comment": 107,
@@ -2570,22 +3284,22 @@
       "ratio_all": 20.7
     },
     "tools/check-reply-shape.js": {
-      "nonblank": 492,
-      "comment": 250,
-      "header": 176,
-      "controls": 5,
-      "named": 1,
-      "ratio": 14,
-      "ratio_all": 50.8
+      "nonblank": 592,
+      "comment": 283,
+      "header": 191,
+      "controls": 7,
+      "named": 3,
+      "ratio": 14.4,
+      "ratio_all": 47.8
     },
     "tools/check-reply-shape.test.js": {
-      "nonblank": 709,
-      "comment": 157,
+      "nonblank": 755,
+      "comment": 162,
       "header": 42,
       "controls": 13,
-      "named": 2,
-      "ratio": 14.4,
-      "ratio_all": 22.1
+      "named": 3,
+      "ratio": 14.2,
+      "ratio_all": 21.5
     },
     "tools/check-resume-pointer.js": {
       "nonblank": 167,
@@ -2623,6 +3337,24 @@
       "ratio": 9.3,
       "ratio_all": 21.3
     },
+    "tools/check-rule-delivery.js": {
+      "nonblank": 264,
+      "comment": 82,
+      "header": 48,
+      "controls": 6,
+      "named": 1,
+      "ratio": 10.6,
+      "ratio_all": 31.1
+    },
+    "tools/check-rule-delivery.test.js": {
+      "nonblank": 198,
+      "comment": 26,
+      "header": 9,
+      "controls": 7,
+      "named": 2,
+      "ratio": 5.1,
+      "ratio_all": 13.1
+    },
     "tools/check-session-brief.js": {
       "nonblank": 520,
       "comment": 255,
@@ -2640,6 +3372,60 @@
       "named": 0,
       "ratio": 22.5,
       "ratio_all": 29.7
+    },
+    "tools/check-session-goal.js": {
+      "nonblank": 228,
+      "comment": 75,
+      "header": 39,
+      "controls": 5,
+      "named": 0,
+      "ratio": 13.6,
+      "ratio_all": 32.9
+    },
+    "tools/check-session-goal.test.js": {
+      "nonblank": 222,
+      "comment": 31,
+      "header": 9,
+      "controls": 9,
+      "named": 0,
+      "ratio": 5.9,
+      "ratio_all": 14
+    },
+    "tools/doctor-across.js": {
+      "nonblank": 498,
+      "comment": 215,
+      "header": 59,
+      "controls": 26,
+      "named": 6,
+      "ratio": 26.1,
+      "ratio_all": 43.2
+    },
+    "tools/doctor-across.test.js": {
+      "nonblank": 596,
+      "comment": 147,
+      "header": 15,
+      "controls": 22,
+      "named": 7,
+      "ratio": 18.5,
+      "ratio_all": 24.7
+    },
+    "tools/doctor-record.js": {
+      "nonblank": 608,
+      "comment": 196,
+      "header": 74,
+      "controls": 20,
+      "named": 8,
+      "ratio": 16.8,
+      "ratio_all": 32.2
+    },
+    "tools/doctor-record.test.js": {
+      "nonblank": 535,
+      "comment": 98,
+      "header": 17,
+      "controls": 21,
+      "named": 2,
+      "ratio": 11.2,
+      "ratio_all": 18.3
     },
     "tools/make-outline.js": {
       "nonblank": 162,
@@ -2659,41 +3445,59 @@
       "ratio": 10.9,
       "ratio_all": 17.8
     },
+    "tools/patch.js": {
+      "nonblank": 400,
+      "comment": 125,
+      "header": 58,
+      "controls": 3,
+      "named": 1,
+      "ratio": 16,
+      "ratio_all": 31.3
+    },
+    "tools/patch.test.js": {
+      "nonblank": 300,
+      "comment": 43,
+      "header": 13,
+      "controls": 6,
+      "named": 1,
+      "ratio": 8,
+      "ratio_all": 14.3
+    },
     "tools/run-checks.js": {
-      "nonblank": 743,
-      "comment": 262,
+      "nonblank": 866,
+      "comment": 324,
       "header": 64,
-      "controls": 28,
-      "named": 4,
-      "ratio": 22.9,
-      "ratio_all": 35.3
+      "controls": 35,
+      "named": 16,
+      "ratio": 26,
+      "ratio_all": 37.4
     },
     "tools/run-checks.test.js": {
-      "nonblank": 511,
-      "comment": 137,
+      "nonblank": 617,
+      "comment": 175,
       "header": 14,
-      "controls": 47,
-      "named": 2,
-      "ratio": 14.9,
-      "ratio_all": 26.8
+      "controls": 53,
+      "named": 6,
+      "ratio": 17.5,
+      "ratio_all": 28.4
     },
     "tools/session-budget.js": {
-      "nonblank": 449,
-      "comment": 229,
+      "nonblank": 488,
+      "comment": 250,
       "header": 32,
-      "controls": 26,
+      "controls": 28,
       "named": 8,
-      "ratio": 38.1,
-      "ratio_all": 51
+      "ratio": 38.9,
+      "ratio_all": 51.2
     },
     "tools/session-budget.test.js": {
-      "nonblank": 597,
-      "comment": 190,
+      "nonblank": 676,
+      "comment": 247,
       "header": 4,
-      "controls": 36,
+      "controls": 44,
       "named": 5,
-      "ratio": 25.1,
-      "ratio_all": 31.8
+      "ratio": 29.4,
+      "ratio_all": 36.5
     },
     "tools/session-guard.js": {
       "nonblank": 231,

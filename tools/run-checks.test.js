@@ -533,7 +533,123 @@ function ledgerOf (root) {
     !!win && argsOf(win).indexOf('--recent') !== -1);
 }
 
-const EXPECTED_ASSERTIONS = 78;
+// ST-268. A CHECK THAT EXITS 0 WHILE PRINTING A WARNING MUST NOT BE RECORDED AS 'ok'.
+// This is not hypothetical and it is not a style point. On 2026-09-18 .board/checks.json held
+// releases-page as status ok, exit 0, in the RELEASE set, with its own tail reading "WARNING:
+// 1 heading(s) matched no release and were dropped from the page, the first being Unreleased".
+// Five entries were one command from publishing under the 2026-09-13 headline. The gate passed
+// while the only instrument that could see the condition printed it in the same row.
+{
+  const root = greenTree();
+  put(root, 'base/board/board.js', 'process.stdout.write("WARNING: something is not right\\n");\nprocess.exit(0);\n');
+  run(['--root', root, '--set', 'session-start']);
+  const row = ledgerOf(root).checks['board-audit'];
+  ok('a check that exits 0 while printing a warning is recorded as "warned", not "ok"',
+    !!row && row.status === 'warned');
+  ok('the warned row keeps the real exit code, so a reader can tell it from a failure',
+    !!row && row.exit === 0);
+  ok('the warned row carries the warning text, because a status with no evidence is a label',
+    !!row && /WARNING/.test(String(row.tail || '')));
+
+  // And the gate has to refuse on it. Recording it truthfully and then passing anyway would be
+  // the same defect with a better-worded record.
+  const gate = run(['--root', root, '--gate', 'session-start']);
+  ok('the gate REFUSES a warned row rather than treating it as a pass', gate.code !== 0);
+  ok('the gate says the check printed a warning rather than quoting a bare status',
+    /PRINTED A WARNING/.test(gate.out));
+}
+
+// The other direction, which is the one that decides whether this is a usable rule at all: a
+// clean run must still be 'ok'. A predicate that matches everything refuses everything, and the
+// word "warning" appears in plenty of innocent output.
+{
+  const root = greenTree();
+  put(root, 'base/board/board.js', 'process.stdout.write("no findings, nothing to report\\n");\nprocess.exit(0);\n');
+  run(['--root', root, '--set', 'session-start']);
+  ok('a clean exit 0 with no warning is still recorded as ok', ledgerOf(root).checks['board-audit'].status === 'ok');
+}
+
+/* ---- THE RECORD FILES, THROUGH THE CALL SITE THAT APPLIES THEM (ST-277 HIGH-3) ----
+ *
+ * These are the assertions whose absence let an unmeasured change onto the release path. The
+ * exclusion grew from one file to three; reverting it to a single-element list left this suite
+ * at 84 passed 0 failed, while a control mutant returning [] reddened 11. So the harness worked
+ * and the new behaviour was simply untested: the most expensive kind of green.
+ *
+ * THE FIRST DRAFT OF THIS BLOCK WAS WRONG IN A WAY WORTH RECORDING. It called treeState with an
+ * exclusion list of its own, which is the seam BELOW recordRels, so it tested the excluder and
+ * never the list. It failed against the unmutated tool, which is the only reason the mistake was
+ * cheap. An assertion has to enter through the same door the release does: doRun and doGate
+ * compute the list themselves, so the proof runs the tool.
+ *
+ * Mutation: return only relOf(root, file) from recordRels and the first two go red while the
+ * ledger assertion above them stays green. */
+{
+  const root = greenTree();
+  run(['--root', root, '--set', 'session-start']);
+  put(root, '.board/doctor-findings.jsonl', '{"v":1,"class":"a-b"}\n');
+  ok('a doctor row written AFTER the suite went quiet does not make the record stale, which is '
+   + 'the whole reason the wind-down can write one at all',
+    run(['--root', root, '--gate', 'session-start']).code === 0);
+
+  put(root, '.board/doctor-findings-archive.jsonl', '{"v":1,"class":"c-d"}\n');
+  ok('and rolling those rows into the archive does not either',
+    run(['--root', root, '--gate', 'session-start']).code === 0);
+
+  const other = (put(root, '.board/something-else.jsonl', 'x'), run(['--root', root, '--gate', 'session-start']));
+  ok('while ANY other file in the same directory does make it stale, so the exclusion is three '
+   + 'named files and not a blanket over the board directory',
+    other.code !== 0 && /NOT PROVED/.test(other.out));
+}
+
+/* The derivation itself, asserted directly rather than inferred from the behaviour above. Both
+ * are needed: the behaviour proves the list reaches the fingerprint, this proves WHICH files are
+ * on it and that they are derived from the ledger rather than hard-coded, which is the property
+ * that keeps a BOARD_HOME install correct (S201, S218). */
+{
+  const rels = T.recordRels('/r', path.join('/r', '.board', 'checks.json'));
+  ok('the exclusion is three files and not one', rels.length === 3);
+  ok('it carries the ledger itself', rels.indexOf('.board/checks.json') !== -1);
+  ok('it carries the doctor findings', rels.indexOf('.board/doctor-findings.jsonl') !== -1);
+  ok('it carries the doctor archive', rels.indexOf('.board/doctor-findings-archive.jsonl') !== -1);
+  const moved = T.recordRels('/r', path.join('/r', 'elsewhere', 'checks.json'));
+  ok('and all three follow the ledger when the board moves, rather than naming .board',
+    moved.every(r => r.indexOf('elsewhere/') === 0));
+}
+
+/* SET MEMBERSHIP, PINNED. A check in no set runs nowhere and reports nothing, which is the
+ * nine-checks-in-a-dead-set defect this repository already carries as ST-241. Registration is
+ * the one property of these two instruments that no other assertion touches: their own suites
+ * test what they DO and cannot see whether anything ever calls them.
+ *
+ * The absent-set half is not padding. doctor-record in the release set would refuse a stranger's
+ * install that has never run a wind-down, which is the lockout run-checks.js already learned
+ * about the hard way, and at session start it would refuse before there was anything to write. */
+{
+  const defs = T.definitions(process.cwd());
+  const byName = {};
+  for (const d of defs) byName[d.name] = d;
+
+  const rec = byName['doctor-record'];
+  ok('doctor-record is registered at all', !!rec);
+  ok('doctor-record runs at wind-down and in NO other set', !!rec
+    && rec.sets.indexOf('wind-down') !== -1 && rec.sets.length === 1);
+  const recBuilt = rec ? rec.build({ rel: 'tools/doctor-record.js', abs: '/x/tools/doctor-record.js' }) : null;
+  ok('doctor-record is invoked as the gate', !!recBuilt && recBuilt.args.indexOf('gate') !== -1);
+  ok('and the registration passes NO --session, because the writer and the gate take the id from '
+   + 'one source and a flag here would be a second namespace again (ST-277 HIGH-2)',
+    !!recBuilt && recBuilt.args.indexOf('--session') === -1);
+
+  const acr = byName['doctor-across'];
+  ok('doctor-across is registered at all', !!acr);
+  ok('doctor-across runs at session start and in NO other set', !!acr
+    && acr.sets.indexOf('session-start') !== -1 && acr.sets.length === 1);
+  ok('both treat their no-record exit as advisory, so a project that has never run a wind-down '
+   + 'is not locked out by either', !!rec && !!acr
+    && (rec.advisory || []).indexOf(3) !== -1 && (acr.advisory || []).indexOf(3) !== -1);
+}
+
+const EXPECTED_ASSERTIONS = 99;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

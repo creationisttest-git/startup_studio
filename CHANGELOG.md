@@ -8,6 +8,340 @@ Newest first. Dates are when the change went public.
 
 ## 2026-09-18
 
+### The doctor loop could never have passed, and a review nobody could skip is what found it
+
+**What this fixes.** The three changes released just before this one shipped a wind-down check
+that can never pass. The half that writes a finding took its session identity from one place and
+the half that checks a finding was written took it from another, so the check looked for rows in a
+namespace the writer never used, found none, and refused. In any project, every time. The only way
+past it was to write an override at every single wind-down.
+
+**Why that is worse than having no check.** A control that always refuses teaches the person in
+front of it to reach for the override without reading it. The next time it refuses for a real
+reason, the override is already a habit. There is one source for the identity now, both halves
+print where they got it from, and the check was watched going from refusing to passing with no
+flag given anywhere.
+
+**The session start now reports a broken reader instead of looking healthy.** The outcome of the
+hook was written to its log ninety-one lines before the code that could mark it failed, so a
+session whose doctor reader had crashed logged exactly like a healthy one. It also never noticed a
+crash at all, because the shell it runs in does not treat a failed program as an error unless you
+ask. Both are fixed, and proved by running the real hook twice, once healthy and once with a fault
+put into the reader on purpose.
+
+**A finding another session writes while the record is being tidied is no longer lost.** Tidying
+read the file, did other work, then rewrote it from what it had read. Anything appended in between
+was deleted, in the one file whose whole format was chosen because sessions append to it at the
+same time. The rewrite now removes the rows it archived by name, from the file as it stands, and
+says so when it carries somebody else's row through.
+
+**Archived findings still count.** Recurrence is how many separate sittings a fault appeared in,
+and tidying used to move the older sitting out of view, so a fault that had been coming back for
+months could read as new. The archive is read alongside the live record now, which means the
+classes that have been coming back longest are the ones that keep refusing rather than the ones
+that quietly stop.
+
+**There is a way out, and it has to be in writing.** A check that reads across every project can
+refuse the studio on a fault belonging to a project it has been told not to touch. Rather than
+making the check weaker, a class can be excused by name with a reason, the reason is printed on
+every run, and an excuse that no longer excuses anything is reported as stale and still fails.
+
+**Every one of these was found by a reviewer reading the exact code that would have shipped, and
+none of them by the person who wrote it.** The release step refuses to publish a tree no reviewer
+has read. It refused, the review happened, and it found three serious faults in work whose tests
+were green. That refusal is the only thing that stood between the studio and publishing a check
+that would have refused everyone forever.
+
+**The way out reaches the place it is needed.** A check that reads across every project can refuse
+the studio over a fault belonging to a project it has been told not to touch. A class can be
+excused by name with a reason in writing. The reason is shown every time the check runs, including
+in the short version a session sees when it starts, which is the only version most sessions ever
+see. An excuse that no longer excuses anything is reported as stale and still fails.
+
+**A test that quietly measured the machine instead of the code.** One suite built its fixtures
+under a fixed name, and the tool it tests keeps counters in a file named after that. Every run on
+this machine added to the same counter, for months, until one run crossed a limit and a check
+fired inside the cases that exist to prove it stays out of the way. It did not fail every time; it
+failed on whichever run crossed the line, and passed either side of it. An intermittent failure
+whose cause is how often you have run the thing reads as noise, and noise gets re-run rather than
+read. Fixtures are now unique per run and clean up everything they cause to be written.
+
+**What is proved, and how.** Every fix is held down by assertions that were watched failing
+against the original fault, not merely written afterwards: 106 on the record, 76 on the reader, 99
+on the runner, 666 in the full run. The counts are on the ticket with the mutation that reddens
+each group.
+
+**The one line that says what to do now survives being cut short.** The block a session gets at
+start is capped, because it is re-sent with every request for the rest of that session. Past a
+certain number of findings the cap was falling on the line that says what to run, so a session was
+handed a list of names, no command, and no way to see the rest. What a cap can afford to lose is a
+name, and the count then reports how many.
+
+**Three reviews, and each one found more than the last.** The tree was read three times by a
+reviewer who had not written it. The first round found three things that were wrong and seven that
+were claimed and not true. The second, on the corrections, found nine more, including two new
+checks that certified code they never ran and a fix that recreated the same fault in the short
+version. The third found that the fix for that had left the same hole open a little further along,
+that a comment written by the commit that moved some code described where the code used to be, and
+that the move itself was still not being measured by anything. Nothing here was found by the
+person who wrote it.
+
+### The session now sees what came back, at the moment it starts
+
+**What this gives you.** A studio session opens already knowing which faults have returned and
+carry no ticket. Before this, the record was written and the rule refused, but nothing put either
+in front of the session that plans the work, so the loop was enforced and not closed.
+
+**It says nothing when there is nothing to act on.** Not a summary of what passed, not a count:
+nothing. This block is injected once and then re-sent with every request for the rest of the
+session, so a reassuring line costs exactly what a useful one costs and carries no information.
+
+**It is capped twice, on lines and on characters, and it says when it cuts.** A block that
+quietly stops at its limit tells the reader the list ended.
+
+**It can never take a session down.** The reader is wrapped on its own and logs its own outcome,
+so a fault here loses the summary and not the session start.
+
+**Honest about what is proved.** The reading tool is covered by 51 assertions and a mutation
+sweep. The wiring into session start was proved by running the real hook end to end and watching
+the block appear and then not appear, not by an automated test. That is written on the ticket
+rather than counted as coverage it does not have.
+
+### A fault that comes back a second time now has to become work
+
+**What this gives you.** The studio reads every project's doctor rows in one pass and refuses
+when the same class of fault has returned in a later session carrying no ticket. That is the
+exact failure this whole line of work was raised about: a fault found, written down, found
+again, written down again, and never turned into anything.
+
+**Two sittings, not two rows, and the difference matters.** The same fault written twice by one
+session is one bad afternoon. The same fault returning in a later session is a standing defect.
+Counting rows would have refused the first and missed nothing useful.
+
+**It finds a board the way the board defines one.** A directory holding `project.json` beside a
+tickets directory, discovered rather than assumed. The previous generation of this kind of tool
+looked only for a directory called `.board`, found nothing in a project that runs 154 live
+tickets, and wrote that nothing down as a fact about somebody else's project.
+
+**It is read-only and it needs no network.** Each project writes its own rows at its own
+wind-down. This opens those files and writes nothing anywhere.
+
+**The correction it made to itself on its first real run.** It reported that fourteen projects
+"run no board at all". One of them runs a database-backed board, which a tool that reads files
+cannot see. The line now says what it actually measured, that no file board was found, and says
+plainly that this is a limit of the instrument rather than a finding about the project. A
+negative result carries the search as a premise.
+
+**What a session sees at the start is capped**, says how many lines it left out, and prints the
+command that shows the rest. The full record is read on demand and never loaded automatically,
+because anything loaded automatically is paid for on every single request.
+
+### What the doctor finds now outlives the session that found it
+
+**What this gives you.** A record, one row per finding, written at the end of every session and
+read at the start of the next. Each row carries a class, and a class is what lets anybody count
+how many times the same thing has gone wrong. Two of those rows exist already and both are about
+the session that built the record.
+
+**The number that justifies it.** No tool here had ever opened a review transcript. So every
+finding any reviewer ever made existed only in the conversation that produced it and vanished
+with it. That is why the same faults keep returning: one ran four sittings in a row, another
+three, each time found fresh by somebody with no way of knowing it was not the first time.
+
+**What changed.** `tools/doctor-record.js` writes, reads, gates and archives the record. It
+refuses a row with no class, no evidence command, or a finding too short to say what went wrong,
+and it refuses before it writes anything, so a rejected row leaves the file untouched. A wind-down
+that wrote no row now blocks the commit, with a written-reason escape that is printed on every run
+rather than hidden behind a flag.
+
+**One row per line. Sessions only ever append; archiving is the one routine that rewrites.** Two
+sessions writing into this repository at the same time is ordinary here and happened twice in the
+last two sittings. A single record rewritten by both merges silently and wrongly. Whole lines
+appended by both produce an ordinary conflict a person is shown. Losing a row loudly beats keeping
+the wrong one quietly. The rewrite is called out rather than glossed because an earlier draft of
+this entry said the file was only ever appended to, which was a stronger promise than the code
+kept: archiving rewrites it, and a row another session appended while that ran used to be lost.
+It is now removed by key from a re-read of the file rather than by position from a stale snapshot,
+and a row that arrived in between is kept and reported.
+
+**The defect found by running it, which reading the code would not have caught.** Archiving
+rebuilt the file from the rows it could parse, so any line it could not parse was deleted with
+nothing said. The line most likely to be unparseable is the half-written last row of a session
+that crashed, and archiving is meant to run at every wind-down. The routine that runs most often
+was the one destroying the evidence the record exists to keep. Reading a damaged record is now
+tolerant, because a reader that refuses locks out every project at once; rewriting one refuses,
+because a writer that refuses costs one person one repair.
+
+### A patch script can no longer break the file it is patching
+
+**What this gives you.** One helper, `tools/patch.js`, that every patch script calls. A shell
+collapses two backslashes to one even when quoted, so a search string containing an escape
+arrives mangled: it either matches nothing, or writes a corrupted string. That has happened
+seven times across five sessions. Twice it produced a file that would not parse, and once the
+studio's own board was down until it was repaired. Two of those sessions responded by writing a
+note telling the next session to watch for it, and the note is nought for seven.
+
+**What changed.** The helper refuses an empty anchor, refuses a replacement carrying a stray
+control character, requires the anchor to match EXACTLY the expected number of times, parses the
+result in memory before anything reaches disk, and writes atomically then reads back. Nothing is
+written unless every one of them passes, so a refused patch leaves the file byte-identical.
+
+**The part that is new rather than collected.** When an anchor matches nothing, it prints the
+nearest text in the file and the first character that differs, by code point, and says ESCAPE
+COLLAPSE when that difference is a real control character sitting where the file holds a
+backslash and a letter. Nobody made that diagnosis in seven instances, because nobody was shown
+the two strings side by side.
+
+**How it was proved.** Sixty-four assertions, and fourteen mutations run against them: thirteen
+killed, one survivor recorded in the file as unprovable rather than left as a silent gap. One
+mutation exposed a real hang in the occurrence counter that no end-to-end case could reach.
+
+### A rule reported as shipped is now checked against the document that claims it
+
+**What this gives you.** Two rules were reported to the founder as delivered and were not. The
+em-dash ban was in no shared fragment at all. The reply cap was in seventeen of seventeen role
+files in each of two projects and in none of the documents either project's session loads,
+because roles govern dispatched subagents and the session that writes to the founder reads
+something else. Four sittings of delivering that rule changed nothing.
+
+**What changed.** `tools/check-rule-delivery.js` reads a manifest of every rule this studio has
+claimed to ship, with the destination the claim rests on, and refuses when the text is absent.
+It understands two kinds of destination: a named file, and the LOADED SET of a `CLAUDE.md`, which
+is that file plus its imports resolved all the way down. The second is the one nothing checked.
+It also refuses when wording a rule REPLACED is still being read, because while both are present
+the roles and the governance say opposite things. Every refusal prints the full list of files it
+searched, since an absence reported by an instrument that looked in one place is a claim about
+the instrument. The em-dash ban is now written into the shared brevity fragment for the first time.
+
+### A session states what it is for, and is measured against it
+
+**What this gives you.** The founder asked for it in their own words: a session should say its
+goal and the business value at the start, wind-down should compare against that, and the goal
+should be finished rather than carried. Twenty-seven sittings had happened before one of them
+stated its goal out loud.
+
+**What changed.** `tools/check-session-goal.js` reads a `## Session goal` section carrying the
+goal, the value, when it was stated and a verdict of MET, PARTLY MET or NOT MET, with a reason
+required for anything carried. It then reads the BOARD, where the same goal is written as a note
+before work starts, and refuses when the goal first appears after the first ticket of the day. A
+goal recorded at the end is a description of what happened, and the two are indistinguishable
+once written down unless something reads the timestamps.
+
+**And the warm-start skill no longer prints the whole resume prompt.** Its stated reason was that
+the founder should see what the record claims against what is true. The corrections table printed
+two paragraphs above it already IS that gap, computed and labelled. So roughly two thousand words
+per session start, in every project, served neither reader. That is why a three hundred word cap
+never worked: a cap cannot beat a direct instruction to print the manual.
+
+### An assertion can no longer be satisfied by any of several places
+
+**What this gives you.** `tools/check-print-anchors.js` finds every string a tool prints from more
+than one place, then every assertion matching it with nothing pinning it to a site. An assertion
+over a whole output is an assertion about the union of everything that produced it, and a union
+hides exactly the single-component failures a suite exists to find. This had happened three times,
+in two files and two languages, and each fix was one more hand-written clause on the one instance
+somebody noticed.
+
+**How it reads a suite.** The first version read only quoted strings, found nine results and
+missed every instance it was written for, because the assertions that matter are written as
+regular expressions with no quotation mark on the line. It now recovers the literal runs from a
+regular expression as well. It is a ratchet: forty-one existing findings are recorded and printed
+in full on every run, and a RISE refuses.
+
+### A warning printed by a release check is no longer recorded as a clean pass
+
+**What this gives you.** On 2026-09-18 the releases page check went into the record as status ok,
+exit 0, in the release set, with its own text reading that one heading matched no release and was
+dropped. Five entries were one command from publishing under a five-day-old headline, because the
+release note is taken from a DATED heading and an undated one silently selects the previous
+section. A person caught it. No check did, and one was watching.
+
+**What changed.** A check that exits 0 while printing a warning is recorded as `warned`, and the
+gate refuses on it and quotes the warning. Separately, an undated heading CARRYING release
+content now refuses outright, the way a near-miss date already did; an undated heading with
+nothing under it still only warns, so a reader with prose dividers is not locked out.
+
+### Reply shape can be measured per session, and for a project other than the one you are in
+
+**What this gives you.** The check had two modes and neither could answer whether a project's
+conduct changed. Pooling every session ever written means months of history swamp the sessions
+since a rule arrived, so the number never moves. The other mode asks the host which transcript is
+the current session, and against another project the honest answer is that it cannot tell.
+
+**What changed.** `--per-session` scores each transcript on its own and prints a row per session,
+newest first, with `--since` to bound the window. It never claims to be the current session and
+says so in its own heading.
+
+### A project can set its own session budget ceiling, so an answer has somewhere to land
+
+**What this gives you.** The session budget guard stops a session when it has spent more than a
+segment of work is worth. That segment was a single number shared by every project, measured from
+three real sessions, and it was right as a default. It was also the only place an answer could go,
+so a founder who wanted a different ceiling for one project could not have one without silently
+raising it everywhere.
+
+One project asked for that ceiling in twenty-five sittings out of twenty-six and never got an
+answer, which is what a question with nowhere legitimate to land looks like.
+
+A project can now name its own in `.claude/session-budget.json`:
+
+```json
+{ "firstWeighted": 8000000, "setBy": "who and when", "why": "what it is based on" }
+```
+
+Read from the working directory upwards, so it works from a subdirectory. The second stop stays
+half a segment further on, derived rather than configured. A value BELOW the default is honoured
+too, because a setting that only ever permits more is not a control.
+
+**A missing, unreadable or malformed file falls back to the shared default and is not an error.**
+A guard that stops firing because somebody mistyped a config is exactly the failure the guard
+exists to prevent. Proven rather than asserted: measured at the project root and from a deep
+subdirectory (both the override), at another project (still the default), and with the file
+holding broken JSON and then a negative number (both the default). Existing tests 60 passed,
+0 failed.
+
+**What you need to do.** Nothing, unless you want a different ceiling. Every project without that
+file behaves exactly as before.
+
+### Six engineering rules learned on one project now reach every project
+
+**What this gives you.** Four roles in the base roster carry rules they did not have before. A
+project had been holding them in its own rulebook while that rulebook said, in its own text, that
+they belonged here. Some had said so for eight sessions. They are stack-neutral, so by the routing
+test they are studio lessons, and every project picks them up on its next session.
+
+- **code-reviewer.** A test mutation that changes a VALUE cannot detect a change to whether
+  something is emitted at all. Cover each thing a change adds on both axes. Came from five
+  assertions and three mutants that all altered one element's value while a reviewer's untried
+  mutant, making a second element conditional, survived every one of them.
+- **security-reviewer.** A probe that asks for the record back after writing it cannot tell a
+  refused write from a refused read. The write had succeeded and the read of it was refused, under
+  an error naming the write, and the probe reported a wide open hole as closed. Ask for exactly the
+  thing under test, and after a fix check the refusal CHANGED SHAPE rather than merely staying red.
+- **security-reviewer.** A test for a control whose job is to REFUSE must assert the refusal, never
+  the success of the happy path, or it is measuring the fixture. The original could never have seen
+  a revoke that silently disabled the guard, because a disabled guard makes the write succeed.
+- **backend-engineer.** A name is not a body. An object existing in a live system does not mean the
+  file defining it ever ran there; two routines present by name were 2 of 20 and 0 of 18 lines when
+  compared by contents. Keep a positive control in the same run, and never report PRESENT as
+  "applied".
+- **frontend-engineer.** An error is not a verdict. A path that turns "we could not ask" into an
+  answer about the thing being asked about has deleted a state. This one told buyers a live event
+  was closed whenever the page could not reach the database.
+- **frontend-engineer.** A new bound needs its own check, because the rule that looks like it
+  covers the case is often the one that cannot. A price of 0 passed a "cheaper than standard" rule
+  and the buyer was told to bring Free with them.
+
+**What you need to do.** Nothing. Projects pick these up at their next session start.
+
+### Found while doing it: the preview flag is not a preview
+
+`studio.ps1` accepts `-DryRun` as a top level switch and honours it only inside `Publish-Public`.
+Run `-Global -DryRun` or `-Compose -DryRun` and it writes for real, with no preview and no warning.
+Measured: `-Global -DryRun` rewrote all 17 files in the base install. This is the studio's own
+"a guard that cannot fire" class wearing the costume of a preview, and it is recorded rather than
+fixed here, because the fix belongs to whoever owns that command path.
+
 ### A release that refused halfway would have left your two repositories out of step
 
 **What this gives you.** The release command now finds out whether it is allowed to publish

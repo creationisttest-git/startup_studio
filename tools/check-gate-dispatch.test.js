@@ -419,8 +419,10 @@ function run (w, extra, id) {
     /doctor/.test(r.out));
   ok('and it still names what DID run, so the reader can tell it looked',
     /code-reviewer 1/.test(r.out) && /security-reviewer 1/.test(r.out));
-  ok('and it names the session it read, which is the only way to check it read the right one',
-    /Session: s1\.jsonl/.test(r.out));
+  ok('and it names the session it read, which is the only way to check it read the right one, '
+    + 'anchored to THIS branch because the tool prints that same string from eight places and a '
+    + 'summary line further down satisfies a bare match whichever branch fired (S223)',
+    /open its prompt with "method review"\.\n  Session: s1\.jsonl/.test(r.out));
 }
 {
   const w = world();
@@ -738,10 +740,16 @@ function run (w, extra, id) {
   // WHICH TRANSCRIPT WAS READ IS A FACT AND NOT ADVICE, so unlike the explanatory lines around it
   // this one is asserted. A reader told a review is missing has to be able to check the session
   // the tool actually looked at: this project keeps several transcripts per day and reading the
-  // wrong one is the worst false pass this file has ever shipped. Deleting the line left the suite
-  // green until this existed.
+  // wrong one is the worst false pass this file has ever shipped.
+  //
+  // THE SENTENCE THAT USED TO END THIS COMMENT WAS FALSE, and it is corrected rather than
+  // deleted (S198). It read "Deleting the line left the suite green until this existed".
+  // Mutation coverage derived on 2026-09-18 for ST-263 proves the line was STILL silent: the
+  // tool prints that same string from EIGHT places, one of them a summary line further down,
+  // so a bare match is satisfied whichever branch fired. The assertion below is now anchored
+  // to the sentence this branch alone emits. S223 for the third time in this repository.
   ok('and it names the transcript it read, so the reader can check the right session',
-    new RegExp('Session: ' + 's1\\.jsonl').test(r.out));
+    /The ask has to BE the first line\.\n  Session: s1\.jsonl/.test(r.out));
   // RESTATED, NOT DELETED (S134). This assertion encoded the first remedy, which told the reader to
   // put the phrase anywhere in the prompt. That remedy was itself the hole: an errand disclaiming
   // the phrase cleared the gate, so the fix had to name WHERE the phrase goes.
@@ -915,6 +923,12 @@ const NO_DOCTOR = ALL_SIX.filter(nm => nm !== 'doctor');
     r.code === 4);
   ok('and it names the directory it read, so a reader can check the derivation rather than trust it',
     /Installed at: /.test(r.out));
+  // The REMEDY, pinned separately from the consequence above it. Derived silent by ST-263: the
+  // block's first two lines were asserted and the line telling the reader what to RUN was not, so
+  // the only actionable half of the message could be deleted with the suite staying green. S223.
+  ok('and it names the command that installs them, because a consequence with no remedy is a '
+    + 'report the reader cannot act on',
+    /Run studio\.ps1 -Sync to install what base\/agents defines\./.test(r.out));
 }
 {
   // Separating input: the same session with the SIXTH file present and nothing else changed. A
@@ -960,6 +974,23 @@ const NO_DOCTOR = ALL_SIX.filter(nm => nm !== 'doctor');
   const r = run(w);
   ok('a project roster wins over the machine-wide one, because that is the one a session loads',
     r.code === 0 && !/CANNOT DISPATCH/.test(r.out));
+}
+{
+  // Separating input: the project's agents DIRECTORY EXISTS and is EMPTY, behind an incomplete
+  // home roster. This is the only input that separates the empty-directory guard from its own
+  // absence. Without that guard the empty directory is returned AS the roster, names comes back
+  // empty, the absent-role filter is skipped because it is guarded on names.length, and a machine
+  // that cannot dispatch the doctor is reported clean. Derived by mutation coverage rather than
+  // by reading, which is the whole argument for ST-263 existing.
+  const w = world();
+  roster(w.home, NO_DOCTOR);
+  fs.mkdirSync(path.join(w.root, '.claude', 'agents'), { recursive: true });
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
+  const r = run(w);
+  ok('an EMPTY project roster falls through to the machine-wide one rather than standing in for it',
+    /CANNOT DISPATCH 1 REVIEWER\(S\) THIS GATE DEMANDS: doctor/.test(r.out));
+  ok('and it names the HOME roster it fell through to, not the empty project directory',
+    r.out.indexOf('Installed at: ' + path.join(w.home, '.claude', 'agents')) !== -1);
 }
 
 /* Measured: a fatal guard firing part way through the studio suite reported 0 failed
@@ -1165,7 +1196,7 @@ const NO_DOCTOR = ALL_SIX.filter(nm => nm !== 'doctor');
 // which is why it survived. It has to be the last statement before the tally.
 junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 
-const EXPECTED_ASSERTIONS = 148;
+const EXPECTED_ASSERTIONS = 151;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

@@ -55,6 +55,44 @@ const path = require('path');
 const FIRST_WEIGHTED = 2500000;
 const STEP_WEIGHTED  = 1250000;
 
+// A PROJECT MAY NAME ITS OWN CEILING, AND THE DEFAULT ABOVE IS A MEASUREMENT RATHER THAN A RULING.
+// The two numbers above are derived from three measured sessions and they are the right DEFAULT.
+// What they are not is a decision anybody made about a PARTICULAR project, and projects are not
+// alike: one whose loaded context is twice another's spends its segment twice as fast through no
+// fault of the session in it. One project asked its founder for a ceiling twenty-five sittings
+// running and got no answer, because the only place to give one was to edit this constant, which
+// silently raises the ceiling for every other project at the same time. That is the shape this
+// studio calls a change made in the wrong place, and an instruction with nowhere legitimate to
+// land is an instruction that does not get followed.
+//
+//   <project>/.claude/session-budget.json   { "firstWeighted": 8000000, "setBy": "...", "why": "..." }
+//
+// Read from the hook's cwd upwards, so it works from a subdirectory. The step stays half a
+// segment, derived rather than configured, so the second stop still lands inside the same order
+// of magnitude as the first.
+//
+// A MISSING, UNREADABLE OR MALFORMED FILE FALLS BACK TO THE DEFAULT AND IS NOT AN ERROR. A guard
+// that stops firing because somebody mistyped a config is precisely the failure this whole file
+// exists to prevent, so the fallback is silent and safe rather than clever. A value BELOW the
+// default is honoured too: tightening is as legitimate a decision as loosening, and a config that
+// only ever permits more is not a control.
+function ceilingFor (cwd) {
+  let dir;
+  try { dir = path.resolve(String(cwd || process.cwd())); } catch (e) { return { first: FIRST_WEIGHTED, step: STEP_WEIGHTED, from: null }; }
+  for (let i = 0; i < 12; i += 1) {
+    const file = path.join(dir, '.claude', 'session-budget.json');
+    try {
+      const cfg = JSON.parse(fs.readFileSync(file, 'utf8'));
+      const n = Number(cfg && cfg.firstWeighted);
+      if (isFinite(n) && n > 0) return { first: n, step: Math.max(1, Math.round(n / 2)), from: file };
+    } catch (e) { /* absent or unreadable here, keep walking up */ }
+    const up = path.dirname(dir);
+    if (up === dir) break;
+    dir = up;
+  }
+  return { first: FIRST_WEIGHTED, step: STEP_WEIGHTED, from: null };
+}
+
 // AND A BACKSTOP ON CALL COUNT, WHICH IS NOT BELT AND BRACES. tally() returns zero when the
 // transcript cannot be read, and the message above already has a branch that says the token
 // total is unavailable, so that state is known to happen. Thresholding on tokens ALONE would
@@ -392,8 +430,9 @@ function main () {
 
   // Which threshold does this call cross? Whichever of the two is further along. `fired` is a
   // high-water mark, so a session that crosses several at once is stopped once, not repeatedly.
-  const dueWeighted = t.tokens < FIRST_WEIGHTED
-    ? 0 : 1 + Math.floor((t.tokens - FIRST_WEIGHTED) / STEP_WEIGHTED);
+  const ceiling = ceilingFor(hook.cwd || process.cwd());
+  const dueWeighted = t.tokens < ceiling.first
+    ? 0 : 1 + Math.floor((t.tokens - ceiling.first) / ceiling.step);
   const dueCalls = calls < FIRST_CALLS
     ? 0 : 1 + Math.floor((calls - FIRST_CALLS) / STEP_CALLS);
   const due = Math.max(dueWeighted, dueCalls);
@@ -458,7 +497,8 @@ function main () {
     'the studio writing its own record is 42 per cent of that. A size cap is NOT the remedy:\n' +
     'the twenty largest calls of 11,427 carry 4.1 per cent. Writing a document through a\n' +
     'script pays for the wrapper AND the payload, so edit the document directly.\n' +
-    'A segment of this work is budgeted at ' + Math.round(FIRST_WEIGHTED / 1000) + 'k weighted, ' +
+    'A segment of this work is budgeted at ' + Math.round(ceiling.first / 1000) + 'k weighted, ' +
+    (ceiling.from ? 'set by this project in .claude/session-budget.json rather than ' : '') +
     'from the measured shape in this file.\n' +
     'Every request re-sends the whole conversation, so cost grows with the SQUARE of session\n' +
     'length. This call was blocked once to make that unignorable. The next call is allowed.\n' +
