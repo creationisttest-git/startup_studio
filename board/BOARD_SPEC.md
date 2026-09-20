@@ -137,6 +137,7 @@ assess <ref> --verdict build|kill|park --measure "..." --by <role>
 note <ref> "<text>" --by <role>
 ask <ref> "<question>" --options "a|b|c" --recommend <n> --by <role>
 answer <ref> <n> [--decision <key>] [--note "..."]
+supersede <ref> --decision <key> --reason "..." [--overtaken-by <key>] --by <role>
 close <ref> --as done|parked|killed --reason "..." --by <role>
 reopen <ref> --reason "..." --by <role>
 delete <ref> --by <role>               hides it, does not destroy it

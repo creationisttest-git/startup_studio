@@ -65,6 +65,31 @@
  * every override is counted in the same committed record the check reads. Deleting the file
  * to start again is visible in that file's history.
  *
+ * A REASON BELONGS TO A FILE, AND THE RECORD NOW SAYS WHETHER IT WAS WRITTEN ABOUT THAT ONE.
+ * --allow-rise used to take a single reason and staple it to every file that rose in the run,
+ * so a sitting touching four files recorded one sentence against all four, true of the file it
+ * was written about and false of the others. That was measured: a reason recorded against
+ * tools/session-budget.test.js carried a clause about a branch declared unreachable, which is
+ * in tools/doctor-across.js and not in that file at all. A reviewer found it; the author did
+ * not. It is worse than a missing reason, because the provenance is read by the next person
+ * deciding whether a rise was justified, and a sentence that is false for the file in front of
+ * them invites accepting it on evidence about a different one. This is the defect this whole
+ * instrument exists to prevent, appearing inside the instrument.
+ *
+ * REFUSING EVERY MULTI-FILE RISE WAS THE OTHER CANDIDATE AND WAS REJECTED. A blanket reason is
+ * sometimes the honest one: eleven files given the same new line for the same cause have one
+ * true sentence covering all of them, and eleven copies of it would be ceremony rather than
+ * provenance. What was actually wrong is that a blanket claim and a scoped one were
+ * indistinguishable once written. So both are allowed, the baseline records WHICH was used in
+ * a scope field beside each override, and the blanket form has to be asked for by its own name.
+ * Three shapes, told apart by the shape of the value rather than by argument order:
+ *   --allow-rise "<reason>"           one file only; more than one rose and it refuses
+ *   --allow-rise "<path>=<reason>"    repeatable and scoped; every risen file needs one
+ *   --allow-rise-all "<reason>"       deliberately blanket, stored as scope "all"
+ * A scoped reason naming a file that did not rise is a refusal rather than a shrug: an escape
+ * that excuses nothing is stale, and a stale escape outliving what it excused is exactly how
+ * this kind of record stops meaning anything.
+ *
  * WHAT THIS SCAN CANNOT SEE, said here rather than left for somebody to discover: a file whose
  * extension is not a known code language, anything under a directory beginning with a dot, and
  * anything under node_modules. Those are skipped by shape and are not reported. A path named as
@@ -471,7 +496,91 @@ function list (root, entries) {
   return 0;
 }
 
-function writeBaseline (root, baselineFile, entries, allowRise) {
+/* Which reason belongs to which risen file, and a refusal when the answer would be a lie.
+ * The argument for the three shapes, and the measurement that forced them, are in the header
+ * of this file: this program holds itself to the rule it enforces, which allows no ticket or
+ * role name below that header. */
+function reasonsForRises (rises, allowRise, allowRiseAll) {
+  var out = { refuse: false, why: [], reasons: {}, scope: {} };
+  if (!rises.length) return out;
+
+  var files = [];
+  rises.forEach(function (r) { if (files.indexOf(r.file) === -1) files.push(r.file); });
+
+  var scoped = {};
+  var blanket = [];
+  (allowRise || []).forEach(function (raw) {
+    var eq = String(raw).indexOf('=');
+    var head = eq > 0 ? String(raw).slice(0, eq).trim() : '';
+    /* A path and not a sentence: something before the first "=", no spaces in it, and a dot or a
+     * slash. A reason containing an equals sign is the ordinary case and must not be mistaken for
+     * a scope, which is why the test is on the HEAD rather than on the presence of the sign. */
+    if (head && head.indexOf(' ') === -1 && /[./\\]/.test(head)) {
+      scoped[head.replace(/\\/g, '/')] = String(raw).slice(eq + 1).trim();
+    } else {
+      blanket.push(String(raw));
+    }
+  });
+
+  var stale = Object.keys(scoped).filter(function (f) { return files.indexOf(f) === -1; });
+  if (stale.length) {
+    out.refuse = true;
+    out.why.push('FAIL  nothing written. A scoped reason names a file that did not rise: ' + stale.join(', ') + '.');
+    out.why.push('      An escape that excuses nothing is stale, and a stale escape outliving what it excused');
+    out.why.push('      is how a record stops meaning anything. The files that DID rise: ' + files.join(', ') + '.');
+    return out;
+  }
+
+  if (allowRiseAll) {
+    files.forEach(function (f) {
+      out.reasons[f] = Object.prototype.hasOwnProperty.call(scoped, f) ? scoped[f] : allowRiseAll;
+      out.scope[f] = Object.prototype.hasOwnProperty.call(scoped, f) ? 'file' : 'all';
+    });
+    return out;
+  }
+
+  if (Object.keys(scoped).length) {
+    var uncovered = files.filter(function (f) { return !Object.prototype.hasOwnProperty.call(scoped, f); });
+    if (uncovered.length) {
+      out.refuse = true;
+      out.why.push('FAIL  nothing written. These files rose with no reason of their own: ' + uncovered.join(', ') + '.');
+      out.why.push('      Give each one --allow-rise "<path>=<reason>", or say the one reason covers them all');
+      out.why.push('      with --allow-rise-all "<reason>", which is recorded as a blanket claim.');
+      return out;
+    }
+    files.forEach(function (f) { out.reasons[f] = scoped[f]; out.scope[f] = 'file'; });
+    return out;
+  }
+
+  if (!blanket.length) {
+    out.refuse = true;
+    out.why.push('FAIL  nothing written. The baseline only moves down. To record a rise deliberately, pass --allow-rise "<reason>"; the reason is kept in the baseline.');
+    return out;
+  }
+
+  if (blanket.length > 1) {
+    out.refuse = true;
+    out.why.push('FAIL  nothing written. ' + blanket.length + ' unscoped reasons were given and nothing says which file each belongs to.');
+    out.why.push('      Scope them with --allow-rise "<path>=<reason>", one per file.');
+    return out;
+  }
+
+  if (files.length > 1) {
+    out.refuse = true;
+    out.why.push('FAIL  nothing written. ONE reason was given and ' + files.length + ' files rose: ' + files.join(', ') + '.');
+    out.why.push('      A reason written about one file is usually false of the others, and this record is read by');
+    out.why.push('      somebody deciding whether a rise was justified. Either scope it:');
+    files.forEach(function (f) { out.why.push('        --allow-rise "' + f + '=<why THIS file rose>"'); });
+    out.why.push('      or say plainly that the one reason is true of every one of them:');
+    out.why.push('        --allow-rise-all "<reason>"');
+    return out;
+  }
+
+  out.reasons[files[0]] = blanket[0];
+  out.scope[files[0]] = 'file';
+  return out;
+}
+function writeBaseline (root, baselineFile, entries, allowRise, allowRiseAll) {
   var previous = readBaseline(baselineFile);
   var measured = measureTree(root, entries);
   var rises = [];
@@ -507,14 +616,18 @@ function writeBaseline (root, baselineFile, entries, allowRise) {
       + ' rewriting it would lock in whatever happens to be measured today.');
     return 1;
   }
-  if (rises.length && !allowRise) {
+  var verdict = reasonsForRises(rises, allowRise, allowRiseAll);
+  if (verdict.refuse) {
     rises.forEach(function (r) { console.log('FAIL  ' + r.file + '  --  ' + r.field + ' would move the wrong way, ' + r.from + ' -> ' + r.to); });
-    console.log('FAIL  nothing written. The baseline only moves down. To record a rise deliberately, pass --allow-rise "<reason>"; the reason is kept in the baseline.');
+    verdict.why.forEach(function (line) { console.log(line); });
     return 1;
   }
   var today = localDate();
   var overrides = (previous && Array.isArray(previous.overrides)) ? previous.overrides.slice() : [];
-  rises.forEach(function (r) { overrides.push({ date: today, file: r.file, field: r.field, from: r.from, to: r.to, reason: allowRise }); });
+  rises.forEach(function (r) {
+    overrides.push({ date: today, file: r.file, field: r.field, from: r.from, to: r.to,
+                     reason: verdict.reasons[r.file], scope: verdict.scope[r.file] });
+  });
   var files = {};
   Object.keys(measured.files).sort().forEach(function (rel) {
     var m = measured.files[rel];
@@ -536,7 +649,7 @@ function writeBaseline (root, baselineFile, entries, allowRise) {
 }
 
 function parseArgs (argv) {
-  var o = { mode: 'check', trees: null, quiet: false, allowRise: null, root: null, baseline: null };
+  var o = { mode: 'check', trees: null, quiet: false, allowRise: [], allowRiseAll: null, root: null, baseline: null };
   function value (i, flag) {
     var v = argv[i];
     if (!v || v.slice(0, 2) === '--') throw new Error(flag + ' needs a value, and a switch is not one');
@@ -548,7 +661,8 @@ function parseArgs (argv) {
     else if (a === '--list') o.mode = 'list';
     else if (a === '--write-baseline') o.mode = 'write';
     else if (a === '--quiet') o.quiet = true;
-    else if (a === '--allow-rise') o.allowRise = value(++i, a);
+    else if (a === '--allow-rise') o.allowRise.push(value(++i, a));
+    else if (a === '--allow-rise-all') o.allowRiseAll = value(++i, a);
     else if (a === '--root') o.root = value(++i, a);
     else if (a === '--baseline') o.baseline = value(++i, a);
     else if (a === '--tree') (o.trees = o.trees || []).push(value(++i, a));
@@ -562,7 +676,7 @@ function main (argv) {
   try {
     o = parseArgs(argv);
   } catch (e) {
-    console.error('usage: node tools/check-comment-shape.js [--report|--list|--write-baseline [--allow-rise "<reason>"]] [--root <dir>] [--baseline <file>] [--tree <path>]... [--quiet]');
+    console.error('usage: node tools/check-comment-shape.js [--report|--list|--write-baseline [--allow-rise "<reason>"|--allow-rise "<path>=<reason>"...|--allow-rise-all "<reason>"]] [--root <dir>] [--baseline <file>] [--tree <path>]... [--quiet]');
     console.error(e.message);
     return 2;
   }
@@ -574,7 +688,7 @@ function main (argv) {
       : readPublishedPaths(root);
     if (o.mode === 'report') return report(root, paths);
     if (o.mode === 'list') return list(root, paths.entries);
-    if (o.mode === 'write') return writeBaseline(root, baselineFile, paths.entries, o.allowRise);
+    if (o.mode === 'write') return writeBaseline(root, baselineFile, paths.entries, o.allowRise, o.allowRiseAll);
     return check(root, baselineFile, paths.entries, o.quiet);
   } catch (e) {
     console.error('cannot measure ' + root + ': ' + e.message);

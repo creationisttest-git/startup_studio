@@ -15,6 +15,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'check-print-anchors.js');
 let pass = 0, fail = 0;
@@ -25,7 +27,7 @@ const BS = String.fromCharCode(92);
 let n = 0;
 
 function world (files, config, baseline) {
-  const dir = path.join(os.tmpdir(), 'print-anchors-' + process.pid + '-' + (n++));
+  const dir = path.join(fixtureRoot('print-anchors'), 'tree');
   fs.mkdirSync(path.join(dir, 'tools'), { recursive: true });
   for (const rel of Object.keys(files)) {
     const full = path.join(dir, rel);

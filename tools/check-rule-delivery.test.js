@@ -13,6 +13,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'check-rule-delivery.js');
 let pass = 0, fail = 0;
@@ -24,7 +26,7 @@ let n = 0;
 // files: { 'CLAUDE.md': 'text', 'sub/x.md': 'text' }. manifest is written to tools/rule-delivery.json
 // inside the fixture so the tool's own default path resolution is exercised rather than bypassed.
 function project (files, manifest) {
-  const dir = path.join(os.tmpdir(), 'studio-ruled-' + process.pid + '-' + (n++));
+  const dir = path.join(fixtureRoot('studio-ruled'), 'tree');
   fs.mkdirSync(path.join(dir, 'tools'), { recursive: true });
   for (const rel of Object.keys(files)) {
     const full = path.join(dir, rel);

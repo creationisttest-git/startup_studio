@@ -18,6 +18,8 @@ const path = require('path');
 const TOOL = path.join(__dirname, 'check-decision-shape.js');
 const mod = require('./check-decision-shape.js');
 const gate = require('./check-gate-dispatch.js');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 let pass = 0, fail = 0;
 function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAIL  ' + name); } }
@@ -46,7 +48,7 @@ const T_END = '2026-01-01T00:20:00.000Z';
 
 function world (tag, opts) {
   const o = opts || {};
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-' + tag + '-'));
+  const base = fixtureRoot('dsh-' + tag);
   const root = path.join(base, 'proj');
   fs.mkdirSync(root, { recursive: true });
   const tdir = path.join(base, '.claude', 'projects', gate.projectDirName(root));

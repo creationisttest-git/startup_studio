@@ -39,6 +39,8 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'check-governance-core.js');
 let pass = 0, fail = 0;
@@ -48,7 +50,7 @@ const junk = [];
 let n = 0;
 
 function world () {
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'gov-core-' + process.pid + '-' + (n++) + '-'));
+  const d = fixtureRoot('gov-core');
   junk.push(d);
   return d;
 }
@@ -261,7 +263,7 @@ for (const d of junk) { try { fs.rmSync(d, { recursive: true, force: true }); } 
   ok('a governance directory that is not there AT ALL is cannot-tell rather than a failure, '
    + 'because a public install can never carry one', r.code === 3);
   ok('and it names the directory it went looking for', r.out.indexOf(gone) !== -1);
-  const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'gov-core-empty-'));
+  const empty = fixtureRoot('gov-core-empty');
   const r2 = run(['--gov', empty, '--root', os.tmpdir(), '--quiet']);
   ok('while a directory that EXISTS with the documents missing is still a read error, because '
    + 'that is a defect rather than an absence', r2.code === 2);

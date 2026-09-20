@@ -18,6 +18,8 @@ const path = require('path');
 
 const TOOL = path.join(__dirname, 'check-roster-count.js');
 const T = require(TOOL);
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 let pass = 0, fail = 0;
 function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAIL  ' + name); } }
 
@@ -32,7 +34,7 @@ function run (args) {
 
 let n = 0;
 function fixture () {
-  const dir = path.join(os.tmpdir(), 'roster-count-' + Date.now() + '-' + process.pid + '-' + (++n));
+  const dir = path.join(fixtureRoot('roster-count'), 'tree');
   if (fs.existsSync(dir)) throw new Error('fixture path already exists, which every assertion below assumes it does not: ' + dir);
   fs.mkdirSync(dir, { recursive: true });
   return dir;

@@ -12,6 +12,8 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'check-session-brief.js');
 let pass = 0, fail = 0;
@@ -24,7 +26,7 @@ let n = 0;
 // A whole throwaway project: a WARM_START.md, optionally a studio.ps1 and a board. Built fresh
 // per case so one fixture cannot mask another's failure.
 function project (opts) {
-  const dir = path.join(os.tmpdir(), 'studio-brief-' + process.pid + '-' + (n++));
+  const dir = fixtureRoot('studio-brief');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'WARM_START.md'), opts.warm, 'utf8');
   if (opts.findings !== undefined) {

@@ -150,9 +150,17 @@ function isWork (root, hash, boardRel, record) {
 }
 
 /* Measured: an entry written at 2026-09-04 05:23 reported a window opening 2026-09-03, because a
-   stamp carrying no zone is read as local time while the board writes UTC. */
+   stamp carrying no zone is read as local time while the board writes UTC.
+
+   THE FIX ABOVE WAS APPENDING 'Z' UNCONDITIONALLY, AND THAT BECAME A DEFECT THE DAY THE BOARD
+   STARTED SAYING Z ITSELF (ST-283). "2026-09-18T22:30:06Z" + "Z" is not a date, and Date.parse
+   returns NaN for it, so every override written after the clock change would have read as an
+   unparseable stamp and dropped out of the fourteen-day window silently. Going through the one
+   parser is what stops a reader and a writer disagreeing about the format again: clock.parse
+   adds the marker only when the string does not already carry one. */
+const clock = require('./clock.js');
 function parseStamp (at) {
-  return Date.parse(String(at).replace(' ', 'T') + 'Z');
+  return clock.parse(at);
 }
 
 // A WAIVER NAMES A COMMIT AND NOTHING ELSE, WHICH IS THE WHOLE REASON IT CANNOT BECOME A WAY TO

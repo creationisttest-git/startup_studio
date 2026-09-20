@@ -35,6 +35,11 @@ function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAI
 const SANDBOX = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-board-'));
 const TOOL = path.join(SANDBOX, 'board.js');
 fs.copyFileSync(path.join(__dirname, 'board.js'), TOOL);
+// clock.js travels WITH board.js, because that is what a published copy is: `base\board`
+// publishes as `board` in one piece and the program refuses to invent a second clock (ST-283).
+// A sandbox holding board.js alone is not a smaller install, it is a broken one, and a suite
+// built on one would be asserting against a shape nobody ships.
+fs.copyFileSync(path.join(__dirname, 'clock.js'), path.join(SANDBOX, 'clock.js'));
 
 // Time is SUPPLIED rather than read, which is what BOARD_NOW exists for: a run that is
 // reproducible and a diff that is reviewable. It is also what makes the byte comparison further
@@ -224,6 +229,7 @@ function tmpdir(tag) { const d = fs.mkdtempSync(path.join(TMP, 'studio-' + tag +
 function freshProgram() {
   const d = tmpdir('prog');
   fs.copyFileSync(path.join(__dirname, 'board.js'), path.join(d, 'board.js'));
+  fs.copyFileSync(path.join(__dirname, 'clock.js'), path.join(d, 'clock.js'));
   return d;
 }
 function runAt(prog, cwd, args, env) {
@@ -1560,14 +1566,171 @@ function runCapture(prog, cwd, args, env) {
      /LO-001: is its own ancestor/.test(aud.out) && /LO-002: is its own ancestor/.test(aud.out));
 }
 
+// ---- ST-283: one clock, and it says which one it is ------------------------------------------
+//
+// The defect was two programs writing one directory with two clock namespaces in an IDENTICAL
+// text shape, so nothing on a row said which clock produced it and no reader could tell. These
+// assertions hold the two halves that make that impossible to reintroduce quietly: the stamp
+// carries its namespace, and the program refuses to run rather than invent a second clock.
+{
+  const CK = tmpdir('clock');
+  const c = args => {
+    const env = Object.assign({}, process.env, { BOARD_HOME: CK });
+    delete env.BOARD_NOW;   // the REAL clock, which is the thing under test here
+    try {
+      return { code: 0, out: execFileSync('node', [TOOL].concat(args), { stdio: ['pipe', 'pipe', 'pipe'], env: env }).toString() };
+    } catch (e) { return { code: e.status, out: (e.stdout || '').toString() + (e.stderr || '').toString() }; }
+  };
+  c(['init', 'clk']);
+  c(['add', 'a ticket to stamp', '--desc', 'fixture', '--size', 'small']);
+  const t = JSON.parse(fs.readFileSync(path.join(CK, 'tickets', 'CL-001.json'), 'utf8'));
+  ok('a ticket stamp says which clock wrote it, rather than leaving a reader to guess',
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z$/.test(t.created_at));
+  // Labelled UTC and actually UTC are different claims, and the second is the one that matters.
+  // A stamp built from local parts with a Z appended passes the shape above and is out by the
+  // machine's offset, which is exactly the ten hours this ticket was raised for.
+  ok('and the instant is real UTC rather than local time wearing a marker',
+    Math.abs(Date.parse(t.created_at) - Date.now()) < 120000);
+  ok('history entries are stamped from the same clock as the ticket itself',
+    /Z$/.test(t.history[0].at));
+
+  // A BOARD.MD RENDERED FROM MARKED STAMPS IS STILL A BOARD. Cheap to assert and it is the one
+  // place a format change reaches a human reader rather than another program.
+  ok('and the board still renders with the marked stamps in place',
+    fs.existsSync(path.join(CK, 'BOARD.md')));
+}
+{
+  // A PUBLISHED COPY MISSING THE CLOCK MUST SAY SO. The tempting failure is a local fallback
+  // stamp so the program keeps working, which is the defect wearing a fix's clothes: a second
+  // definition, correct today, silently diverging tomorrow. Proved by deleting the file.
+  const NC = tmpdir('noclock');
+  fs.copyFileSync(path.join(__dirname, 'board.js'), path.join(NC, 'board.js'));
+  let r;
+  try {
+    r = { code: 0, out: execFileSync('node', [path.join(NC, 'board.js'), 'init', 'nc'], { stdio: ['pipe', 'pipe', 'pipe'] }).toString() };
+  } catch (e) { r = { code: e.status, out: (e.stdout || '').toString() + (e.stderr || '').toString() }; }
+  ok('board.js with no clock beside it REFUSES rather than inventing a second clock', r.code !== 0);
+  ok('and the refusal names the missing file and what to do about it',
+    /clock\.js is missing/.test(r.out) && /Copy clock\.js in beside board\.js/.test(r.out));
+  ok('and it did not create a board on the way out, which a partial run would have',
+    !fs.existsSync(path.join(NC, '.board', 'project.json')));
+}
+
 junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
+// --- supersede: a question nobody answered gets CLOSED without an answer ---------------------
+// Built 2026-09-19 under CEO decision ST-240 d22. Two decisions had been put to the founder as
+// clickable prompts and answered in conversation, and the write-back was skipped. `board audit`
+// then failed at every session start and the only way to clear it was to INVENT answers and store
+// them under the founder's name. The load-bearing assertion in this block is that `answer` stays
+// null: a state that fabricates a ruling to tidy an audit is worse than the failing audit.
+{
+  const made = run(['add', 'A ticket for the supersede block', '--desc', 'fixture', '--size', 'small']);
+  ok('the supersede fixture ticket was created', made.code === 0);
+  const sref = (made.out.match(/S[A-Z]-[0-9]+/) || [])[0];
+  const asked = run(['ask', sref, 'a question events overtook', '--options', 'one|two', '--recommend', '1', '--by', 'studio']);
+  ok('and a question was asked on it', asked.code === 0);
+  // Picked by STATE, never by position. Taking the last key is how the first version of this
+  // block reached an already-answered decision and reported the command broken when it was not.
+  const k = ticket(sref).decisions.find(d => d.answer === null && !d.superseded_at).key;
+
+  // A SECOND FIXTURE whose ONLY question is superseded, so the "no open decision" branch can be
+  // asserted on its own words rather than shared with the guard that refuses an answer.
+  const made2 = run(['add', 'A ticket whose only question was superseded', '--desc', 'fixture', '--size', 'small']);
+  const supRef = (made2.out.match(/S[A-Z]-[0-9]+/) || [])[0];
+  run(['ask', supRef, 'the only question', '--options', 'one|two', '--recommend', '1', '--by', 'studio']);
+  const supKey = ticket(supRef).decisions.find(d => d.answer === null && !d.superseded_at).key;
+  run(['supersede', supRef, '--decision', supKey, '--reason', 'events overtook it', '--by', 'studio']);
+
+  let r = run(['supersede', sref, '--decision', k, '--by', 'studio']);
+  ok('supersede with no reason is refused', r.code === 1 && /--reason is required/.test(r.out));
+  ok('and the refusal is a refusal rather than a crash', !/TypeError|Error:|at Object\./.test(r.out));
+  ok('and nothing was written by that refusal', !ticket(sref).decisions.find(d => d.key === k).superseded_at);
+
+  r = run(['supersede', sref, '--decision', k, '--reason', 'overtaken by events', '--by', 'studio']);
+  ok('supersede with a reason succeeds', r.code === 0);
+  const d = ticket(sref).decisions.find(x => x.key === k);
+  // THE WHOLE POINT OF THE COMMAND. Mutating this to store an answer passes every other
+  // assertion here and reintroduces the exact defect it was built to prevent.
+  ok('the ANSWER IS STILL NULL, so no ruling was fabricated', d.answer === null);
+  ok('the reason is stored, not just the state', /overtaken by events/.test(d.superseded_reason));
+  ok('and who closed it is recorded', d.superseded_by === 'studio');
+  ok('the history says superseded, never decided', d.superseded_at &&
+    ticket(sref).history.some(h => /superseded \[/.test(h.what) && !/decided \[/.test(h.what)));
+
+  // It has to leave the audit clean, or the command solves nothing.
+  // SCOPED TO THIS TICKET. The first version matched the WHOLE audit output for "unanswered
+  // decision", which other fixture tickets also produce, so it was an assertion about the union
+  // of everything on the board. That is S223, written by somebody who had just cited S223.
+  /*
+   * THE PREVIOUS VERSION OF THIS LINE COULD NOT FAIL, and a reviewer found it by running the
+   * regex rather than reading it. It was `new RegExp(sref + ': \d+ unanswered decision')` in a
+   * SINGLE-QUOTED JavaScript string, where `\d` collapses to a bare `d`, so the pattern built was
+   * `SA-002: d+ unanswered decision`, which matches no audit line ever printed. `!false` is true
+   * forever. Mutating `openDecisions` to drop the superseded filter left the suite at 293 passed
+   * 0 failed with `audit` contradicting itself on screen and exiting 1.
+   *
+   * That is the documented backslash hazard in this studio's own record, hit again. The fix is
+   * not a better escape: it is NOT BUILDING A PATTERN FROM A STRING when a literal will do.
+   */
+  const auditOut = run(['audit']).out;
+  const openLine = auditOut.split(/\r?\n/).find(l => l.indexOf(sref + ':') > -1 && /unanswered decision/.test(l));
+  ok('a superseded decision no longer counts as open', openLine === undefined);
+  // S232: PRINTED on every run. An escape nobody can see is how a rule quietly stops applying.
+  ok('but the audit still PRINTS it on every run', /superseded, NOBODY ANSWERED IT/.test(auditOut));
+
+  /*
+   * A SECOND QUESTION IS ASKED FIRST, and that is the whole point of these two lines. With only
+   * one decision on the ticket, `answer` exits down the early "no open decision" branch, which
+   * also says SUPERSEDED and also returns 1, so the assertion below passed without ever reaching
+   * the guard it names. Mutating that guard away left the suite green while a ruling the founder
+   * never gave was written onto a superseded decision. An assertion satisfied by a different
+   * branch is an assertion about that branch.
+   */
+  run(['ask', sref, 'a live question so the early branch is not taken', '--options', 'p|q', '--recommend', '1', '--by', 'studio']);
+  r = run(['answer', sref, '1', '--decision', k]);
+  ok('a superseded decision cannot then be answered, WITH another decision open',
+    r.code === 1 && /was SUPERSEDED/.test(r.out) && !/has no open decision/.test(r.out));
+  ok('and it is still unanswered afterwards', ticket(sref).decisions.find(x => x.key === k).answer === null);
+  // The early branch is real too and has its own words, so it gets its own assertion rather than
+  // sharing one with the guard above.
+  ok('and with NOTHING open, the refusal names the superseded ones instead of saying none existed',
+    /has no open decision\. 1 was SUPERSEDED/.test(run(['answer', supRef, '1']).out));
+
+  r = run(['supersede', sref, '--decision', k, '--reason', 'again', '--by', 'studio']);
+  ok('superseding twice is refused', r.code === 1 && /already superseded/.test(r.out));
+
+  r = (run(['ask', sref, 'second question', '--options', 'p|q', '--recommend', '1', '--by', 'studio']), run(['answer', sref, '1', '--decision', 'd2']), run(['supersede', sref, '--decision', 'd2', '--reason', 'erase a real ruling', '--by', 'studio']));
+  ok('an ANSWERED decision cannot be superseded, because that erases a real ruling', r.code === 1);
+  ok('and the refusal points at a note instead', /change of mind as a note/.test(r.out));
+  ok('and the real answer is untouched', ticket(sref).decisions.find(d => d.key === 'd2').answer === 1);
+
+  // ON A FRESH OPEN DECISION. The first version reused the one already superseded above, so it
+  // was satisfied by the already-superseded refusal and proved nothing about --overtaken-by.
+  run(['ask', sref, 'third question', '--options', 'y|z', '--recommend', '1', '--by', 'studio']);
+  const k3 = ticket(sref).decisions.find(d => d.answer === null && !d.superseded_at).key;
+  r = run(['supersede', sref, '--decision', k3, '--reason', 'x', '--overtaken-by', 'dZZ', '--by', 'studio']);
+  ok('--overtaken-by naming a decision that does not exist is refused', r.code === 1 && /no decision dZZ/.test(r.out));
+  ok('and that refusal wrote nothing', !ticket(sref).decisions.find(d => d.key === k3).superseded_at);
+  r = run(['supersede', sref, '--decision', k3, '--reason', 'x', '--overtaken-by', k3, '--by', 'studio']);
+  ok('a decision cannot overtake itself', r.code === 1 && /cannot overtake itself/.test(r.out));
+  run(['supersede', sref, '--decision', k3, '--reason', 'tidy up', '--overtaken-by', k, '--by', 'studio']);
+  ok('--overtaken-by a real key is stored', ticket(sref).decisions.find(d => d.key === k3).overtaken_by === k);
+}
+
+
 fs.rmSync(SANDBOX, { recursive: true, force: true });
 /* Measured: a fatal guard firing part way through the studio suite reported 0 failed
    and exit 0, having run 22 of 214, so a count of failures cannot see an assertion that
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 264;
+// 271 to 293: the supersede block, 22 assertions. Built 2026-09-19 under CEO decision ST-240 d22
+// for a decision NOBODY answered. Three of those 22 were written too broadly on the first pass and
+// each failed against the real command rather than against a mutation: one matched the WHOLE audit
+// output for a string other fixture tickets also produce, one reused an already-superseded
+// decision so it was satisfied by the wrong refusal, and one named a message the code never
+// printed, which turned out to be a real defect in the refusal rather than in the assertion.
+const EXPECTED_ASSERTIONS = 294;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

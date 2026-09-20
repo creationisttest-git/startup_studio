@@ -59,6 +59,10 @@
  *   node board.js note <ref> "<text>" --by <role>
  *   node board.js ask <ref> "<question>" --options "a|b|c" --recommend N --by <role>
  *   node board.js answer <ref> <n> [--decision <key>] [--note "..."]
+ *   node board.js supersede <ref> --decision <key> --reason "..." [--overtaken-by <key>]
+ *       closes a question NOBODY answered, for one events overtook. It never writes an answer,
+ *       so the board cannot show a ruling the founder did not give, and `audit` prints every
+ *       superseded question on every run rather than swallowing it.
  *   node board.js close <ref> --as done|parked|killed --reason "..." --by <role>
  *   node board.js reopen <ref> --reason "..." --by <role>   (parked/killed only)
  *   node board.js delete <ref> --by <role>   (soft, recoverable)
@@ -69,6 +73,25 @@
 
 const fs = require('fs');
 const path = require('path');
+
+// THE ONE CLOCK (ST-283). Every stamp this program writes comes from here and from nowhere
+// else, because a board directory that holds two clocks cannot be used to order the events in
+// it. A local copy of the stamp function is exactly the defect: correct on the day it is
+// written and silently ten hours out from its neighbour afterwards. See base/board/clock.js.
+//
+// It throws with an instruction rather than a module stack, because board.js is copied around
+// by hand and by test harnesses, and the person holding a half-copied board needs to be told
+// what is missing rather than shown a resolver trace.
+let clock;
+try {
+  clock = require('./clock.js');
+} catch (e) {
+  process.stderr.write(
+    'board.js: clock.js is missing from ' + __dirname + '.\n' +
+    'The board keeps ONE clock and this program will not invent a second one (ST-283).\n' +
+    'Copy clock.js in beside board.js and run again.\n');
+  process.exit(2);
+}
 
 // WHERE THE BOARD LIVES, and why this is no longer simply __dirname.
 //
@@ -283,9 +306,15 @@ const ESCALATE = { after: 3, withinDays: 14 };
 // Measured against the BOARD's clock rather than the wall clock, so a board driven by a supplied
 // time behaves the same way. An unparseable stamp counts as RECENT on purpose: the permissive
 // reading would let a damaged ledger quietly disarm the one control that reads it.
+//
+// BOTH SIDES GO THROUGH THE ONE PARSER (ST-283). This used to strip the space and hand the
+// result to Date.parse, which reads a stamp with no zone as LOCAL. That was self-consistent
+// while every stamp in the ledger was bare, and stopped being so the moment new rows started
+// carrying the UTC marker: a marked row and a bare row parsed side by side are out by the local
+// offset, ten hours here, which is most of a day inside a fourteen-day window.
 function daysBefore(stamp) {
-  const then = Date.parse(String(stamp).replace(' ', 'T'));
-  const ref = Date.parse(String(now()).replace(' ', 'T'));
+  const then = clock.parse(stamp);
+  const ref = clock.parse(now());
   if (isNaN(then) || isNaN(ref)) return 0;
   return (ref - then) / 86400000;
 }
@@ -340,12 +369,55 @@ function keyedDecisions(t) {
   return t.decisions.map((d, i) => ({ d: d, key: decisionKey(t, i) }));
 }
 function openDecisions(t) {
-  return keyedDecisions(t).filter(x => x.d.answer === null);
+  return keyedDecisions(t).filter(x => x.d.answer === null && !x.d.superseded_at);
+}
+
+/*
+ * SUPERSEDED DECISIONS, AND WHY THEY ARE NOT JUST ANSWERED WITH A BEST GUESS.
+ *
+ * A decision here has exactly two states: open, or answered by the founder. There was no third,
+ * and a question that events overtook could reach neither. On 2026-09-19 two decisions on ST-240
+ * had been put to the founder as clickable prompts and answered in conversation, and the write-back
+ * was skipped twice. `board audit` then failed on them at every session start, and the only way to
+ * clear it was to invent answers and store them under the founder's name with a timestamp. That is
+ * worse than a failing audit by a wide margin: the next session cites the board, and a fabricated
+ * ruling is indistinguishable from a real one the moment it is written.
+ *
+ * So this state records that the question is CLOSED and that NOBODY ANSWERED IT. `answer` stays
+ * null forever, which is the load-bearing part: no reader can ever mistake this for a ruling.
+ *
+ * THE SHAPE IS S232's, deliberately. The escape is declared per item, carries a written REASON,
+ * and is PRINTED ON EVERY RUN rather than swallowed, so a board full of superseded questions is
+ * visible as exactly that rather than as a clean board. An escape nobody can see is how a rule
+ * quietly stops applying.
+ *
+ * ST-071 is the sibling: a decision answered WRONGLY still cannot be marked superseded, because
+ * unwinding a real ruling is a different problem from closing one that never got made.
+ */
+function supersededDecisions(t) {
+  return keyedDecisions(t).filter(x => x.d.superseded_at);
 }
 
 // Timestamps come from the caller so a run is reproducible and a diff is reviewable.
 // Falling back to the real clock is fine for interactive use.
-const now = () => (process.env.BOARD_NOW || new Date().toISOString().slice(0, 19).replace('T', ' '));
+//
+// A SUPPLIED TIME IS NORMALISED RATHER THAN TRUSTED (ST-283). BOARD_NOW arrives as whatever a
+// harness felt like writing, usually the bare "YYYY-MM-DD HH:MM:SS" that predates the marker.
+// Passing it through untouched would let a test write rows in the legacy shape while the real
+// clock wrote them in the current one, so the suite would be exercising a format the program no
+// longer emits, which is the same class of gap as a check grading output nobody produces.
+//
+// AN UNREADABLE SUPPLIED TIME IS PASSED THROUGH UNCHANGED, which is what this did before the
+// clock existed. Normalising it would mean calling toISOString on an Invalid Date, which throws
+// a RangeError from inside a stamp function and takes down a command that used to run. The
+// board already has a control for a stamp nobody can parse: doctor reports it as a fault. Let
+// that control see the bad value rather than replacing it with a crash here.
+const now = () => {
+  const supplied = process.env.BOARD_NOW;
+  if (!supplied) return clock.now();
+  const ms = clock.parse(supplied);
+  return Number.isFinite(ms) ? clock.now(new Date(ms)) : supplied;
+};
 
 function readProject() {
   if (!fs.existsSync(PROJECT)) die('no board here (looked in ' + ROOT + '). run: node board.js init <slug>');
@@ -1016,12 +1088,77 @@ commands.ask = () => {
   console.log('\nReply with: node board.js answer ' + t.ref + ' <n> --decision ' + d.key + '\n');
 };
 
+/*
+ * supersede <ref> --decision <key> --reason "<why>" [--overtaken-by <key>] --by <role>
+ *
+ * Closes a decision NOBODY ANSWERED. It never writes `answer`, so the board cannot show a ruling
+ * the founder did not give. Refuses an already-answered decision, because unwinding a real ruling
+ * is ST-071 and a change of mind is a note.
+ */
+commands.supersede = () => {
+  const t = findTicket(positionals()[0]);
+  const by = requireBy();
+  const want = flag('decision', '');
+  const reason = flag('reason', '');
+  const over = flag('overtaken-by', '');
+  if (!reason || reason === true)
+    die('--reason is required to supersede a decision. Closing a question with no reason is the\n' +
+        '       fabricated answer this command exists to avoid, one step removed.');
+  const keyed = keyedDecisions(t);
+  const open = openDecisions(t);
+  let hit;
+  if (want && want !== true) {
+    hit = keyed.find(x => x.key === want);
+    if (!hit) die('no decision ' + want + ' on ' + t.ref +
+        (open.length ? '. Open: ' + open.map(x => x.key).join(', ') : '. Nothing is open.'));
+  } else if (open.length === 1) {
+    hit = open[0];
+  } else {
+    die(t.ref + ' has ' + open.length + ' open decision(s) and you did not say which one.\n' +
+        open.map(x => '       ' + x.key + '  ' + x.d.question).join('\n') + '\n' +
+        '       Name one: node board.js supersede ' + t.ref + ' --decision <key> --reason "..."');
+  }
+  if (hit.d.answer !== null)
+    die(hit.key + ' on ' + t.ref + ' was ANSWERED: ' + hit.d.options[hit.d.answer - 1] + '\n' +
+        '       An answered decision is a real ruling and this command will not erase one.\n' +
+        '       Record a change of mind as a note, so the original and the reversal both read.');
+  if (hit.d.superseded_at)
+    die(hit.key + ' on ' + t.ref + ' is already superseded: ' + hit.d.superseded_reason);
+  if (over && over !== true) {
+    const o = keyed.find(x => x.key === over);
+    if (!o) die('no decision ' + over + ' on ' + t.ref + ' to be overtaken by. Keys: ' +
+        keyed.map(x => x.key).join(', '));
+    if (o.key === hit.key) die('a decision cannot overtake itself');
+    hit.d.overtaken_by = over;
+  }
+  hit.d.superseded_at = now();
+  hit.d.superseded_by = by;
+  hit.d.superseded_reason = reason;
+  log(t, by, 'superseded [' + hit.key + ']: ' + reason +
+    (hit.d.overtaken_by ? ' | overtaken by ' + hit.d.overtaken_by : ''));
+  save(t);
+  ok(t.ref + '  ' + hit.key + '  SUPERSEDED, unanswered and now closed\n' +
+     '  ' + reason + '\n' +
+     '  The answer stays EMPTY on purpose. Nobody decided this, and the board says so.');
+};
+
 commands.answer = () => {
   const pos = positionals();
   const t = findTicket(pos[0]);
   const n = parseInt(pos[1], 10);
   const open = openDecisions(t);
-  if (!open.length) die(t.ref + ' has no open decision');
+  if (!open.length) {
+    // NAME THE SUPERSEDED ONES RATHER THAN SAYING "no open decision". Found by this command's own
+    // test: a ticket whose only question was superseded answered with a message that made it look
+    // as though no question had ever been asked, which sends the reader hunting for a decision the
+    // board deliberately closed. A refusal names the thing it is about.
+    const sup = supersededDecisions(t);
+    if (sup.length) die(t.ref + ' has no open decision. ' + sup.length + ' was SUPERSEDED:\n' +
+        sup.map(x => '       [' + x.key + '] ' + x.d.superseded_reason).join('\n') + '\n' +
+        '       A superseded question was closed WITHOUT an answer and cannot now be given one.\n' +
+        '       If it is live again, raise it as a new decision so the founder sees it as new.');
+    die(t.ref + ' has no open decision');
+  }
   const want = flag('decision', '');
   let hit;
   if (want && want !== true) {
@@ -1033,6 +1170,13 @@ commands.answer = () => {
     if (hit.d.answer !== null)
       die(want + ' on ' + t.ref + ' was already answered: ' + hit.d.options[hit.d.answer - 1] + '\n' +
           '       A decision is answered once. Record a change of mind as a note, so the reversal is visible.');
+    // A superseded question is CLOSED and nobody answered it. Answering it now would put a ruling
+    // under the founder's name for a question that had already been abandoned, which is the exact
+    // fabrication `supersede` exists to prevent, arriving by the other door.
+    if (hit.d.superseded_at)
+      die(want + ' on ' + t.ref + ' was SUPERSEDED on ' + hit.d.superseded_at + ': ' + hit.d.superseded_reason + '\n' +
+          '       That question was closed WITHOUT an answer and cannot now be given one.\n' +
+          '       If it is live again, raise it as a new decision so the founder sees it as new.');
   } else if (open.length > 1) {
     // Refuse rather than guess. This is the entire defect: the old code picked one for you.
     die(t.ref + ' has ' + open.length + ' open decisions and you did not say which one.\n' +
@@ -1239,7 +1383,18 @@ commands.show = () => {
     console.log('');
   }
   console.log('HISTORY');
-  for (const h of t.history) console.log('  ' + h.at + '  ' + h.by.padEnd(18) + h.what);
+  /*
+   * A MALFORMED ROW IS NAMED, NOT THROWN ON. One history row on the studio's own flagship ticket
+   * was written by hand with `who` where every other row has `by`, and `show` died with a raw
+   * TypeError on `.padEnd`. That ticket carries forty children and every session is told to write
+   * its goal to it, so the one command for reading it was unusable and the stack trace named a
+   * line number rather than the ticket or the row. `doctor` reported no faults throughout, which
+   * is precisely what `doctor` exists to prevent. A reader command must survive its own data.
+   */
+  for (const h of t.history) {
+    const by = (h.by === undefined || h.by === null) ? '(NO by FIELD)' : String(h.by);
+    console.log('  ' + h.at + '  ' + by.padEnd(18) + h.what);
+  }
   console.log('');
 };
 
@@ -1276,12 +1431,22 @@ commands.wip = () => {
 commands.audit = () => {
   const ts = allTickets();
   const problems = [];
+  // Not gaps, but never silent. See the supersede comment: an escape that prints nothing is
+  // indistinguishable from an escape nobody is using.
+  const notes = [];
   for (const t of ts) {
     const open = openDecisions(t);
     // Every open decision, named. The old line reported a count and then quoted only the first,
     // so a ticket with three open questions showed one and the other two were invisible.
     if (open.length) problems.push(t.ref + ': ' + open.length + ' unanswered decision' +
       open.map(x => '\n         [' + x.key + '] ' + x.d.question).join(''));
+    // PRINTED ON EVERY RUN, NEVER SWALLOWED (S232). A superseded decision does not fail the audit,
+    // and that is exactly why it has to be visible: an escape nobody can see is how a rule quietly
+    // stops applying. A board carrying superseded questions should read as a board carrying them.
+    for (const x of supersededDecisions(t)) {
+      notes.push(t.ref + ' [' + x.key + '] superseded, NOBODY ANSWERED IT' +
+        (x.d.overtaken_by ? ', overtaken by ' + x.d.overtaken_by : '') + ': ' + x.d.superseded_reason);
+    }
     if (t.status === 'uat' && !t.test_notes) problems.push(t.ref + ': in UAT with no test notes');
     if (t.status === 'in_progress' && !t.assignee) problems.push(t.ref + ': in progress with nobody on it');
   }
@@ -1321,6 +1486,7 @@ commands.audit = () => {
   }
 
   console.log('\nAUDIT  ' + ts.length + ' live tickets');
+  for (const n of notes) console.log('  note  ' + n);
   if (!problems.length) { console.log('  no loose ends\n'); process.exit(0); }
   for (const p of problems) console.log('  GAP  ' + p);
   console.log('');
@@ -1387,7 +1553,10 @@ commands.doctor = () => {
         // The one field the escalation actually reads, and the only one this check skipped. An
         // unreadable stamp is treated as recent so it cannot disarm the gate, but silently
         // hardening for ever is not a fault anyone should have to deduce from a refusal.
-        else if (isNaN(Date.parse(String(o.at).replace(' ', 'T'))))
+        // Through the one parser, so this reports readable exactly when daysBefore can read it
+        // (ST-283). Two parsers here would let the doctor call a stamp fine that the escalation
+        // then treats as unreadable, or the reverse, and the reverse is the dangerous one.
+        else if (!Number.isFinite(clock.parse(o.at)))
           problems.push(f + ': entry ' + (i + 1) + ' has an unreadable timestamp, so it can never age out');
       });
       continue;
@@ -1398,6 +1567,24 @@ commands.doctor = () => {
     // S18's sibling. A reused number points two pieces of history at one address, which is the
     // defect assertFreshNumber refuses at write time; this finds one already on disk.
     if (t.num != null) { (byNum[t.num] = byNum[t.num] || []).push(f); }
+    /*
+     * HISTORY ROWS ARE VALIDATED, because one written by hand with `who` instead of `by` took
+     * `show` down with a raw TypeError while this command reported no faults. A doctor that
+     * reads every ticket file and does not look inside the one array a reader command walks is
+     * checking that the JSON parses, not that the record is usable. The row is NAMED with its
+     * index, because "a history row is malformed" sends somebody through seventy of them.
+     */
+    if (Array.isArray(t.history)) {
+      t.history.forEach((h, i) => {
+        if (!h || typeof h !== 'object') { problems.push(f + ': history row ' + i + ' is not an object'); return; }
+        for (const k of ['at', 'by', 'what']) {
+          if (h[k] === undefined || h[k] === null)
+            problems.push(f + ': history row ' + i + ' has no "' + k + '", so reading this ticket fails');
+        }
+      });
+    } else if (t.history !== undefined) {
+      problems.push(f + ': history is not an array');
+    }
   }
 
   Object.keys(byNum).forEach(n => {
@@ -1421,7 +1608,7 @@ commands.doctor = () => {
 //
 // It warns and never refuses, and it fails open on every path. A board outside a repository, or
 // on a machine with no git at all, is a legitimate way to run this and must not be blocked.
-const MUTATORS = ['init', 'add', 'assess', 'move', 'assign', 'rank', 'note', 'ask', 'answer', 'close', 'reopen', 'delete', 'restore', 'under', 'evict'];
+const MUTATORS = ['init', 'add', 'assess', 'move', 'assign', 'rank', 'note', 'ask', 'answer', 'supersede', 'close', 'reopen', 'delete', 'restore', 'under', 'evict'];
 
 // THE DETECTOR, AND IT IS WHAT MAKES THE JOURNAL MORE THAN A LOG FILE. A journal nobody reads
 // records a broken board without stopping anyone building on top of it. So every command that

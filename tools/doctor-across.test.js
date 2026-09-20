@@ -19,6 +19,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'doctor-across.js');
 let pass = 0, fail = 0;
@@ -37,7 +39,7 @@ function row (o) {
 
 /* spec: { projectName: { boardDir: 'board'|'.board'|null, rows: [...], raw: '...' } } */
 function world (spec) {
-  const root = path.join(os.tmpdir(), 'doctor-across-' + process.pid + '-' + (n++));
+  const root = fixtureRoot('doctor-across');
   fs.mkdirSync(root, { recursive: true });
   for (const name of Object.keys(spec)) {
     const s = spec[name];

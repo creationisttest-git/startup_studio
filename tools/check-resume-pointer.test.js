@@ -9,6 +9,8 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'check-resume-pointer.js');
 let pass = 0, fail = 0;
@@ -16,7 +18,7 @@ function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAI
 
 let n = 0;
 function write (body) {
-  const f = path.join(os.tmpdir(), 'studio-resume-' + process.pid + '-' + (n++) + '.md');
+  const f = path.join(fixtureRoot('studio-resume'), 'state.md');
   fs.writeFileSync(f, body, 'utf8');
   return f;
 }

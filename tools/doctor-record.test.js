@@ -21,6 +21,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'doctor-record.js');
 let pass = 0, fail = 0;
@@ -35,10 +37,23 @@ function readOrEmpty (p) { try { return fs.readFileSync(p, 'utf8'); } catch (e) 
 const LF = String.fromCharCode(10);
 let n = 0;
 
+/* ST-281: A FIXTURE ROOT KEYED ON THE PID ALONE IS NOT UNIQUE, IT IS UNIQUE UNTIL THE PID COMES
+ * ROUND AGAIN. This built its directory from the pid and a counter with mkdirSync recursive,
+ * which succeeds on an existing directory and clears nothing, so a doctor-findings.jsonl left by
+ * an earlier run that happened to draw the same pid was still sitting there when the next run
+ * asserted the file did not exist. 2,895 such directories across 140 pids were on this machine
+ * when it was found. Reproduced deterministically by seeding the root this suite's own pid would
+ * use and watching it report 105 passed 1 failed on "write with no --session leaves no file
+ * behind", and observed once in anger at 99 passed 7 failed under a sequential run of every node
+ * suite with 106 passed 0 failed three times directly after. A release gate going red on an
+ * unmodified tree reads as a flake, and a flake gets re-run rather than read.
+ *
+ * mkdtempSync appends random characters the OS guarantees are unused, so there is no name for a
+ * previous run to have occupied. The roots are then REMOVED at exit rather than per case: the
+ * case that forgets to clean up is reliably the one asserting that something is missing, which
+ * is exactly the case a leftover file breaks. */
 function newFile () {
-  const dir = path.join(os.tmpdir(), 'doctor-record-' + process.pid + '-' + (n++));
-  fs.mkdirSync(dir, { recursive: true });
-  return path.join(dir, 'doctor-findings.jsonl');
+  return path.join(fixtureRoot('doctor-record'), 'doctor-findings.jsonl');
 }
 
 /* CLAUDE_CODE_SESSION_ID and BOARD_HOME are STRIPPED unless a case sets them. The gate falls
@@ -139,7 +154,16 @@ function rowsOf (f) {
   ok('the row carries the severity', row.severity === 'major');
   ok('the row carries the evidence command', row.evidence === 'node tools/x.js');
   ok('the row carries a version, so a later schema can be told apart', row.v === 1);
-  ok('the row carries a timestamp', /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(row.at));
+  // THE MARKER IS PART OF THE ASSERTION, NOT DECORATION (ST-283). Written as the bare shape this
+  // was green against a stamp built from getHours(), which is what put a local clock and a UTC
+  // clock in one board directory. Anchored both ends so a row that loses the Z fails here, which
+  // is the only place a silent return to two namespaces would show up.
+  ok('the row carries a timestamp, in the marked UTC namespace the board writes',
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z$/.test(row.at));
+  // And the value is actually UTC rather than merely labelled so. A stamp built from local parts
+  // with a Z stuck on the end would pass the shape above and be wrong by the machine's offset.
+  ok('and the stamp is the real UTC instant rather than local time wearing a Z',
+    Math.abs(Date.parse(row.at) - Date.now()) < 120000);
   ok('a first sighting stamps seenCount 1 and no firstSeen', row.seenCount === 1 && row.firstSeen === null);
   ok('a row with no ticket records that explicitly rather than omitting the field', row.ticket === null);
 }
@@ -362,8 +386,7 @@ function rowsOf (f) {
 /* ---- resolution and argument handling ---- */
 
 {
-  const dir = path.join(os.tmpdir(), 'doctor-home-' + process.pid + '-' + (n++));
-  fs.mkdirSync(dir, { recursive: true });
+  const dir = fixtureRoot('doctor-home');
   const r = run(['write', '--session', 's1', '--class', 'a-b', '--severity', 'note',
     '--finding', 'one two three four', '--evidence', 'cmd', '--project', 'p'], { BOARD_HOME: dir });
   ok('BOARD_HOME puts the record beside the board, exactly as run-checks.js resolves it',
@@ -508,7 +531,7 @@ function rowsOf (f) {
  *
  * Mutation: put back `path.join(root, '.board', ...)` and the first two go red. */
 {
-  const proj = path.join(os.tmpdir(), 'doctor-record-shape-' + process.pid + '-' + (n++), 'my-project');
+  const proj = path.join(fixtureRoot('doctor-record-shape'), 'my-project');
   const board = path.join(proj, 'roadmap');
   fs.mkdirSync(path.join(board, 'tickets'), { recursive: true });
   fs.writeFileSync(path.join(board, 'project.json'), JSON.stringify({ slug: 'my-project' }), 'utf8');
@@ -590,7 +613,7 @@ function archiveWith (body, keep) {
   ok('and every original row is still there too', /"class":"k-1"/.test(readOrEmpty(r.file)) && /"class":"k-5"/.test(readOrEmpty(r.file)));
 }
 
-const EXPECTED_ASSERTIONS = 106;
+const EXPECTED_ASSERTIONS = 107;
 if (pass + fail !== EXPECTED_ASSERTIONS) {
   console.log('FAIL  the suite ran ' + (pass + fail) + ' assertion(s) and expects ' + EXPECTED_ASSERTIONS + '. A block was skipped or deleted. Find out which before you change the number.');
   fail++;

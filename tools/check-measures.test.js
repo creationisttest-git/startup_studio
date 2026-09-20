@@ -20,6 +20,8 @@ const { execFileSync } = require('child_process');
 
 const TOOL = path.join(__dirname, 'check-measures.js');
 const M = require('./check-measures.js');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 let pass = 0, fail = 0;
 // Measured: an assertion reading through a value the tool is documented to return crashed the
@@ -33,7 +35,7 @@ function ok (name, cond) {
 
 let seq = 0;
 function fixture () {
-  const d = path.join(os.tmpdir(), 'measures-' + Date.now() + '-' + process.pid + '-' + (seq++));
+  const d = path.join(fixtureRoot('measures'), 'tree');
   if (fs.existsSync(d)) throw new Error('fixture path already exists: ' + d);
   fs.mkdirSync(d, { recursive: true });
   return d;

@@ -440,6 +440,65 @@ there and still theirs.
 
 ---
 
+## Step 5a-i: the release note is the LAST step, under 200 words, and about value
+
+**WRITE IT LAST, ON ITS OWN, ONCE EVERY CUSTOMER-FACING FEATURE IS BUILT AND REVIEWED.** The CEO
+set this on 2026-09-20, in their words: *"release note should be last steps after all customer
+facing features are built. release note is last step and should be run on its own when everything
+else is done."* It applies to every project.
+
+**This REVERSES the older rule that a changelog entry is written FIRST, before anything ships.**
+Both cannot stand. Where a project's own `CLAUDE.md` still says the entry comes first, the
+founder's later ruling wins and that document needs correcting.
+
+**Why the old order was costing whole review rounds, which is what they were reacting to.** A
+release gate certifies evidence against the tree that ships, so any commit invalidates it. With
+the note written first, every later fix rewrote it, and every rewrite threw away a product review
+of source files the note never touched. Two consecutive sittings ended with nothing published
+inside that loop. ST-290 made the tooling agree with the rule instead of fighting it: a check's
+evidence is now scoped to the files it actually reads, and `check-gate-dispatch.js` asks two
+questions rather than one, so a note-only commit prints THE SOURCE REVIEW ABOVE STILL STANDS and
+asks for one reader rather than a second pass over the work.
+
+**The note still may not ship unread.** No mechanical check catches a false sentence, and the
+CRITICAL that stopped the 2026-09-18 release was exactly that: a published claim about what a
+check catches, falsified by a reviewer who planted a case. Writing it last means one cheap
+reviewer reads 200 words at the end, not that nobody reads it.
+
+**The CEO set this on 2026-09-19 and it applies to every project, not only the studio.** In their
+words: *"A release note should not have more than 200 words. If it is anything more than that get
+my approval before. Keep the release note objective and explain the feature and why it is valuable
+to the human. No need to explain the mechanism, only focus on the value."*
+
+Run it rather than eyeballing it, from the studio, against whichever project you are closing:
+
+```
+node <studio>/tools/check-release-note.js --dir <project>
+```
+
+Exit 0 fine, 1 over the cap with no approval, 3 no `CHANGELOG.md` here, which is not a fault.
+
+**Approval comes BEFORE the long note is written, not after it exists.** Asking afterwards is
+asking them to agree to a cost already paid. With their approval, add
+`{"date":"<section date>","reason":"<their words>"}` to a `release-note-waivers.json` sitting
+BESIDE THE CHANGELOG IT EXCUSES, which for your project is next to your own `CHANGELOG.md` and
+not in the studio. Expect the check to report it on every run and to refuse once it no longer
+excuses anything. The refusal prints the exact path, so read it rather than guessing.
+
+This line used to name the studio's own `tools/release-note-waivers.json`, which the tool has
+never read for any other project, so the one escape the cap has was documented at a path nothing
+opens. This file installs globally, so the wrong path reached every project and the right one now
+does. Found at the release gate on 2026-09-19.
+
+**Why the cap is not a style preference.** The note it replaced ran to 708 words, almost all of it
+describing how things work, and it cost four review rounds and four content gate readings in ONE
+sitting. Every false statement those rounds found was a MECHANISM claim: a sentence about what a
+new check CATCHES. One such sentence was rewritten FIVE times and FOUR were false in the same
+direction, each claiming the check caught more than it did, and no version was caught by its
+author. Two of the four were written while actively hunting that exact fault. A note that
+carries no mechanism cannot carry a false mechanism. Say what the reader can now do, or what has
+stopped happening to them, and stop.
+
 ## Step 5b: score the session against the standing checks
 
 Write the result into a `## Compliance` section in `WARM_START.md`, replacing the previous

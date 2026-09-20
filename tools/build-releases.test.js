@@ -23,6 +23,8 @@ const path = require('path');
 const cp = require('child_process');
 
 const B = require('./build-releases.js');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'build-releases.js');
 const EM_DASH = String.fromCharCode(0x2014);
@@ -467,7 +469,7 @@ test('no internal heading from the changelog reaches the page', function () {
 /* ---------- the sitemap check ---------- */
 
 test('checkSitemap says so when the page is not listed', function () {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rel-'));
+  const dir = fixtureRoot('rel');
   const p = path.join(dir, 'sitemap.xml');
   fs.writeFileSync(p, '<urlset><url><loc>https://x/</loc><lastmod>2026-08-17</lastmod></url></urlset>');
   const out = B.checkSitemap(p, '2026-08-21');
@@ -476,7 +478,7 @@ test('checkSitemap says so when the page is not listed', function () {
 });
 
 test('checkSitemap says so when the date has fallen behind the newest release', function () {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rel-'));
+  const dir = fixtureRoot('rel');
   const p = path.join(dir, 'sitemap.xml');
   fs.writeFileSync(p,
     '<urlset><url><loc>https://x/releases</loc><lastmod>2026-08-17</lastmod></url></urlset>');
@@ -496,7 +498,7 @@ function run(args, cwd) {
 }
 
 test('running it twice writes the same bytes', function () {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rel-'));
+  const dir = fixtureRoot('rel');
   const cl = path.join(dir, 'CHANGELOG.md');
   const out = path.join(dir, 'releases.html');
   fs.writeFileSync(cl, TWO_GOOD);
@@ -510,7 +512,7 @@ test('running it twice writes the same bytes', function () {
 });
 
 test('a skipped release is named on stderr, not swallowed', function () {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rel-'));
+  const dir = fixtureRoot('rel');
   const cl = path.join(dir, 'CHANGELOG.md');
   fs.writeFileSync(cl, TWO_GOOD + '\n## 2026-08-06\n\n### Internal\n\nDetail.\n');
   const r = run(['--changelog', cl, '--out', path.join(dir, 'releases.html')], dir);
@@ -519,7 +521,7 @@ test('a skipped release is named on stderr, not swallowed', function () {
 });
 
 test('a changelog with no value blocks exits non zero and writes no file', function () {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rel-'));
+  const dir = fixtureRoot('rel');
   const cl = path.join(dir, 'CHANGELOG.md');
   const out = path.join(dir, 'releases.html');
   fs.writeFileSync(cl, '## 2026-08-21\n\n### Internal\n\nDetail.\n');
@@ -530,7 +532,7 @@ test('a changelog with no value blocks exits non zero and writes no file', funct
 });
 
 test('check mode fails on a stale page and writes nothing', function () {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rel-'));
+  const dir = fixtureRoot('rel');
   const cl = path.join(dir, 'CHANGELOG.md');
   const out = path.join(dir, 'releases.html');
   fs.writeFileSync(cl, TWO_GOOD);
@@ -654,7 +656,7 @@ test('no release prose reaches the structured data', function () {
    published check has to be measured in the layout its reader has. Each case fails alone. */
 
 function readerTree(opts) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rel-reader-'));
+  const dir = fixtureRoot('rel-reader');
   fs.mkdirSync(path.join(dir, 'tools'));
   fs.copyFileSync(TOOL, path.join(dir, 'tools', 'build-releases.js'));
   fs.writeFileSync(path.join(dir, 'CHANGELOG.md'), opts.changelog, 'utf8');

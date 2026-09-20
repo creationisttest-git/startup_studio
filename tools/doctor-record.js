@@ -79,6 +79,10 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+/* THE ONE CLOCK (ST-283). This file used to build its own stamp from getHours(), which is local,
+ * while board.js stamped the same directory in UTC. Ten hours apart on the machine where it was
+ * found, in the one directory whose purpose is reconstructing an order of events. */
+const clock = require('./clock.js');
 
 const RECORD_VERSION = 1;
 const SEVERITIES = ['critical', 'major', 'minor', 'note'];
@@ -150,12 +154,10 @@ function usage (why) {
   process.exit(2);
 }
 
-function stamp (d) {
-  const t = d || new Date();
-  const p = n => String(n).padStart(2, '0');
-  return t.getFullYear() + '-' + p(t.getMonth() + 1) + '-' + p(t.getDate()) + ' ' +
-    p(t.getHours()) + ':' + p(t.getMinutes()) + ':' + p(t.getSeconds());
-}
+/* Kept as a named function rather than inlining clock.now at each call site, so the places that
+ * stamp a row read the same as they did and there is one line to look at when asking which clock
+ * this program uses. The answer is now "the board's", which is the whole of ST-283. */
+function stamp (d) { return clock.now(d); }
 
 const root = path.resolve(arg('--root', process.cwd()));
 

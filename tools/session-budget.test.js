@@ -12,6 +12,8 @@ const GUARD = path.join(__dirname, 'session-budget.js');
 // ST-259. The gate resolves a transcript directory the same way every other tool here does,
 // through the one exported helper, so a fixture cannot drift from where the tool really looks.
 const gate = require('./check-gate-dispatch.js');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 let pass = 0, fail = 0;
 function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAIL  ' + name); } }
 
@@ -186,7 +188,7 @@ const FIRST_CALLS = 150;
 // --- it reports work in flight ----------------------------------------------------------
 {
   const s = fresh();
-  const proj = fs.mkdtempSync(path.join(os.tmpdir(), 'proj-'));
+  const proj = fixtureRoot('proj');
   const tix = path.join(proj, '.board', 'tickets');
   fs.mkdirSync(tix, { recursive: true });
   fs.writeFileSync(path.join(tix, 'a.json'), JSON.stringify({ status: 'in_progress' }));

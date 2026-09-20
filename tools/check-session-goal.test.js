@@ -13,6 +13,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'check-session-goal.js');
 let pass = 0, fail = 0;
@@ -35,7 +37,7 @@ const GOOD = [
 
 // history: [{ at, what }] written onto one ticket. null means no board at all.
 function world (section, history) {
-  const dir = path.join(os.tmpdir(), 'session-goal-' + process.pid + '-' + (n++));
+  const dir = path.join(fixtureRoot('session-goal'), 'tree');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'WARM_START.md'), '# state' + LF + LF + (section === null ? '' : section), 'utf8');
   if (history !== null) {

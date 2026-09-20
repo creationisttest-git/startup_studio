@@ -169,6 +169,19 @@ let pass = 0, fail = 0;
 function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAIL  ' + name); } }
 
 const junk = [];
+// THE CLEANUP IS REGISTERED ON EXIT, NOT WRITTEN AT A POSITION (ST-291).
+// It used to be a bare statement partway down the file, so every fixture made by a block
+// BELOW it was created after the only thing that removes them, and stayed on the machine.
+// Moving the statement to the end did not fix it either: the file ends in process.exit, so
+// a line after that never runs at all, which is the same defect wearing the opposite
+// costume. Measured while believing it was fixed: leftovers went 29 to 44 in one run.
+// An exit handler has no position to get wrong and survives an early exit.
+// This matters beyond tidiness. Those leftovers are what made check-board-clock resolve an
+// empty directory to a board belonging to a neighbour, which is the defect this suite was
+// being run to fix.
+process.on('exit', () => {
+  junk.forEach(d => { try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) { /* the OS will */ } });
+});
 let n = 0;
 
 // EVERY FIXTURE ROOT IS A GIT REPOSITORY, AND ITS FIRST COMMIT IS DATED BEFORE THE DISPATCH.
@@ -196,6 +209,23 @@ function commitAt (w, at, subject) {
   git(w.root, ['add', '-A'], at);
   return git(w.root, ['commit', '-m', subject], at);
 }
+function fileCommitAt (w, at, subject, rel) {
+  const p = path.join(w.root, rel);
+  const body = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+  fs.writeFileSync(p, body + subject + chr10, 'utf8');
+  git(w.root, ['add', '-A'], at);
+  return git(w.root, ['commit', '-m', subject], at);
+}
+function noteCommitAt (w, at, subject) {
+  const body = fs.existsSync(path.join(w.root, 'CHANGELOG.md'))
+    ? fs.readFileSync(path.join(w.root, 'CHANGELOG.md'), 'utf8')
+    : '# Changelog' + chr10;
+  fs.writeFileSync(path.join(w.root, 'CHANGELOG.md'), body + subject + chr10, 'utf8');
+  git(w.root, ['add', '-A'], at);
+  return git(w.root, ['commit', '-m', subject], at);
+}
+const chr10 = String.fromCharCode(10);
+const GD = require('./check-gate-dispatch.js');
 function world () {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'gate-dispatch-' + process.pid + '-' + (n++) + '-'));
   junk.push(d);
@@ -1019,8 +1049,8 @@ const NO_DOCTOR = ALL_SIX.filter(nm => nm !== 'doctor');
   commitAt(w, '2026-09-06T05:00:00Z', 'a second writer lands mid-review');
   const r = run(w);
   ok('a commit landing AFTER the reviewers were dispatched refuses', r.code === 1);
-  ok('and it refuses for the tree reason rather than for a missing reviewer',
-    /THE TREE MOVED AFTER THE REVIEW STARTED/.test(r.out));
+  ok('and it refuses for the source reason rather than for a missing reviewer',
+    /THE SOURCE MOVED AFTER THE REVIEW STARTED/.test(r.out));
   ok('and it NAMES the commit, so the reader can go and look at it rather than take its word',
     /a second writer lands mid-review/.test(r.out));
   ok('and it prints the remedy, which is what keeps a closed failure from being a lockout',
@@ -1175,8 +1205,8 @@ const NO_DOCTOR = ALL_SIX.filter(nm => nm !== 'doctor');
   commitAt(w, '2026-09-06T05:00:00Z', 'a commit lands after the only reviewer');
   const r = run(w);
   ok('a commit after the PRODUCT reviewer still refuses when no method review ran', r.code === 1);
-  ok('and it refuses for the TREE reason, which is the guard an early return skipped',
-    /THE TREE MOVED AFTER THE REVIEW STARTED/.test(r.out));
+  ok('and it refuses for the SOURCE reason, which is the guard an early return skipped',
+    /THE SOURCE MOVED AFTER THE REVIEW STARTED/.test(r.out));
 }
 {
   // The other side of the same rule. A missing method review on a tree that HELD is advisory and
@@ -1194,9 +1224,125 @@ const NO_DOCTOR = ALL_SIX.filter(nm => nm !== 'doctor');
 // blocks, so every world those built was never removed: a product review counted 11,630
 // gate-dispatch-* directories in the temp directory, each one a git repository. Nothing failed,
 // which is why it survived. It has to be the last statement before the tally.
-junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
 
-const EXPECTED_ASSERTIONS = 151;
+
+/* ST-290: THE TREE IS TWO QUESTIONS, NOT ONE.
+   Until this ticket a commit carrying nothing but a paragraph of prose produced the same
+   refusal, in the same words, as a commit rewriting the source, and the remedy it printed read
+   as "read everything again". The founder's ruling of 2026-09-20 is that the release note is
+   the LAST step, written on its own, so that refusal fires on every release by design.
+
+   Mutation, each run ALONE and the file diffed byte-identical afterwards:
+     - drop NOT_THE_NOTE from the source window's commitsSince call: the first assertion below
+       goes red, because a note-only commit refuses as a source change again.
+     - delete the note window entirely: the three note assertions go red and the source ones
+       stay green, which is the pair that proves the two questions are really separate.
+     - open the note window at the latest reviewer of ANY KIND instead of the latest product
+       one: the method-reviewer assertion below goes red.
+
+   THE LINE THAT USED TO SIT HERE NAMED A MUTATION THAT COULD NOT KILL ANYTHING. It said that
+   opening the window at the latest PRODUCT reviewer would redden the content-reviewer
+   assertion. content-reviewer is already in PRODUCT_REVIEWERS, so the swap changes nothing and
+   the mutant survived at 163 passed 0 failed. A reviewer found it by RUNNING the mutation. The
+   control it claimed to prove was documented, believed and untested, which is S242 living in a
+   comment rather than in code. */
+{
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
+  noteCommitAt(w, '2026-09-06T05:00:00Z', 'write the release note last');
+  const r = run(w);
+  ok('a note-only commit does NOT refuse as a source change',
+    !/THE SOURCE MOVED AFTER THE REVIEW STARTED/.test(r.out));
+  ok('but it still refuses, because a note nobody read must not ship', r.code === 1);
+  ok('and it names the note rather than the tree',
+    /THE RELEASE NOTE MOVED AFTER THE LAST REVIEWER FINISHED/.test(r.out));
+  ok('and it says the source review still stands, so the remedy is proportionate',
+    /THE SOURCE REVIEW ABOVE STILL STANDS/.test(r.out));
+  ok('and it NAMES the commit, so the reader can go and look rather than take its word',
+    /write the release note last/.test(r.out));
+}
+
+{
+  /* THE CHEAP REMEDY HAS TO WORK, or the note window is a lockout wearing a helpful message.
+     A content reviewer reading 200 words after the note landed clears it, and no second pass
+     over the source is asked for. */
+  const w = world();
+  noteCommitAt(w, '2026-09-06T03:00:00Z', 'an earlier note');
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor'),
+    dispatch('content-reviewer', 'read the release note', '2026-09-06T06:00:00.000Z')]);
+  const r = run(w);
+  ok('a reviewer dispatched after the note landed clears the note window', r.code === 0);
+  ok('and nothing is said about the note having moved',
+    !/THE RELEASE NOTE MOVED/.test(r.out));
+}
+
+{
+  /* A SOURCE COMMIT MUST STILL REFUSE AS A SOURCE COMMIT. Without this the assertions above
+     would also pass for a check that had simply stopped looking at the tree at all. */
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
+  commitAt(w, '2026-09-06T05:00:00Z', 'a real source change');
+  const r = run(w);
+  ok('CONTROL: a source commit still refuses for the source reason', r.code === 1
+    && /THE SOURCE MOVED AFTER THE REVIEW STARTED/.test(r.out));
+  ok('CONTROL: and it is not mistaken for a note change',
+    !/THE RELEASE NOTE MOVED/.test(r.out));
+}
+
+{
+  /* The pathspec itself, asked directly. commitsSince is exported and every window above is one
+     call to it, so a pathspec that silently matched everything would make all of the above pass
+     for the wrong reason. */
+  const w = world();
+  commitAt(w, '2026-09-06T05:00:00Z', 'source change');
+  noteCommitAt(w, '2026-09-06T06:00:00Z', 'note change');
+  const all = GD.commitsSince(w.root, '2026-09-06T04:00:00Z');
+  ok('commitsSince with no pathspec sees both commits', !all.why && all.commits.length === 2);
+  const onlyNote = GD.commitsSince(w.root, '2026-09-06T04:00:00Z', GD.NOTE_SURFACE);
+  ok('commitsSince restricted to the note surface sees only the note commit',
+    !onlyNote.why && onlyNote.commits.length === 1 && /note change/.test(onlyNote.commits[0].subject));
+  const notNote = GD.commitsSince(w.root, '2026-09-06T04:00:00Z', GD.NOT_THE_NOTE);
+  ok('commitsSince excluding the note surface sees only the source commit',
+    !notNote.why && notNote.commits.length === 1 && /source change/.test(notNote.commits[0].subject));
+}
+
+
+/* ST-290 REVIEW ROUND, HIGH-2 AND HIGH-3. Both were found by a reviewer RUNNING things, both
+   were mine, and neither reddened a single assertion when it was fixed, which is what says
+   they were never covered.
+
+   Mutation, each alone, file diffed byte-identical afterwards: open the note window at the
+   latest reviewer of ANY kind and the first pair goes red; drop sitemap.xml from NOTE_SURFACE
+   and the second pair goes red. */
+{
+  /* HIGH-2. The note window used to open at the latest reviewer of ANY kind, so a doctor
+     dispatched after the note cleared it. A doctor reviews the METHOD. It does not read the
+     prose, and a note could therefore ship having been read by nobody, which is the one thing
+     this window exists to stop. */
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer', 'review the change', '2026-09-06T04:00:00.000Z'),
+    dispatch('doctor', 'method review of this session', '2026-09-06T06:00:00.000Z')]);
+  noteCommitAt(w, '2026-09-06T05:00:00Z', 'a note nobody read');
+  const r = run(w);
+  ok('a METHOD reviewer after the note does NOT clear the note window', r.code === 1);
+  ok('and it says so in the note words rather than the source ones',
+    /THE RELEASE NOTE MOVED AFTER THE LAST REVIEWER FINISHED/.test(r.out));
+}
+
+{
+  /* HIGH-3. A new release date forces sitemap.xml to move. Left out of the note surface, the
+     note commit was a SOURCE commit and the whole separation collapsed on the first real use. */
+  const w = world();
+  session(w, 's1', [dispatch('code-reviewer'), dispatch('doctor')]);
+  fileCommitAt(w, '2026-09-06T05:00:00Z', 'bump the sitemap for the new release', 'sitemap.xml');
+  const r = run(w);
+  ok('a sitemap-only commit does NOT refuse as a source change',
+    !/THE SOURCE MOVED AFTER THE REVIEW STARTED/.test(r.out));
+  ok('it is treated as part of the release note surface instead',
+    /THE RELEASE NOTE MOVED AFTER THE LAST REVIEWER FINISHED/.test(r.out) && r.code === 1);
+}
+
+const EXPECTED_ASSERTIONS = 167;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',
@@ -1204,3 +1350,4 @@ ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_A
 
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
+

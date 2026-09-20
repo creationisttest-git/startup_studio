@@ -17,6 +17,8 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'archive-decisions.js');
 let pass = 0, fail = 0;
@@ -25,7 +27,7 @@ function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAI
 const junk = [];
 function doc (rows, opts) {
   const o = opts || {};
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-arch-'));
+  const d = fixtureRoot('studio-arch');
   junk.push(d);
   const head = o.noTable
     ? ['# Doc', '', 'no table here', '']

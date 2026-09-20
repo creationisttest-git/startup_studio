@@ -17,6 +17,8 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'check-published-counts.js');
 let pass = 0, fail = 0;
@@ -36,7 +38,7 @@ function run (args) {
 
 let n = 0;
 function fixture () {
-  const dir = path.join(os.tmpdir(), 'pubcount-' + Date.now() + '-' + process.pid + '-' + (++n));
+  const dir = path.join(fixtureRoot('pubcount'), 'tree');
   if (fs.existsSync(dir)) throw new Error('fixture path already exists, which every assertion below assumes it does not: ' + dir);
   fs.mkdirSync(dir, { recursive: true });
   return dir;

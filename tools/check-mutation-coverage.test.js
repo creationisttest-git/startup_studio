@@ -43,6 +43,8 @@
 const { execFileSync } = require('child_process');
 const crypto = require('crypto');
 const fs = require('fs');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 const os = require('os');
 const path = require('path');
 
@@ -86,7 +88,7 @@ const FIXTURE_SUITE = [
 ].join('\n');
 
 function world (baseline) {
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'mutcov-test-' + process.pid + '-' + (n++) + '-'));
+  const d = fixtureRoot('mutcov-test');
   junk.push(d);
   fs.writeFileSync(path.join(d, 't.js'), FIXTURE_TOOL, 'utf8');
   fs.writeFileSync(path.join(d, 't.test.js'), FIXTURE_SUITE, 'utf8');
@@ -302,7 +304,7 @@ const CRASH_SUITE = [
 ].join('\n');
 
 function crashWorld (baseline) {
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'mutcov-test-' + process.pid + '-' + (n++) + '-'));
+  const d = fixtureRoot('mutcov-test');
   junk.push(d);
   fs.writeFileSync(path.join(d, 't.js'), FIXTURE_TOOL, 'utf8');
   fs.writeFileSync(path.join(d, 't.test.js'), CRASH_SUITE, 'utf8');

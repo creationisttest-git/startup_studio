@@ -29,6 +29,8 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const CHECK = path.join(__dirname, 'check-hook-registration.js');
 const STUDIO = path.resolve(__dirname, '..');
@@ -41,7 +43,7 @@ let pass = 0, fail = 0;
 function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAIL  ' + name); } }
 
 const RUN = Date.now() + '-' + process.pid;
-const DIR = path.join(os.tmpdir(), 'hook-registration-' + RUN);
+const DIR = path.join(fixtureRoot('hook-registration'), 'tree');
 if (fs.existsSync(DIR)) throw new Error('fixture already exists, refusing to reuse it: ' + DIR);
 fs.mkdirSync(DIR, { recursive: true });
 
@@ -94,7 +96,7 @@ function allSix (form) {
   // The control for the line above, and the reason it is not simply a clean case turned into a
   // failure: an absent DEFAULT is still not a failure, because a host that registers nothing is a
   // real and clean answer. Proved by pointing the home directory at an empty one.
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'hook-registration-home-'));
+  const home = fixtureRoot('hook-registration-home');
   let d;
   try {
     d = { code: 0, out: execFileSync('node', [CHECK],

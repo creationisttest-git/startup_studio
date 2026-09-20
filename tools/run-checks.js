@@ -70,6 +70,11 @@ const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
 const { spawnSync } = require('child_process')
+/* THE ONE CLOCK (ST-283). checks.json sits in the same directory as the tickets and the doctor
+ * record, and this file used to stamp it from getHours() while board.js stamped in UTC. Two
+ * namespaces in one directory make an ordering across its files wrong rather than impossible,
+ * which is worse, because it returns an answer. */
+const clock = require('./clock.js')
 
 // 'deep' is the set nothing gates on. A check lives here when it has earned its keep as a
 // diagnostic but has not earned a place in the path between writing code and testing it.
@@ -95,7 +100,8 @@ function git (root, args) {
   return r.stdout
 }
 
-function walkFingerprint (root, ignoreRel) {
+function walkFingerprint (root, ignoreRel, scope) {
+  const inScope = scopeTest(scope)
   const ignored = new Set([].concat(ignoreRel || []).filter(Boolean))
   const skip = new Set(['.git', 'node_modules', '.public', '.archive'])
   const h = crypto.createHash('sha256')
@@ -113,6 +119,7 @@ function walkFingerprint (root, ignoreRel) {
       if (e.isDirectory()) { stack.push(child); continue }
       if (!e.isFile()) continue
       if (ignored.has(child)) continue
+      if (!inScope(child)) continue
       if (seen >= WALK_CAP) { truncated = true; continue }
       seen++
       let st
@@ -122,7 +129,94 @@ function walkFingerprint (root, ignoreRel) {
   }
   rows.sort()
   for (const r of rows) h.update(r + '\n')
-  return { by: 'walk', hash: h.digest('hex').slice(0, 16), head: null, truncated: truncated }
+  return { by: 'walk', hash: h.digest('hex').slice(0, 16), head: null, truncated: truncated, matched: rows.length }
+}
+
+// ------------------------------------------------------------------ scopes
+
+// A CHECK'S EVIDENCE IS ABOUT THE FILES IT READS, AND NOTHING ELSE. Until ST-290 every row was
+// fingerprinted over the WHOLE tree, so editing one word of the release note discarded a product
+// review of source files the edit never touched and the reviewer had to read everything again.
+// Two consecutive sittings ended with nothing published inside that loop, and the founder named
+// it: the note should be the last step and it should not send anybody back through the source.
+//
+// A scope is a list of repository-relative rules. A bare path INCLUDES that file, or everything
+// beneath it when it names a directory. A '!' prefix EXCLUDES. Excludes always win, and listing
+// no includes means "everything", so a scope of pure exclusions reads as the whole tree minus a
+// surface. That is the shape most of these want, and it is the SAFE direction: the only way to
+// be wrong with an exclusion is if the check really does read the excluded file, which is one
+// question with one answer, where a positive list is wrong the moment the check grows a reader.
+//
+// NO GLOBS, DELIBERATELY. A pattern language invites a rule that silently matches nothing, and a
+// scope matching nothing is the worst failure this file can have: see scopeFaults.
+function scopeRules (scope) {
+  const inc = []
+  const exc = []
+  for (const raw of [].concat(scope || [])) {
+    const s = String(raw).trim()
+    if (!s) continue
+    if (s.charAt(0) === '!') exc.push(s.slice(1)); else inc.push(s)
+  }
+  return { inc: inc, exc: exc }
+}
+
+// Exact file, or anything under it read as a directory. Never a bare prefix: 'site' must not
+// match 'site-notes.md', which a startsWith without the separator would have done.
+function pathHits (rel, entry) {
+  return rel === entry || rel.indexOf(entry + '/') === 0
+}
+
+function scopeTest (scope) {
+  const r = scopeRules(scope)
+  return function (rel) {
+    for (const e of r.exc) if (pathHits(rel, e)) return false
+    if (!r.inc.length) return true
+    for (const i of r.inc) if (pathHits(rel, i)) return true
+    return false
+  }
+}
+
+// STORED IN THE ROW, because a scope that changes after a row was recorded makes that row
+// evidence about a different question. Narrowing a scope would otherwise REVALIDATE stale
+// evidence in silence, which is the one move this whole mechanism must not make cheap. Sorted,
+// so re-ordering a list is not read as a change. Empty string means the whole tree, which is
+// also what a row recorded before ST-290 carries, so old rows compare equal to unscoped checks
+// and are refused for any check that has since gained a scope. That is the correct direction.
+function scopeKey (scope) {
+  const r = scopeRules(scope)
+  if (!r.inc.length && !r.exc.length) return ''
+  return r.inc.slice().sort().join(',') + '#' + r.exc.slice().sort().join(',')
+}
+
+// A SCOPE MATCHING NO FILE IS NOT A NARROW CHECK, IT IS A CHECK THAT CAN NEVER GO STALE. The
+// hash over zero files is the same hash in every tree forever, so the row would be honoured
+// after any change to anything, for the life of the project, and the gate would report it
+// PROVED while proving nothing. That is S242 built into the plumbing rather than into one
+// assertion, so it is a hard error at both --set and --gate rather than a warning.
+function scopeFaults (root, ignore, defs) {
+  const out = []
+  for (const def of defs) {
+    if (!scopeKey(def.scope)) continue
+    const st = stateFor(root, ignore, def.scope)
+    if (!st.matched) {
+      out.push(def.name + ': scope ' + scopeKey(def.scope) + ' matches no file in this tree')
+    }
+  }
+  return out
+}
+
+// Computing a fingerprint per check would re-read the tree once per check. Most of them share a
+// scope, so the work is shared by key rather than by definition. Cleared per invocation: a cache
+// living across the before and after reads would make the moved-during-run test compare a value
+// with itself, which is a control that cannot fail.
+let SCOPE_CACHE = null
+function resetScopeCache () { SCOPE_CACHE = new Map() }
+function stateFor (root, ignore, scope) {
+  const k = scopeKey(scope)
+  if (SCOPE_CACHE && SCOPE_CACHE.has(k)) return SCOPE_CACHE.get(k)
+  const st = treeState(root, ignore, scope)
+  if (SCOPE_CACHE) SCOPE_CACHE.set(k, st)
+  return st
 }
 
 // The commit alone is not the tree: almost every check here runs against work that is not
@@ -145,24 +239,27 @@ function walkFingerprint (root, ignoreRel) {
 // row the moment the doctor wrote one and the release would refuse with everything NOT PROVED.
 // That is the identical self-invalidating loop this function already closes for checks.json, and
 // the only thing that was missing was room for more than one name.
-function treeState (root, ignoreRel) {
+function treeState (root, ignoreRel, scope) {
   const skip = [].concat(ignoreRel || []).filter(Boolean).map(r => ':(exclude)' + r)
+  const inScope = scopeTest(scope)
   const head = git(root, ['rev-parse', 'HEAD'])
-  if (head === null) return walkFingerprint(root, ignoreRel)
+  if (head === null) return walkFingerprint(root, ignoreRel, scope)
   // -z, because git quotes any path it considers unusual, and a quoted path fails to open and
   // would drop that file out of the fingerprint without a word.
   const files = (git(root, ['ls-files', '-z', '-c', '-o', '--exclude-standard', '--'].concat(skip)) || '')
-    .split('\0').map(s => s.trim()).filter(Boolean).sort()
+    .split('\0').map(s => s.trim()).filter(Boolean).filter(inScope).sort()
   const h = crypto.createHash('sha256')
+  let matched = 0
   for (const f of files) {
     let buf
     // Tracked but no longer on disk. It is absent both before and after the commit that records
     // the deletion, so skipping it is what keeps the two states equal.
     try { buf = fs.readFileSync(path.join(root, f)) } catch (e) { continue }
     h.update(f + '\n')
+    matched++
     h.update(buf)
   }
-  return { by: 'git', hash: h.digest('hex').slice(0, 16), head: head.trim(), truncated: false }
+  return { by: 'git', hash: h.digest('hex').slice(0, 16), head: head.trim(), truncated: false, matched: matched }
 }
 
 function treeKey (t) { return t.by + ':' + t.hash }
@@ -193,18 +290,93 @@ function findFirst (root, candidates) {
   return null
 }
 
+// THE RELEASE-NOTE SURFACE: the note itself, and the page generated from it.
+//
+// The founder's ruling of 2026-09-20 is that the release note is the LAST step, written on its
+// own once every customer-facing feature is built. That is only affordable if writing it does
+// not discard evidence about files it never touched, which under one whole-tree fingerprint it
+// did: every row went NOT PROVED and the reviewer read the source again.
+//
+// WHICH ROWS MAY CARRY THIS WAS ESTABLISHED BY PLANTING, NOT BY READING, because reading is how
+// the first attempt got it wrong. A dated section of 250 words was inserted at the top of the
+// real CHANGELOG.md and a visible paragraph into releases.html, each check was run either side,
+// and exit code and output were compared. release-note and releases-page both moved, so neither
+// may carry this. The seven that carry it did not move, AND two of them, roster-count and
+// published-counts, name both files in their own NOT_A_CLAIM_TO_A_READER exemption sets, which
+// is the reading that confirms the experiment rather than replacing it.
+//
+// THE FIRST PROBE PROVED NOTHING AND IS WORTH RECORDING. It appended an HTML comment to the end
+// of the file: a mutation no reader of that file could notice, so all ten checks came back
+// identical and the list would have been wrong in the dangerous direction. A dependency probe
+// is only as good as the thing it plants (S242).
+//
+// NOT CARRIED BY suite, DELIBERATELY. tests/studio-self.tests.ps1 reads the real CHANGELOG.md
+// and asserts it contains a claim word for word, so the note genuinely does invalidate it. That
+// is a real residue of this fix: writing the note last still costs one five-minute suite run.
+// It costs no review round, which is the expensive half.
+// sitemap.xml JOINED THIS LIST AFTER A REVIEWER SHOWED THE OMISSION UNDID THE FIX: a new
+// release date forces its lastmod to move, so a note commit touched a watched file and
+// invalidated all nine session-start rows anyway. Verified the same way as the other two
+// before being added, by planting an extra entry and confirming all seven checks below
+// returned byte-identical exit codes and output.
+const NOTE_SURFACE = ['!CHANGELOG.md', '!releases.html', '!sitemap.xml']
+
 function definitions (root) {
   const warm = 'WARM_START.md'
   return [
     {
       name: 'board-audit',
+      scope: NOTE_SURFACE,
       sets: ['session-start', 'release'],
       where: ['base/board/board.js', 'board/board.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, 'audit'] }),
       about: 'every live ticket has an owner, a decision answered and no loose end'
     },
     {
+      name: 'board-clock',
+      scope: NOTE_SURFACE,
+      // IN SESSION-START AS WELL AS RELEASE, and that placement is the point of ST-283. The
+      // defect it watches for is a NEW writer stamping a board directory in its own namespace,
+      // which is something a session introduces while it works rather than something it does at
+      // the moment of publishing. A check that only runs at release tells you about it after the
+      // rows are written. It costs milliseconds: it reads files that are already on disk.
+      //
+      // Exits 3 where there is no board, so a project that has not adopted one is not reported
+      // red for it (the lockout check-session-goal had to fix).
+      sets: ['session-start', 'release'],
+      where: ['tools/check-board-clock.js'],
+      build: f => ({ exe: process.execPath, args: [f.abs] }),
+      // NARROWED 2026-09-19, ST-285. This said "every stamp in the board directory says which
+      // clock wrote it, and the legacy count only falls", and BOTH halves were false: the check
+      // reads a hardcoded list of files and a hardcoded list of time-named fields, and the ratchet
+      // sits four stamps above the live count so a small rise passes. `tools` publishes wholesale,
+      // so this field is read by strangers. It now claims only what a reviewer could not falsify.
+      // NARROWED TWICE IN ONE SITTING, AND THE SECOND TIME IS THE INSTRUCTIVE ONE. The first
+      // version claimed every stamp says which clock wrote it and that the legacy count only
+      // falls; both false. The replacement claimed the listed files and fields DO say which, and
+      // a reviewer falsified that too by planting seven bare stamps under `at` in a listed file:
+      // the baseline sat seven above the live count, so the ratchet had headroom and returned 0.
+      // A ratchet does not assert a property, it asserts that a number has not risen, and this
+      // field now says only that.
+      about: 'the board files it lists are watched for stamps that do not say which clock wrote them, against a recorded baseline'
+    },
+    {
+      name: 'release-note',
+      // WIND-DOWN AND RELEASE, because the note is WRITTEN at wind-down and READ at release, and
+      // the CEO's rule is that approval for a long one comes BEFORE it is written. A check that
+      // only ran at release would refuse a note whose cost had already been paid.
+      //
+      // Exits 3 where there is no CHANGELOG.md, so a project that has never released is not
+      // reported red for it, which is the placement board-clock needed for the same reason.
+      sets: ['wind-down', 'release'],
+      where: ['tools/check-release-note.js'],
+      advisory: [3],
+      build: f => ({ exe: process.execPath, args: [f.abs] }),
+      about: 'the newest release note is under 200 words, or the CEO approved that one in writing first'
+    },
+    {
       name: 'board-doctor',
+      scope: NOTE_SURFACE,
       // Out of session-start: it exits 1 in a tree that has never run init, so a fresh clone of
       // the published export reported it red before the reader touched anything.
       sets: ['release'],
@@ -224,6 +396,7 @@ function definitions (root) {
     },
     {
       name: 'roster-count',
+      scope: NOTE_SURFACE,
       sets: ['session-start', 'release'],
       where: ['tools/check-roster-count.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
@@ -231,6 +404,7 @@ function definitions (root) {
     },
     {
       name: 'published-counts',
+      scope: NOTE_SURFACE,
       sets: ['session-start', 'release'],
       where: ['tools/check-published-counts.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
@@ -310,6 +484,7 @@ function definitions (root) {
       // rule that has silently stopped reaching the loaded documents should be the first thing a
       // session learns rather than something found five sittings later.
       name: 'rule-delivery',
+      scope: NOTE_SURFACE,
       sets: ['session-start', 'release'],
       where: ['tools/check-rule-delivery.js'],
       build: f => ({ exe: process.execPath, args: [f.abs, '--root', root, '--quiet'] }),
@@ -380,6 +555,7 @@ function definitions (root) {
     },
     {
       name: 'governance-core',
+      scope: NOTE_SURFACE,
       sets: ['session-start', 'release'],
       where: ['tools/check-governance-core.js'],
       // Two roots. --gov is in this repository; --root is the directory HOLDING it, because reach
@@ -669,12 +845,9 @@ function writeLedger (file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n', { encoding: 'utf8' })
 }
 
-function stamp () {
-  const d = new Date()
-  const p = n => String(n).padStart(2, '0')
-  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' +
-    p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds())
-}
+/* Named rather than inlined so the call sites are unchanged and there is one line that answers
+ * which clock this program writes with. It is the board's (ST-283). */
+function stamp () { return clock.now() }
 
 // ------------------------------------------------------------------ run
 
@@ -684,7 +857,16 @@ function doRun (root, file, setName, quiet) {
 
   const rel = relOf(root, file)
   const ignore = recordRels(root, file)
-  const before = treeState(root, ignore)
+  resetScopeCache()
+  // Refused BEFORE anything runs, because a scope matching no file records rows that can
+  // never go stale and the damage is done the moment they are written.
+  const faults = scopeFaults(root, ignore, defs)
+  if (faults.length) {
+    for (const f of faults) console.error('run-checks: ' + f)
+    return 2
+  }
+  const before = stateFor(root, ignore, null)
+  const beforeOf = def => stateFor(root, ignore, def.scope)
   const existing = readLedger(file)
   const data = existing.state === 'ok'
     ? existing.data
@@ -718,8 +900,9 @@ function doRun (root, file, setName, quiet) {
       cmd: r.cmd,
       ms: r.ms,
       at: stamp(),
-      tree: treeKey(before),
-      head: before.head,
+      tree: treeKey(beforeOf(def)),
+      scope: scopeKey(def.scope),
+      head: beforeOf(def).head,
       set: def.sets.slice(),
       about: def.about,
       why: r.why || '',
@@ -736,12 +919,22 @@ function doRun (root, file, setName, quiet) {
 
   // The tree is re-read after the run. Anything written while an instrument was reading it
   // makes every row above a measurement of a tree that no longer exists.
-  const after = treeState(root, ignore)
-  if (treeKey(after) !== treeKey(before)) {
-    for (const def of defs) data.checks[def.name].tree = 'moved-during-run'
+  // ASKED PER SCOPE, NOT WHOLE-TREE. A file written while the checks ran only invalidates the
+  // rows whose evidence covers that file; marking all of them would put the whole-tree
+  // invalidation this ticket removes straight back in through the moved-during-run door. The
+  // cache is reset first, or every comparison below would be a value against itself, which is
+  // a control that cannot fail (S242).
+  const beforeKeys = new Map()
+  for (const def of defs) beforeKeys.set(def.name, treeKey(beforeOf(def)))
+  resetScopeCache()
+  const moved = defs.filter(def => treeKey(stateFor(root, ignore, def.scope)) !== beforeKeys.get(def.name))
+  if (moved.length) {
+    for (const def of moved) data.checks[def.name].tree = 'moved-during-run'
     say(quiet, '')
-    say(quiet, '  THE TREE CHANGED WHILE THE CHECKS WERE RUNNING. Every row is recorded against a tree')
-    say(quiet, '  that no longer exists and every gate will refuse until they are run again on a still tree.')
+    say(quiet, '  THE TREE CHANGED WHILE THE CHECKS WERE RUNNING, inside the scope of ' + moved.length +
+      ' of ' + defs.length + ' row(s): ' + moved.map(d => d.name).join(', ') + '.')
+    say(quiet, '  Those rows are recorded against a tree that no longer exists and their gate will')
+    say(quiet, '  refuse until they are run again on a still tree. The rest are unaffected.')
   }
 
   writeLedger(file, data)
@@ -765,6 +958,17 @@ function doGate (root, file, setName, quiet) {
   const led = readLedger(file)
   const rel = relOf(root, file)
   const ignore = recordRels(root, file)
+  // ASKED BEFORE THE LEDGER IS JUDGED, because a broken scope is a fault in the definitions
+  // and not in the record. Asked after, a tree whose --set had already refused for this very
+  // reason reported 'checks.json does not exist' and sent the reader to re-run the thing that
+  // cannot succeed. Caught by an assertion that expected exit 2 and got 1.
+  const defs = definitions(root).filter(d => setName === 'all' || d.sets.indexOf(setName) !== -1)
+  resetScopeCache()
+  const gateFaults = scopeFaults(root, ignore, defs)
+  if (gateFaults.length) {
+    for (const f of gateFaults) console.error('run-checks: ' + f)
+    return 2
+  }
   const clear = 'node tools/run-checks.js --set ' + setName
 
   if (led.state !== 'ok') {
@@ -776,8 +980,7 @@ function doGate (root, file, setName, quiet) {
     return 1
   }
 
-  const defs = definitions(root).filter(d => setName === 'all' || d.sets.indexOf(setName) !== -1)
-  const now = treeKey(treeState(root, ignore))
+  const nowOf = def => treeKey(stateFor(root, ignore, def.scope))
   const problems = []
   let ok = 0
   let absent = 0
@@ -788,6 +991,25 @@ function doGate (root, file, setName, quiet) {
   for (const def of defs) {
     const row = led.data.checks[def.name]
     if (!row) { problems.push([def.name, 'has never been recorded', clear]); continue }
+    // THE SCOPE IS COMPARED BEFORE THE HASH, and a mismatch is never treated as fresh.
+    // Narrowing a scope changes which files a row is evidence about, so honouring the old
+    // hash under a new scope would revalidate stale evidence in silence: the one move this
+    // mechanism must not make cheap. A row written before ST-290 carries no scope at all,
+    // which reads as the whole tree, so it is refused for any check that has since gained
+    // one. That is the correct direction: re-measure rather than assume.
+    const want = scopeKey(def.scope)
+    const had = row.scope || ''
+    if (had !== want) {
+      problems.push([def.name, 'was recorded under a different scope (' +
+        (had || 'the whole tree') + ', now ' + (want || 'the whole tree') + ')', clear])
+      // NOT counted as unproved: that counter is printed as 'not machine-readable', which
+      // describes a row this gate could not parse. A scope mismatch is a row it read
+      // perfectly and is refusing on purpose, and it belongs in the same bucket as a tree
+      // mismatch directly below. Caught by watching the guard fire: it reported 6 rows not
+      // machine-readable when all 6 were read fine.
+      continue
+    }
+    const now = nowOf(def)
     if (row.tree !== now) {
       problems.push([def.name, 'was recorded against a different tree (' + row.tree + ', now ' + now + ')', clear])
       continue
@@ -908,6 +1130,12 @@ function main (argv) {
 // recordRels returned one path or three, because it was never on the path they exercised. A
 // helper applied only at call sites has no coverage until either a call site or the helper itself
 // is tested, and reading the suite cannot tell you which of the two you have. ST-277 HIGH-3.
-module.exports = { main, treeState, treeKey, readLedger, definitions, runOne, recordRels }
+// scopeTest, pathHits and scopeFaults are exported for the suite rather than for a caller.
+// Each guards a case only reachable through a mistake somewhere else: a scope rule that is a
+// prefix of a sibling's name, and a scope matching nothing. A defensive branch reachable
+// only through another function's error has no coverage at all from the front door, so it
+// gets a direct unit call instead (S231).
+module.exports = { main, treeState, treeKey, readLedger, definitions, runOne, recordRels,
+  scopeTest, scopeKey, pathHits, scopeFaults, resetScopeCache }
 
 if (require.main === module) process.exit(main(process.argv.slice(2)))

@@ -28,6 +28,27 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
+/* ST-281: THE PROGRAM UNDER TEST WRITES STATE FILES THIS SUITE CANNOT NAME IN ADVANCE.
+ * session-guard.js keeps one small json per session id in os.tmpdir(), and when a run carries no
+ * session id it invents one, so the cleanup further down that unlinks the ids the cases chose
+ * cannot reach them. Rather than sweep a pattern out of the machine's temp directory, which on a
+ * developer's machine would delete the state of whatever session is running right now, this takes
+ * the set of those files BEFORE anything runs and removes only what appeared during the run. An
+ * absence it did not cause is left exactly where it was. */
+const GUARD_STATE = /^studio-session-guard-.*\.json$/;
+const guardStateBefore = new Set(
+  (() => { try { return fs.readdirSync(os.tmpdir()).filter(f => GUARD_STATE.test(f)); } catch (e) { return []; } })()
+);
+process.on('exit', () => {
+  let now = [];
+  try { now = fs.readdirSync(os.tmpdir()).filter(f => GUARD_STATE.test(f)); } catch (e) { return; }
+  for (const f of now) {
+    if (guardStateBefore.has(f)) continue;
+    try { fs.unlinkSync(path.join(os.tmpdir(), f)); } catch (e) { /* the OS will */ }
+  }
+});
 
 const GUARD = path.join(__dirname, 'session-guard.js');
 
@@ -97,13 +118,13 @@ function run (event, payload, logFile, extraEnv) {
 
 function logFileFor (f) { return path.join(f.dir, 'hooks.log'); }
 
-const SCRATCH_DIR = path.join(os.tmpdir(), 'session-guard-' + RUN + '-scratch');
+const SCRATCH_DIR = path.join(fixtureRoot('session-guard-scratch'), 'tree');
 fs.mkdirSync(SCRATCH_DIR, { recursive: true });
 made.push(SCRATCH_DIR);
 const SCRATCH_LOG = path.join(SCRATCH_DIR, 'hooks.log');
 
 {
-  const dir = path.join(os.tmpdir(), 'session-guard-' + RUN + '-brokengit');
+  const dir = path.join(fixtureRoot('session-guard-brokengit'), 'tree');
   fs.mkdirSync(dir, { recursive: true });
   made.push(dir);
   fs.writeFileSync(path.join(dir, '.git'), 'this is not a repository\n');
@@ -226,7 +247,7 @@ const SCRATCH_LOG = path.join(SCRATCH_DIR, 'hooks.log');
 }
 
 {
-  const bare = path.join(os.tmpdir(), 'session-guard-bare-' + Date.now() + '-' + process.pid);
+  const bare = path.join(fixtureRoot('session-guard-bare'), 'tree');
   fs.mkdirSync(bare, { recursive: true });
   made.push(bare);
   const logged = path.join(bare, 'hooks.log');

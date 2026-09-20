@@ -69,10 +69,15 @@ const PROMPT_TOOLS = ['AskUserQuestion']
 // A board timestamp is "YYYY-MM-DD HH:MM:SS" and is stamped UTC; a transcript timestamp is ISO
 // with a Z. Comparing the two as strings would be wrong by whatever the local offset is, which on
 // this machine is ten hours and would put every decision outside its own window.
+//
+// THROUGH THE ONE PARSER (ST-283). This file worked out the right rule on its own and then held
+// a second copy of it, which is how the board came to have two clocks in the first place: every
+// copy is correct on the day it is written. The local regex also tested for [Zz] ANYWHERE in the
+// string rather than at its end, so it agreed with clock.parse by luck on every stamp either
+// will ever see and not by construction.
+const clock = require('./clock.js')
 function boardTime (s) {
-  if (typeof s !== 'string' || !s.trim()) return null
-  const iso = s.trim().replace(' ', 'T') + (/[Zz]|[+-]\d\d:?\d\d$/.test(s) ? '' : 'Z')
-  const t = Date.parse(iso)
+  const t = clock.parse(s)
   return Number.isFinite(t) ? t : null
 }
 

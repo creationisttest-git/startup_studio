@@ -6,6 +6,53 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-20
+
+### Shipping costs less, and a health check stops answering about the wrong project
+
+**What this gives you.** Fewer abandoned releases, release notes written at the point they cost
+least, and a health check that will not quietly report on a different project.
+
+**Releasing kept getting stuck.** Editing the notes that describe a release threw away the review
+of code those notes never touched, so the whole change had to be read again from the beginning.
+Two releases in a row were abandoned inside that loop. The two are now kept apart: changing what
+you say about a release no longer discards what was already checked about the code.
+
+**The notes are written last now**, on their own, once everything else is finished, rather than
+first. That is the order that wastes the least, and it applies to every project rather than being
+advice that one of them follows.
+
+**The check that reports on a project task board** could pick up a different project's board when
+run from somewhere unexpected, and report on it without ever saying so. It now declines to answer
+rather than answer about somebody else.
+
+---
+
+## 2026-09-19
+
+### A record you can trust, a clean test run, and shorter release notes
+
+**What this gives you.** A project record you can put in order, a test run that leaves your
+machine as it found it, and release notes that stay short and say what you get.
+
+**Your project record can now be put in order.** Different parts of the studio wrote times
+into the same record that disagreed by ten hours, so a later reader could not tell what
+happened first. They agree now, and every new entry says which clock it came from. Older
+entries are untouched.
+
+**Test runs no longer leave anything on your machine.** One pass used to create 341 folders
+in your temporary directory and remove none of them.
+
+**A reason for waiving a rule stays with the file it was about.**
+
+**A question that events overtook can be closed.** Your record stops asking about decisions
+that no longer matter, and never shows a ruling you did not give.
+
+**Release notes are capped at 200 words.** Anything longer needs the owner's approval first,
+and the approval is recorded next to your own changelog rather than somewhere central.
+
+---
+
 ## 2026-09-18
 
 ### The doctor loop could never have passed, and a review nobody could skip is what found it

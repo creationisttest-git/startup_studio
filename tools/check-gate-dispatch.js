@@ -91,6 +91,34 @@ const path = require('path')
 const { spawnSync } = require('child_process')
 
 // Two lists, one of each required. See the header for why they cannot be one.
+// THE RELEASE-NOTE SURFACE: the note, and the page generated from it.
+//
+// The founder's ruling of 2026-09-20 is that the note is the LAST step, written on its own
+// once every customer-facing feature is built. Before ST-290 this check asked ONE question of
+// the whole tree: has anything been committed since the reviewer started. So a commit carrying
+// nothing but a paragraph of prose produced the same refusal, in the same words, as a commit
+// rewriting the source, and the remedy it printed read as re-review everything. Two sittings
+// ended inside that loop.
+//
+// IT IS TWO QUESTIONS. Did the SOURCE move under the reviewer, which needs a real re-review,
+// and did the NOTE move after everybody had finished, which needs somebody to read 200 words.
+// Both still refuse. What changes is that each one names what moved and asks for the remedy
+// that fits, so a paragraph cannot cost a reading of the tree.
+//
+// THE NOTE HALF IS NOT DECORATION. The CRITICAL that stopped the 2026-09-18 release was a
+// false claim in CHANGELOG.md and releases.html about what a check catches, and no mechanical
+// check can catch a false sentence. Without a window of its own, a note written after the last
+// reviewer would ship having been read by nobody.
+// sitemap.xml IS PART OF THIS SURFACE AND LEAVING IT OUT UNDID THE WHOLE FIX. A new release
+// date forces its lastmod to move, the page builder warns until it does, so the note commit
+// carried a file the source window still watched and was therefore a SOURCE commit. Found
+// by a reviewer on the very commit that wrote this rule, after its author had made exactly
+// that bump by hand an hour earlier and not connected the two. A sitemap entry is metadata
+// about a page and never the page: a genuinely new page is a new file, which the source
+// window still sees.
+const NOTE_SURFACE = ['CHANGELOG.md', 'releases.html', 'sitemap.xml']
+const NOT_THE_NOTE = ['.'].concat(NOTE_SURFACE.map(p => ':(exclude)' + p))
+
 const PRODUCT_REVIEWERS = ['qa-tester', 'code-reviewer', 'security-reviewer', 'content-reviewer', 'mobile-qa']
 const METHOD_REVIEWERS = ['doctor']
 const REVIEW_ROLES = PRODUCT_REVIEWERS.concat(METHOD_REVIEWERS)
@@ -218,8 +246,13 @@ function asksForMethodReview (prompt) {
 // separate a concurrent write from yesterday's sitting; and 76 of 377 commits carry no trailer at
 // all, so absence would have to mean guilt. Attribution is the wrong question anyway: committing
 // during your own review is the same defect as somebody else doing it.
-function commitsSince (root, iso) {
-  const r = spawnSync('git', ['-C', root, 'log', '--since=' + iso, '--format=%h|%cI|%s'],
+// paths is a git pathspec appended after the separator, so a window can be asked about SOME
+// of the tree instead of all of it. Empty or absent means the whole tree, which is what every
+// caller meant before ST-290. Passed as separate argv entries and never joined into a string:
+// a pathspec with a space in it is one argument to git and two to a shell.
+function commitsSince (root, iso, paths) {
+  const spec = (paths && paths.length) ? ['--'].concat(paths) : []
+  const r = spawnSync('git', ['-C', root, 'log', '--since=' + iso, '--format=%h|%cI|%s'].concat(spec),
     { encoding: 'utf8', windowsHide: true })
   if (r.error || r.status !== 0) return { why: 'git could not be read here: ' + ((r.error && r.error.message) || String(r.stderr || '').trim() || 'exit ' + r.status) }
   const out = String(r.stdout || '').trim()
@@ -507,7 +540,9 @@ function main (argv) {
     ? latestOf(productStamped)
     : Math.min(latestOf(productStamped), latestOf(methodStamped))
   const earliest = new Date(opensAt).toISOString()
-  const since = commitsSince(root, earliest)
+  // THE SOURCE WINDOW. Everything EXCEPT the release-note surface, because a reviewer's
+  // reading of the source is not made stale by a paragraph they were never asked to read.
+  const since = commitsSince(root, earliest, NOT_THE_NOTE)
   if (since.why) {
     say('  ' + reviews.length + ' review agent(s) started in this session: ' + names)
     process.stdout.write('  CANNOT TELL whether the tree moved under them. ' + since.why + '.\n')
@@ -515,8 +550,9 @@ function main (argv) {
     return 3
   }
   if (since.commits.length) {
-    process.stdout.write('  THE TREE MOVED AFTER THE REVIEW STARTED. ' + since.commits.length +
-      ' commit(s) landed since the latest qualifying reviewer was dispatched at ' + earliest + '.\n')
+    process.stdout.write('  THE SOURCE MOVED AFTER THE REVIEW STARTED. ' + since.commits.length +
+      ' commit(s) outside the release note landed since the latest qualifying reviewer\n')
+    process.stdout.write('  was dispatched at ' + earliest + '.\n')
     for (const c of since.commits) {
       process.stdout.write('    ' + c.hash + '  ' + c.at + '  ' + c.subject + '\n')
     }
@@ -524,6 +560,46 @@ function main (argv) {
     process.stdout.write('  so their verdicts are evidence about something else. This is not an accusation:\n')
     process.stdout.write('  a session committing its own work after dispatching its reviewers lands here too.\n')
     process.stdout.write('  Dispatch the reviewers again, after the last commit, and run this again.\n')
+    process.stdout.write('  Session: ' + path.basename(file) + '\n')
+    return 1
+  }
+
+  // THE NOTE WINDOW, ASKED SEPARATELY AND AFTER THE SOURCE ONE. The note may be written
+  // last, which is the founder's ruling of 2026-09-20, but it may not ship unread. This asks
+  // only whether somebody was dispatched after the note last changed, and the remedy it
+  // prints is ONE reviewer reading 200 words rather than a second pass over the source.
+  //
+  // THE WINDOW OPENS AT THE LATEST PRODUCT REVIEWER, AND THE FIRST VERSION SAID ANY KIND.
+  // The reasoning was that a content reviewer reading the note is the reader this wants and
+  // demanding a product reviewer would refuse the cheap remedy. It was wrong twice over.
+  // content-reviewer is ALREADY in PRODUCT_REVIEWERS, so nothing was being made easier; what
+  // "any kind" actually admitted was the METHOD reviewer, whose job is the process and not the
+  // prose. Probed by a reviewer: a code review at 04:00, the note committed at 05:00, a doctor
+  // at 06:00, and this returned 0 with the note window never firing. A note could ship having
+  // been read by nobody, which is the single thing this window exists to prevent.
+  //
+  // Worse, the mutation written beside the assertion as its killer could not kill it, for the
+  // same reason: swapping to the product list changes nothing when the reviewer in the fixture
+  // is on both lists. The control was documented, believed and untested.
+  const noteOpensAt = new Date(latestOf(productStamped)).toISOString()
+  const noteMoved = commitsSince(root, noteOpensAt, NOTE_SURFACE)
+  if (noteMoved.why) {
+    say('  ' + reviews.length + ' review agent(s) started in this session: ' + names)
+    process.stdout.write('  CANNOT TELL whether the release note moved under them. ' + noteMoved.why + '.\n')
+    process.stdout.write('  Session: ' + path.basename(file) + '\n')
+    return 3
+  }
+  if (noteMoved.commits.length) {
+    process.stdout.write('  THE RELEASE NOTE MOVED AFTER THE LAST REVIEWER FINISHED. ' +
+      noteMoved.commits.length + ' commit(s) touched ' + NOTE_SURFACE.join(' or ') +
+      ' since the last reviewer of any kind was dispatched at ' + noteOpensAt + '.\n')
+    for (const c of noteMoved.commits) {
+      process.stdout.write('    ' + c.hash + '  ' + c.at + '  ' + c.subject + '\n')
+    }
+    process.stdout.write('  THE SOURCE REVIEW ABOVE STILL STANDS. Nothing outside the note has moved,\n')
+    process.stdout.write('  so this does NOT ask for the work to be read again. It asks for ONE reviewer\n')
+    process.stdout.write('  to read the note. No mechanical check can catch a false sentence, and the\n')
+    process.stdout.write('  CRITICAL that stopped the 2026-09-18 release was exactly that.\n')
     process.stdout.write('  Session: ' + path.basename(file) + '\n')
     return 1
   }
@@ -540,4 +616,4 @@ function main (argv) {
 
 if (require.main === module) process.exit(main(process.argv.slice(2)))
 
-module.exports = { main, projectDirName, sessionTranscript, REVIEW_ROLES, PRODUCT_REVIEWERS, METHOD_REVIEWERS, DISPATCH_TOOLS, dispatchesIn, METHOD_REVIEW_MARKER, asksForMethodReview, commitsSince }
+module.exports = { main, projectDirName, sessionTranscript, REVIEW_ROLES, PRODUCT_REVIEWERS, METHOD_REVIEWERS, DISPATCH_TOOLS, dispatchesIn, METHOD_REVIEW_MARKER, asksForMethodReview, commitsSince, NOTE_SURFACE, NOT_THE_NOTE }

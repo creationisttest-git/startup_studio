@@ -1,0 +1,4 @@
+{
+  "bare": 2715,
+  "note": "Legacy stamps with no namespace marker, counted by check-board-clock.js. This number may only fall. A rise is a writer that stopped using base/board/clock.js, or a new one that never started (ST-283)."
+}

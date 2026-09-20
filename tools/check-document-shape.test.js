@@ -17,6 +17,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'check-document-shape.js');
 let pass = 0;
@@ -31,7 +33,7 @@ function ok(name, cond) {
 function fixture() {
   // A process id is reused by the operating system and these directories are never removed, so
   // the counter and the timestamp are both needed to keep two runs apart.
-  const dir = path.join(os.tmpdir(), 'doc-shape-' + process.pid + '-' + Date.now().toString(36) + '-' + (++n));
+  const dir = path.join(fixtureRoot('doc-shape'), 'tree');
   if (fs.existsSync(dir)) throw new Error('fixture path already exists: ' + dir);
   fs.mkdirSync(dir, { recursive: true });
   return dir;

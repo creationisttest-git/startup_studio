@@ -17,6 +17,7 @@ const path = require('path');
 
 const TOOL = path.join(__dirname, 'check-comment-shape.js');
 const T = require(TOOL);
+const { fixtureRoot } = require('./tmp-fixtures.js');
 let pass = 0, fail = 0;
 function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAIL  ' + name); } }
 
@@ -43,7 +44,7 @@ function fixture (opts) {
   // A process id is reused by the operating system, and these directories are never removed:
   // 693 of them had accumulated when a reused id landed on one holding a baseline, and three
   // assertions then passed or failed for a reason that had nothing to do with the code.
-  const root = path.join(os.tmpdir(), 'studio-comment-shape-' + process.pid + '-' + Date.now().toString(36) + '-' + (n++));
+  const root = path.join(fixtureRoot('studio-comment-shape'), 'tree');
   if (fs.existsSync(root)) throw new Error('fixture path already exists: ' + root);
   fs.mkdirSync(path.join(root, 'base', 'agents'), { recursive: true });
   fs.mkdirSync(path.join(root, 'base', 'board'), { recursive: true });
@@ -351,7 +352,7 @@ const CLEAN_JS = lines([
   put(exported, 'infrastructure/x.js', CLEAN_JS);
   ok('a manifest entry absent under its source name is read under its exported name', /infrastructure\/x\.js/.test(run(['--root', exported, '--report']).out));
 
-  const bare = path.join(os.tmpdir(), 'studio-comment-shape-bare-' + process.pid);
+  const bare = path.join(fixtureRoot('studio-comment-shape-bare'), 'tree');
   fs.mkdirSync(bare, { recursive: true });
   r = run(['--root', bare, '--report']);
   ok('no program and no --tree is a usage error, exit 2', r.code === 2 && /no studio\.ps1/.test(r.out));
@@ -496,7 +497,77 @@ const CLEAN_JS = lines([
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 118;
+/* ---- a reason belongs to a file, and the record says whether it was written about it ---- */
+{
+  const root = fixture();
+  const x = put(root, 'base/board/x.js', CLEAN_JS);
+  const y = put(root, 'tools/y.ps1', lines(['# y.ps1 -- a header a stranger can read.', 'Write-Host 1']));
+  let r = run(['--root', root, '--write-baseline']);
+  ok('a fixture with two published files records a baseline', r.code === 0);
+
+  const xWas = fs.readFileSync(x, 'utf8');
+  const yWas = fs.readFileSync(y, 'utf8');
+  const riseBoth = function () {
+    fs.writeFileSync(x, xWas + '// tech-lead objected here\n');
+    fs.writeFileSync(y, yWas + '# pm objected here\n');
+  };
+
+  riseBoth();
+  r = run(['--root', root, '--write-baseline', '--allow-rise', 'one sentence about one of them']);
+  ok('TWO files rising on ONE unscoped reason is refused', r.code === 1);
+  ok('and the refusal names both files, so it is obvious what the one sentence would have covered',
+    /board\/x\.js/.test(r.out) && /tools\/y\.ps1/.test(r.out));
+  ok('and it says why: a reason written about one file is usually false of the others',
+    /false of the others/.test(r.out));
+  ok('and it prints BOTH ways forward rather than only the strict one',
+    /--allow-rise "board\/x\.js=/.test(r.out) && /--allow-rise-all/.test(r.out));
+  ok('and nothing was written, so a refused run cannot half-record',
+    readBaseline(root).overrides.length === 0);
+
+  r = run(['--root', root, '--write-baseline',
+    '--allow-rise', 'board/x.js=the x file grew a line naming a role',
+    '--allow-rise', 'tools/y.ps1=the y file grew a different line naming a different role']);
+  ok('a scoped reason for each risen file is recorded', r.code === 0);
+  let b = readBaseline(root);
+  ok('and each override carries the reason written about ITS file, not the other one',
+    b.overrides.every(function (o) { return String(o.reason).indexOf(o.file === 'tools/y.ps1' ? 'the y file' : 'the x file') === 0; }));
+  ok('and each is marked as scoped, so a reader can tell it was written about that file',
+    b.overrides.every(function (o) { return o.scope === 'file'; }));
+
+  fs.writeFileSync(x, xWas); fs.writeFileSync(y, yWas);
+  run(['--root', root, '--write-baseline']);
+  riseBoth();
+  r = run(['--root', root, '--write-baseline', '--allow-rise', 'board/x.js=only this one has a reason']);
+  ok('a file that rose with no reason of its own is refused', r.code === 1);
+  ok('and the refusal names exactly the uncovered file and not the covered one',
+    /no reason of their own: tools\/y\.ps1/.test(r.out));
+
+  r = run(['--root', root, '--write-baseline',
+    '--allow-rise', 'board/x.js=a',
+    '--allow-rise', 'tools/y.ps1=b',
+    '--allow-rise', 'tools/never-rose.js=c']);
+  ok('a scoped reason naming a file that did not rise is refused as stale', r.code === 1);
+  ok('and it names the stale entry and lists what actually rose',
+    /did not rise: tools\/never-rose\.js/.test(r.out) && /tools\/y\.ps1/.test(r.out));
+
+  r = run(['--root', root, '--write-baseline', '--allow-rise', 'first', '--allow-rise', 'second']);
+  ok('two unscoped reasons are refused, because nothing says which file each belongs to',
+    r.code === 1 && /nothing says which file each belongs to/.test(r.out));
+
+  r = run(['--root', root, '--write-baseline', '--allow-rise-all', 'both files grew the same kind of line for the same cause']);
+  ok('a deliberately blanket reason is accepted for several files', r.code === 0);
+  b = readBaseline(root);
+  // Filtered to the rows THIS write added. The file accumulates overrides from every earlier
+  // write in this block, and asserting over all of them would be asserting about the scoped rows
+  // too: the first draft did exactly that and went red for a reason that was not the tool's.
+  const blanket = b.overrides.filter(function (o) { return String(o.reason).indexOf('both files') === 0; });
+  ok('and every override records that it was a BLANKET claim rather than one written about the file',
+    blanket.length >= 2 && blanket.every(function (o) { return o.scope === 'all'; }));
+  ok('which is the difference a reader could not see before: the two are no longer identical',
+    b.overrides.some(function (o) { return o.scope === 'file'; }) && blanket.length > 0);
+}
+
+const EXPECTED_ASSERTIONS = 135;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

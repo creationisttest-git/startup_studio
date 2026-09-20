@@ -18,6 +18,8 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const P = require('./patch.js');
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 
 const TOOL = path.join(__dirname, 'patch.js');
 const BS = String.fromCharCode(92);
@@ -30,7 +32,7 @@ function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAI
 
 let n = 0;
 function fixture (name, body) {
-  const dir = path.join(os.tmpdir(), 'studio-patch-' + process.pid + '-' + (n++));
+  const dir = fixtureRoot('studio-patch');
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, name);
   fs.writeFileSync(file, body, 'utf8');

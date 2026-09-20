@@ -21,6 +21,8 @@ const path = require('path');
 
 const TOOL = path.join(__dirname, 'run-checks.js');
 const T = require(TOOL);
+/* ST-281: fixture roots come from ONE place that makes them unique and removes them at exit. */
+const { fixtureRoot } = require('./tmp-fixtures.js');
 let pass = 0, fail = 0;
 function ok (name, cond) { if (cond) { pass++; } else { fail++; console.log('FAIL  ' + name); } }
 
@@ -35,7 +37,7 @@ function run (args, cwd) {
 
 let n = 0;
 function fixture () {
-  const dir = path.join(os.tmpdir(), 'run-checks-' + Date.now() + '-' + process.pid + '-' + (++n));
+  const dir = path.join(fixtureRoot('run-checks'), 'tree');
   if (fs.existsSync(dir)) throw new Error('fixture path already exists, which every assertion below assumes it does not: ' + dir);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
@@ -649,7 +651,135 @@ function ledgerOf (root) {
     && (rec.advisory || []).indexOf(3) !== -1 && (acr.advisory || []).indexOf(3) !== -1);
 }
 
-const EXPECTED_ASSERTIONS = 99;
+
+/* ST-290: A CHECK'S EVIDENCE IS ABOUT THE FILES IT READS.
+   Until this ticket every row carried one whole-tree hash, so editing the release note threw
+   away a product review of source files the note never touched and the reviewer read the tree
+   again. Two sittings ended with nothing published inside that loop.
+
+   Mutation, each run ALONE and the file diffed byte-identical afterwards:
+     - delete the separator in pathHits so it becomes a bare prefix test: the 'site-notes.md'
+       assertion goes red and nothing else does.
+     - make scopeTest ignore the exclude list: the two end-to-end gate assertions go red.
+     - make scopeKey return the empty string always: the scope-mismatch assertions go red.
+     - drop the scopeFaults call from the set path: the empty-scope exit-2 assertion goes red
+       while the direct scopeFaults assertions stay green, which is the pair that separates the
+       guard from its wiring (S237). */
+{
+  /* A rule must not match a sibling whose name merely starts the same way. Reachable only
+     through a scope somebody wrote badly, so it is asked directly rather than through the
+     front door (S231). */
+  ok('pathHits matches a file exactly', T.pathHits('CHANGELOG.md', 'CHANGELOG.md'));
+  ok('pathHits matches a file under a named directory', T.pathHits('base/board/board.js', 'base/board'));
+  ok('pathHits does NOT match a sibling sharing a prefix, which a bare startsWith would',
+    !T.pathHits('site-notes.md', 'site'));
+  ok('pathHits does not match an unrelated path', !T.pathHits('tools/run-checks.js', 'base'));
+
+  /* Exclusion wins, and listing no includes means everything. That pair is what lets a scope be
+     written as the whole tree minus a surface, which is the safe direction: an exclusion is
+     wrong only if the check really does read the excluded file. */
+  const excl = T.scopeTest(['!CHANGELOG.md']);
+  ok('an exclusion-only scope admits an unrelated file', excl('tools/run-checks.js'));
+  ok('an exclusion-only scope rejects the excluded file', !excl('CHANGELOG.md'));
+  const both = T.scopeTest(['tools', '!tools/secret.js']);
+  ok('an include admits a file under it', both('tools/run-checks.js'));
+  ok('an exclude beats an include naming the same file', !both('tools/secret.js'));
+  ok('an include list excludes everything it does not name', !both('base/board/board.js'));
+
+  /* The key is stored in the row, so re-ordering a list must not read as a change and a real
+     change must. */
+  ok('scopeKey is empty for no scope at all', T.scopeKey(null) === '');
+  ok('scopeKey is stable under re-ordering', T.scopeKey(['b', 'a']) === T.scopeKey(['a', 'b']));
+  ok('scopeKey separates includes from excludes', T.scopeKey(['a']) !== T.scopeKey(['!a']));
+  ok('scopeKey changes when a rule is removed', T.scopeKey(['!a', '!b']) !== T.scopeKey(['!a']));
+}
+
+{
+  /* A scope matching NO file is the worst failure this mechanism can have: the hash over zero
+     files is the same in every tree forever, so the row would be honoured after any change to
+     anything, for the life of the project, while the gate reported it PROVED. Asked directly
+     AND through the front door, because a guard and its wiring are two things (S237). */
+  const root = greenTree();
+  T.resetScopeCache();
+  const faults = T.scopeFaults(root, [], [{ name: 'nothing', scope: ['no/such/path'] }]);
+  ok('scopeFaults names a scope that matches no file', faults.length === 1
+    && faults[0].indexOf('nothing') === 0 && /matches no file/.test(faults[0]));
+  const fine = T.scopeFaults(root, [], [{ name: 'real', scope: ['tools'] }]);
+  ok('scopeFaults is silent for a scope that matches something', fine.length === 0);
+  const unscoped = T.scopeFaults(root, [], [{ name: 'plain' }]);
+  ok('scopeFaults ignores a check with no scope at all', unscoped.length === 0);
+}
+
+{
+  /* THE WIRING, end to end. A tree holding ONLY the release-note surface makes the real
+     NOTE_SURFACE scope match nothing, so the tool must refuse before it records a single row
+     rather than write rows that can never go stale. */
+  const root = fixture();
+  put(root, 'CHANGELOG.md', '# Changelog\n');
+  put(root, 'releases.html', '<html></html>');
+  const r = run(['--root', root, '--set', 'session-start']);
+  ok('a scope matching nothing refuses at --set with exit 2', r.code === 2);
+  ok('and it names the check and the scope rather than just failing',
+    /board-audit/.test(r.out) && /matches no file/.test(r.out));
+  const g = run(['--root', root, '--gate', 'session-start']);
+  ok('the same refusal happens at --gate, so a bad scope cannot be recorded then waved through',
+    g.code === 2);
+}
+
+{
+  /* THE POINT OF THE WHOLE TICKET. A change to the release note must not invalidate a row whose
+     check never reads it, and must still invalidate one that does. board-audit carries
+     NOTE_SURFACE; the source stubs do not. */
+  const root = greenTree();
+  const set = run(['--root', root, '--set', 'session-start']);
+  ok('the fixture records cleanly before the note is touched', set.code === 0);
+  const clean = run(['--root', root, '--gate', 'session-start']);
+  ok('and the gate passes on that still tree', clean.code === 0);
+
+  put(root, 'CHANGELOG.md', '# Changelog\n\n## 2026-09-20\n');
+  const after = run(['--root', root, '--gate', 'session-start']);
+  ok('writing the release note does NOT invalidate board-audit, which never reads it',
+    !/board-audit: was recorded against a different tree/.test(after.out));
+  ok('and that row still stands as ok rather than being quietly skipped',
+    ledgerOf(root).checks['board-audit'].status === 'ok');
+
+  /* The control. Without one unscoped row going red here, the assertion above would also pass
+     for a gate that had simply stopped comparing anything at all. */
+  const roll = run(['--root', root, '--set', 'session-start']);
+  ok('re-recording after the note lands succeeds', roll.code === 0);
+  put(root, 'tools/check-comment-shape.js', 'process.exit(0); // moved\n');
+  const src = run(['--root', root, '--gate', 'session-start']);
+  ok('CONTROL: a change to a SOURCE file still invalidates rows, so the gate has not gone blind',
+    /was recorded against a different tree/.test(src.out));
+}
+
+{
+  /* A scope narrowed after a row was recorded must never revalidate that row. Simulated by
+     editing the recorded scope, which is exactly what a definition change looks like from the
+     gate's side. */
+  const root = greenTree();
+  run(['--root', root, '--set', 'session-start']);
+  const file = path.join(root, '.board', 'checks.json');
+  const led = JSON.parse(fs.readFileSync(file, 'utf8'));
+  led.checks['board-audit'].scope = '#CHANGELOG.md';
+  fs.writeFileSync(file, JSON.stringify(led, null, 2));
+  const r = run(['--root', root, '--gate', 'session-start']);
+  ok('a row recorded under a different scope is NOT PROVED', r.code !== 0
+    && /board-audit: was recorded under a different scope/.test(r.out));
+  ok('and the refusal prints both scopes, so the reader can see what moved',
+    r.out.indexOf('#CHANGELOG.md, now ') !== -1);
+
+  /* A row written before this mechanism existed carries no scope field at all. It must read as
+     the whole tree and be refused for any check that has since gained one, never honoured. */
+  const led2 = JSON.parse(fs.readFileSync(file, 'utf8'));
+  delete led2.checks['board-audit'].scope;
+  fs.writeFileSync(file, JSON.stringify(led2, null, 2));
+  const r2 = run(['--root', root, '--gate', 'session-start']);
+  ok('a legacy row with no scope field is refused rather than honoured', r2.code !== 0
+    && r2.out.indexOf('board-audit: was recorded under a different scope (the whole tree') !== -1);
+}
+
+const EXPECTED_ASSERTIONS = 127;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',
