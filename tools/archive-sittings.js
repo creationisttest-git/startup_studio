@@ -87,15 +87,126 @@ const KEEP_DEFAULT = 1;
 // The sections this tool knows, each with the archive that belongs to it. Kept as data rather
 // than as two code paths, because the two sections differ only in their names and a second code
 // path is a second place for the safety proofs to be almost right.
-const SECTIONS = [
-  { heading: 'Current state', archive: 'WARM_START-ARCHIVE.md', noun: 'state block',
-    title: 'Current state archive' },
-  { heading: 'Session log', archive: 'SESSION-LOG-ARCHIVE.md', noun: 'session log entry',
-    title: 'Session log archive' },
+// THESE TWO ARE THIS PROJECT'S SECTIONS AND THEY USED TO BE EVERY PROJECT'S. A sibling's
+// quarter-megabyte of dated history lives under "## Build status" and archived to nothing,
+// because the headings, the archive filenames and the convention a date is written in were all
+// facts about _STUDIO compiled into the tool. Six leads, a front door and three CEO decisions all
+// planned to "run the existing tools against the other projects" and nobody ran one first: total
+// reachable across three siblings was ZERO (S249). They stay as the fallback so this project
+// needs no config file, and any project describes its own in '.studio-archive.json'.
+const BUILT_IN = [
+  { heading: 'Current state', archive: 'WARM_START-ARCHIVE.md', noun: 'sitting state block',
+    title: 'Current state archive', opener: 'auto', group: 'Sitting blocks', groupUnit: 'sittings' },
+  { heading: 'Session log', archive: 'SESSION-LOG-ARCHIVE.md', noun: 'sitting session log entry',
+    title: 'Session log archive', opener: 'auto', group: 'Sitting blocks', groupUnit: 'sittings' },
 ];
+const CONFIG_NAME = '.studio-archive.json';
 
 // The comma is load-bearing. See the header.
 const OPENER = /(\d{4}-\d{2}-\d{2}),\s+([A-Z][A-Z-]*)\s+sitting/;
+
+// A SECOND CONVENTION, BECAUSE THE FIRST ONE IS THIS PROJECT'S AND NOT THE METHOD'S.
+//
+// Measured 2026-09-20 across the estate under ST-294. The pattern above requires a bold span
+// carrying "<date>, <ORDINAL> sitting", which is how _STUDIO writes its history and how NO other
+// project does. A sibling project's Session log was 217,682 characters, EIGHTY-NINE PER CENT of
+// its WARM_START.md, written as 78 unbolded paragraphs opening "2026-09-20 (" and "2026-09-19,
+// evening (". The pattern above matched 0 of 78 and the tool reported "nothing to archive" about
+// a quarter-megabyte of dated history, in silence, which is S219: a check that never fires and a
+// check with nothing to report produce byte-identical evidence.
+//
+// WHY THIS ONE IS SAFE WITHOUT THE COMMA THE OTHER ONE NEEDS. The comma exists above because that
+// pattern is matched against a bold span found ANYWHERE in the paragraph, so without it the
+// pointer paragraphs left by earlier archives also match and archiving a pointer removes the trail
+// to everything already archived. This pattern is ANCHORED AT THE FIRST CHARACTER of the
+// paragraph. A pointer paragraph begins "**The ..." or "**Every dated ...", never with a digit, so
+// the anchor does the job the comma does above.
+//
+// The trailing class is what stops a date being swallowed out of the middle of a sentence and what
+// keeps "2026-09-19" from matching inside "2026-09-1999". The optional word after the comma is the
+// time of day that project uses to separate several sittings on one calendar day.
+// WHAT FOLLOWS THE DATE IS THE DISCRIMINATOR, AND IT USED TO BE ANY WHITESPACE, WHICH IS NO
+// DISCRIMINATOR AT ALL. The bold pattern above has the comma doing that job. This one had a
+// character class containing \s, so EVERY paragraph opening with a date read as a sitting block,
+// including a live fact such as "2026-03-05 is the day the board reached 295 live". That is worse
+// than a false positive: blocks are newest first and --keep holds the top ones, so a live line
+// dated the same day as the newest block sorts ABOVE it, is kept in its place, and pushes the
+// genuinely newest block out into an archive nothing imports. It decides what gets moved out of
+// somebody's record, so it refuses the ambiguous shape rather than guessing at it.
+//
+// A HEADING SEPARATES ITS DATE FROM WHAT FOLLOWS; A SENTENCE DOES NOT. Measured against the real
+// conventions in the estate: "2026-09-20 (" and "2026-09-19, evening (" at one sibling project,
+// "2026-03-04: " elsewhere. All three put a bracket, a colon, a full stop or a dash after the
+// date. Prose puts a word there. The comma was removed from the class for the same reason: the
+// optional group already accepts "<date>, <one word>", so a bare comma in the class only ever
+// admitted "<date>, <several words>", which is a sentence.
+// THE BRACKET IS THE DISCRIMINATOR AND THE OTHERS NEVER WERE. The first version of this class
+// contained \s, which is no discriminator at all. The second narrowed it to [(:.-] and was still
+// wrong, because a colon, a full stop and a dash are all things PROSE puts after a date: a
+// reviewer archived live state through four of them, and the fixture written to prove the fix
+// happened to use the one form the guard caught. An opening bracket after a date is not something
+// a sentence does, and it is what both real conventions in the estate use: "2026-09-20 (" and
+// "2026-09-19, evening (".
+//
+// THIS FAILS SAFE AND THE OTHER DIRECTION DOES NOT. A project whose entries open "2026-03-04: "
+// is no longer recognised, so nothing is archived and somebody reads a dry run that says so. The
+// alternative is a live sentence moved into a file nothing imports, silently, and the two are not
+// comparable. A project with another convention describes it with lead:<word> or does not archive.
+const DATE_OPENER = /^(\d{4}-\d{2}-\d{2})(?:,\s+([A-Za-z]+))?(?=\s*\()/;
+
+// ONE PLACE THAT ANSWERS "IS THIS PARAGRAPH A BLOCK, AND WHAT IS IT CALLED". Both conventions
+// return the same shape, so everything downstream stays convention-blind. A block identified by
+// date carries the date as its name, because there is no ordinal to carry and inventing one would
+// put a number in the record that appears nowhere in the document it came from.
+// A THIRD CONVENTION, AND THE RULE ALL THREE OBEY. Measured on a sibling's "## Build status":
+// 244 paragraphs, the entry headings opening "Added 2026-09-20 AT THE CLOSE, and it SUPERSEDES
+// every commit count below it". The date is not at the first character, so the anchored pattern
+// cannot see it, and there is no bold ordinal either. What marks it is the LEAD WORD, which that
+// project writes deliberately and prose does not.
+//
+// THE RULE: A CONVENTION MUST CARRY A DISCRIMINATOR PROSE DOES NOT HAVE. For 'ordinal' it is
+// ", <ORDINAL> sitting" inside a bold span. For 'date' it is the separator that follows the date,
+// because a heading separates its date from what comes next and a sentence puts a word there. For
+// 'lead' it is the word itself. A convention without one archives live state, which is the whole
+// failure this tool is built to make impossible.
+function leadOpener (word) {
+  const re = new RegExp('^' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+    '\\s+(\\d{4}-\\d{2}-\\d{2})\\b');
+  return function (text) {
+    const m = text.match(re);
+    return m ? { date: m[1], ordinal: word + ' ' + m[1] } : null;
+  };
+}
+
+const CONVENTIONS = {
+  ordinal: function (text) {
+    const m = boldHead(text).match(OPENER);
+    return m ? { date: m[1], ordinal: m[2] } : null;
+  },
+  date: function (text) {
+    const d = text.match(DATE_OPENER);
+    return d ? { date: d[1], ordinal: d[1] + (d[2] ? ' ' + d[2] : '') } : null;
+  },
+};
+
+// ONE PLACE THAT ANSWERS "IS THIS PARAGRAPH A BLOCK, AND WHAT IS IT CALLED". Everything
+// downstream stays convention-blind. 'auto' is what this project has always done: try the bold
+// ordinal, then the anchored date. A block identified by date carries the date as its name,
+// because there is no ordinal and inventing one puts a number in the record that appears nowhere
+// in the document it came from.
+function conventionFor (name) {
+  if (!name || name === 'auto') {
+    return function (text) { return CONVENTIONS.ordinal(text) || CONVENTIONS.date(text); };
+  }
+  if (CONVENTIONS[name]) return CONVENTIONS[name];
+  const lead = /^lead:(.+)$/.exec(name);
+  if (lead) return leadOpener(lead[1].trim());
+  die('no opener convention called "' + name + '". Known: auto, ordinal, date, lead:<word>.');
+}
+
+function openerOf (text, conv) {
+  return (conv || conventionFor('auto'))(text);
+}
 
 const args = process.argv.slice(2);
 function flagValue (name) {
@@ -107,10 +218,25 @@ const KEEP = args.indexOf('--keep') > -1 ? parseInt(flagValue('--keep'), 10) : K
 const onlySection = flagValue('--section');
 const boundaryOpt = flagValue('--boundary');
 
-const valued = ['--keep', '--section', '--boundary'];
+const archiveOpt = flagValue('--archive');
+const openerOpt = flagValue('--opener');
+const nounOpt = flagValue('--noun');
+const valued = ['--keep', '--section', '--boundary', '--archive', '--opener', '--noun'];
 const consumed = new Set();
 for (const v of valued) { const i = args.indexOf(v); if (i > -1) consumed.add(i + 1); }
 const target = args.filter((a, i) => !a.startsWith('--') && !consumed.has(i))[0];
+
+// A BOUNDARY DESCRIBES ONE SECTION AND WAS APPLIED TO EVERY SECTION. The refusal that recommends
+// it names the section it is about, so obeying that refusal literally, with no --section, pointed
+// the phrase at all of them: a reviewer followed a refusal about the session log and archived the
+// live tail of a different section. --boundary end made it worse, because "this section is history
+// all the way down" is a claim about ONE section and was read as a claim about all of them.
+if (boundaryOpt && !onlySection) {
+  die('--boundary says where history stops in ONE section, and without --section it is applied to ' +
+    'every section in the document, including ones whose live state sits in a different place. ' +
+    'Nothing was written. Name the section it belongs to: --section "<heading>" --boundary "...". ' +
+    'To give each section its own, put "boundary" on it in .studio-archive.json.');
+}
 
 function die (msg) { console.error('archive-sittings: ' + msg); process.exit(2); }
 function refuse (msg) { console.log('REFUSED  ' + msg); process.exit(1); }
@@ -167,22 +293,40 @@ function plan (section) {
   const range = sectionRange(section.heading);
   if (!range) return { section: section, skip: 'no "## ' + section.heading + '" section in this file' };
 
+  const conv = conventionFor(section.opener);
   const paras = paragraphs(range.start + 1, range.end);
-  const openers = paras.filter(p => OPENER.test(boldHead(p.text)));
-  if (!openers.length) return { section: section, skip: 'no dated sitting blocks under "' + section.heading + '"' };
+  const openers = paras.filter(p => openerOf(p.text, conv) !== null);
+  if (!openers.length) {
+    return { section: section, skip: 'no dated blocks under "' + section.heading + '" by the "' +
+      section.opener + '" convention' };
+  }
 
   const first = openers[0];
 
   // Where history stops. The archive pointer is the marker; --boundary overrides it by naming
   // the first paragraph that is not dated history.
-  const marker = boundaryOpt || section.archive;
-  const bound = paras.find(p => p.start > first.start && p.text.indexOf(marker) > -1);
+  // A SECTION CAN BE HISTORY ALL THE WAY DOWN, AND THE FIRST DESIGN COULD NOT EXPRESS THAT.
+  // Found by running the dry run against a real sibling document rather than by reading: its
+  // "## Build status" is 244 paragraphs of dated entries with no live tail at all, because the
+  // live state lives in a different section. The rule below demands a paragraph that is NOT
+  // history, so the region collapsed to the first block and the tool reported nothing to archive
+  // about 94,965 characters, which is the same silence S249 is about.
+  //
+  // IT IS AN EXPLICIT WORD AND IT WILL NEVER BE A DEFAULT. "--boundary end" says: I have read this
+  // section and every paragraph in it down to the next heading is history. That is a claim only a
+  // human can make, and making it wrong archives live state, so it has to be typed rather than
+  // inferred. Everything else still refuses.
+  const marker = boundaryOpt || section.boundary || section.archive;
+  const toTheEnd = /^end$/i.test(marker);
+  const bound = toTheEnd ? { start: range.end + 1 }
+    : paras.find(p => p.start > first.start && p.text.indexOf(marker) > -1);
   if (!bound) {
     refuse('"' + section.heading + '" has dated blocks but nothing marking where they stop. This ' +
       'tool bounds the dated region at the first paragraph naming ' + section.archive + ', because ' +
       'the paragraphs after the last block are live state that looks identical to a block and must ' +
       'not be archived. Nothing was written. Re-run naming the first paragraph that is NOT dated ' +
-      'history: --boundary "<a distinctive phrase from it>".');
+      'history: --boundary "<a distinctive phrase from it>". If the section really is history all ' +
+      'the way down to the next heading, say so deliberately with --boundary end.');
   }
 
   const regionStart = first.start;
@@ -191,12 +335,12 @@ function plan (section) {
 
   const blocks = inRegion.map((o, i) => {
     const next = inRegion[i + 1];
-    const m = boldHead(o.text).match(OPENER);
+    const m = openerOf(o.text, conv);
     return {
       start: o.start,
       end: next ? next.start - 1 : regionEnd,
-      date: m[1],
-      ordinal: m[2],
+      date: m.date,
+      ordinal: m.ordinal,
     };
   });
 
@@ -273,8 +417,8 @@ function pointerFor (p, proved) {
   const s = p.section;
   const names = p.move.map(b => b.ordinal);
   const which = names.length === 1
-    ? 'The ' + names[0] + ' sitting ' + s.noun
-    : 'The ' + names[0] + ' back to ' + names[names.length - 1] + ' sitting ' + s.noun + 's';
+    ? 'The ' + names[0] + ' ' + s.noun
+    : 'The ' + names[0] + ' back to ' + names[names.length - 1] + ' ' + s.nounPlural;
   const verb = names.length === 1 ? 'was' : 'were';
   const lead = '**' + which + ' ' + verb + ' archived on ' + today() + ' to [' + s.archive + '](' +
     s.archive + ')**, unedited and in the same order.';
@@ -286,13 +430,284 @@ function pointerFor (p, proved) {
   return wrap(lead + ' ' + rest);
 }
 
+// --- THE RECEIPTS ARE ONE PARAGRAPH PER ARCHIVE, NOT ONE PER RUN ----------------------------------
+// Every archive leaves a receipt in the loaded document saying what moved, when, to which file, and
+// how many distinct non-blank lines were proved at the destination. The receipt is correct and it
+// NEVER LEAVES, so it accumulates at one or more per sitting forever inside the file archiving
+// exists to shrink. Measured on the real WARM_START.md at the thirty-fifth sitting: 22,756
+// characters of archiver residue, 20.4 per cent of the whole document, and the only project that
+// had ever archived was the only project paying for it. That makes this a PRECONDITION for asking
+// any other project to adopt archiving rather than a tidy-up to do afterwards. ST-257, ST-258.
+//
+// WHAT IS KEPT AND WHAT GOES. Kept: which sittings, which file, and the sentence saying a block
+// moved out is STILL BINDING, because that is the only part a later session has to act on. Dropped:
+// the per-run proof counts. S106 is a rule about PROVING a move before making it, and the proof was
+// performed; it never asked for the receipt to sit in a loaded document forever. The proof belongs
+// in the commit message and in the archive, both findable and NEITHER loaded, which is brevity.md's
+// own "findable AND NOT LOADED".
+//
+// IT ONLY TOUCHES RECEIPTS THIS TOOL WROTE. Hand-written pointer paragraphs say different things
+// and are left exactly where they are, because a consolidation that eats prose it did not author
+// is a deletion wearing a consolidation's costume.
+// THE UNDERSCORE IN THE FILENAME CLASS IS LOAD-BEARING. Written as [A-Z-]+ this matched
+// SESSION-LOG-ARCHIVE.md and silently missed WARM_START-ARCHIVE.md, so half the receipts
+// consolidated and half did not, and the run reported success about the half it could see.
+// The name group takes EITHER convention: an ORDINAL from the bold form, or a date, optionally
+// with a time-of-day word, from the anchored form. Left as ordinals only, a project whose blocks
+// are dated would have its receipts go unrecognised and accumulate one per run, which is the very
+// defect this consolidation exists to fix, reintroduced for everyone except this project.
+// THE THIRD ALTERNATIVE IS THE LEAD CONVENTION'S NAME, e.g. "Added 2026-09-20". Left out, a
+// project whose entries are named that way would have its receipts go unrecognised and accumulate
+// one per run, which is the defect this consolidation exists to fix, reintroduced for everyone
+// except the projects that happen to write dates the way this one does.
+const NAME = '([A-Z][A-Z-]+|\\d{4}-\\d\\d-\\d\\d(?: [A-Za-z]+)?|[A-Z][A-Za-z]* \\d{4}-\\d\\d-\\d\\d)';
+const ARCHIVE = '\\[([A-Z_-]+\\.md)\\]';
+// THE WORD "sitting" MOVED OUT OF THIS PATTERN AND INTO THE SECTION'S OWN NOUN. Hard-coded here
+// it was a claim about every project's vocabulary, and writing "sitting" into a sibling's build
+// status is a false word in somebody else's record. The existing receipts in this project still
+// match, because its nouns now begin with that word.
+// THE NOUN MUST BE WHOLE WORDS AND IT USED TO BE [a-z ]+?, WHICH COULD MATCH NOTHING. NAME's own
+// optional trailing word then swallowed the first word of the noun: for a project whose blocks are
+// named by date, "2026-03-01 rounds were archived" parsed with last = "2026-03-01 rounds", a
+// string no archive will ever contain, so the proof failed, the receipts never consolidated and
+// residue accrued at 473 characters a sitting forever. Invisible in THIS project only because the
+// ordinal branch of NAME cannot take a lowercase word, which is S249 inside one regular
+// expression: correct here, broken for everyone whose convention differs.
+const NOUN = '(?:[a-z]+ )*?[a-z]+';
+const RECEIPT_RE = new RegExp('^\\*\\*The ' + NAME + '(?: back to ' + NAME + ')? ' + NOUN + ' ' +
+  '(?:was|were) archived on \\d{4}-\\d\\d-\\d\\d to ' + ARCHIVE);
+
+// AND THE PARAGRAPH THE CONSOLIDATION ITSELF WRITES, because otherwise this tool cannot recognise
+// its own output. It writes "**Sitting blocks for the" and the pattern above demands "**The ", so
+// one run consolidated, the next saw a paragraph it could not read plus one fresh receipt, counted
+// fewer than two it understood, and left both alone. Receipts then accumulated at one per two
+// sittings forever: the defect this consolidation exists to remove, halved rather than fixed.
+const CONSOLIDATED_RE = new RegExp('^\\*\\*[A-Z][A-Za-z ]*? for the ' + NAME + ' back to the ' + NAME +
+  ' ' + NOUN + ' were archived to ' + ARCHIVE);
+
+// THE TAIL IS WHAT MAKES DROPPING THE PARAGRAPH SAFE, AND IT WAS MISSING. Both patterns above
+// identify a receipt by its HEAD, and the consolidation then dropped every LINE of the paragraph.
+// A sentence somebody appended to a receipt was therefore deleted into no archive while the run
+// printed success, and the header five lines up promises the exact opposite: that this only
+// touches receipts it wrote. A paragraph whose head matches and whose tail does not is a receipt
+// SOMEBODY HAS EDITED. It is reported and left exactly where it is, because the alternative is a
+// deletion wearing a consolidation's costume.
+// ANCHORED AT BOTH ENDS WITH NO ROOM IN BETWEEN, because guarding the head and the tail leaves the
+// MIDDLE free and the whole paragraph is still dropped. A sentence inserted between the first
+// sentence and the last was deleted, held by no archive, with no report and exit 0, by the guard
+// written to stop exactly that. The error was in the direction that flatters the fix: it caught
+// the case that had been reported and not the case it claimed to cover. These two patterns are
+// the sentences this tool generates, end to end, so anything a human has added anywhere in the
+// paragraph fails to match and the paragraph is reported and left alone.
+const WHOLE_RECEIPT = new RegExp('^\\*\\*The ' + NAME + '(?: back to ' + NAME + ')? ' + NOUN + ' ' +
+  '(?:was|were) archived on \\d{4}-\\d\\d-\\d\\d to ' + ARCHIVE + '\\([A-Z0-9_-]+\\.md\\)' +
+  '\\*\\*, unedited and in the same order\\. \\d+ of \\d+ distinct non-blank lines were proved ' +
+  'present at the destination and read back from disk before a byte was removed here \\(S106\\), ' +
+  '0 missing\\. This file is @-imported and an archive is not, so a block moved out is still ' +
+  'binding, exactly like an archived decision: read [A-Z0-9_-]+\\.md when you are looking for ' +
+  'what an earlier sitting found\\.$');
+const WHOLE_CONSOLIDATED = new RegExp('^\\*\\*[A-Z][A-Za-z ]*? for the ' + NAME + ' back to the ' +
+  NAME + ' ' + NOUN + ' were archived to ' + ARCHIVE + '\\([A-Z0-9_-]+\\.md\\)\\*\\*, unedited and ' +
+  'in the same order, every distinct non-blank line proved present at the destination and read ' +
+  'back from disk before a byte was removed here \\(S106\\)\\. This file is @-imported and an ' +
+  'archive is not, so a block moved out is still binding, exactly like an archived decision: read ' +
+  '[A-Z0-9_-]+\\.md when you are looking for what an earlier sitting found\\.$');
+
+// ONE PLACE THAT ANSWERS "IS THIS A RECEIPT, AND IS IT STILL WORD FOR WORD OURS".
+function receiptOf (text) {
+  const m = text.match(RECEIPT_RE) || text.match(CONSOLIDATED_RE);
+  if (!m) return null;
+  const t = text.trim();
+  return { first: m[1], last: m[2] || m[1], archive: m[3],
+           ours: WHOLE_RECEIPT.test(t) || WHOLE_CONSOLIDATED.test(t) };
+}
+
+function paragraphsOf (all) {
+  const out = [];
+  let i = 0;
+  while (i < all.length) {
+    if (all[i].trim() === '') { i++; continue; }
+    const start = i;
+    while (i < all.length && all[i].trim() !== '') i++;
+    out.push({ start: start, end: i - 1, text: all.slice(start, i).join(' ') });
+  }
+  return out;
+}
+
+function consolidateReceipts (all, dir, sections) {
+  const groups = new Map();
+  const edited = new Map();
+  for (const p of paragraphsOf(all)) {
+    // MATCHED AGAINST THE WHOLE PARAGRAPH, NOT ITS FIRST LINE. These receipts are wrapped at 98
+    // characters by this same tool, so the archive filename that identifies which group a receipt
+    // belongs to routinely lands on line two. Matching line one found nothing on the real document
+    // and the consolidation silently did no work, which looked exactly like having nothing to do.
+    const m = receiptOf(p.text);
+    if (!m) continue;
+    if (!m.ours) { edited.set(m.archive, (edited.get(m.archive) || 0) + 1); continue; }
+    if (!groups.has(m.archive)) groups.set(m.archive, []);
+    groups.get(m.archive).push({ start: p.start, end: p.end, first: m.first, last: m.last });
+  }
+
+  const drop = new Set();
+  const replace = new Map();
+  const report = [];
+  for (const [archive, n] of edited) {
+    report.push(archive + ': ' + n + ' receipt(s) HAND-EDITED since this tool wrote them, so ' +
+      'they carry text that is in no archive and they are left exactly where they are');
+  }
+  for (const [archive, found] of groups) {
+    if (found.length < 2) continue;
+    // PROVE IT BEFORE REMOVING IT, same protection as a decision row. Every ordinal the receipts
+    // name is looked for in the archive file READ BACK FROM DISK. One that is not there means the
+    // receipts stay exactly as they are, because they would be the only trail to it.
+    const file = path.join(dir, archive);
+    if (!fs.existsSync(file)) { report.push(archive + ': no such archive on disk, receipts left alone'); continue; }
+    const text = fs.readFileSync(file, 'utf8');
+    const unproved = [];
+    for (const f of found) {
+      if (text.indexOf(f.first) === -1) unproved.push(f.first);
+      if (text.indexOf(f.last) === -1) unproved.push(f.last);
+    }
+    if (unproved.length) {
+      report.push(archive + ': ' + found.length + ' receipt(s) NOT consolidated, ' +
+        Array.from(new Set(unproved)).join(', ') + ' absent from the archive, so the receipts are ' +
+        'the only trail to them and they stay');
+      continue;
+    }
+    const newest = found[0].first;
+    const oldest = found[found.length - 1].last;
+    const owner = (sections || []).filter(x => x.archive === archive)[0];
+    const group = owner ? owner.group : 'Sitting blocks';
+    const unit = owner ? owner.groupUnit : 'sittings';
+    replace.set(found[0].start, wrap('**' + group + ' for the ' + newest + ' back to the ' + oldest +
+      ' ' + unit + ' were archived to [' + archive + '](' + archive + ')**, unedited and in the same ' +
+      'order, every distinct non-blank line proved present at the destination and read back from ' +
+      'disk before a byte was removed here (S106). This file is @-imported and an archive is not, ' +
+      'so a block moved out is still binding, exactly like an archived decision: read ' + archive +
+      ' when you are looking for what an earlier sitting found.'));
+    for (const f of found) for (let i = f.start; i <= f.end; i++) drop.add(i);
+    report.push(archive + ': ' + found.length + ' receipt(s) consolidated to 1 (' + newest +
+      ' back to ' + oldest + ')');
+  }
+  if (!drop.size) return { lines: all, report: report };
+
+  const out = [];
+  for (let i = 0; i < all.length; i++) {
+    if (replace.has(i)) { out.push.apply(out, replace.get(i)); continue; }
+    if (drop.has(i)) {
+      // take the blank line that followed the receipt with it, never a line of prose
+      if (!drop.has(i + 1) && !replace.has(i + 1) && out.length && out[out.length - 1] === '' &&
+          all[i + 1] !== undefined && all[i + 1].trim() === '') out.pop();
+      continue;
+    }
+    out.push(all[i]);
+  }
+  return { lines: out, report: report };
+}
+
 // --- run ------------------------------------------------------------------------------------------
 
-const wanted = onlySection ? SECTIONS.filter(s => s.heading.toLowerCase() === onlySection.toLowerCase()) : SECTIONS;
-if (!wanted.length) die('no section called "' + onlySection + '". Known: ' + SECTIONS.map(s => s.heading).join(', '));
+// WHERE THE SECTION LIST COMES FROM, most specific first. Flags beat the config file, the config
+// file beats this project's built-in two, and naming --section with --archive lets a project be
+// archived once from the command line before anybody writes a config for it. That order is what
+// makes the tool usable on a document nobody has described yet, which is how every rollout starts.
+function normalise (raw, where) {
+  if (!raw || typeof raw.heading !== 'string' || !raw.heading.trim()) {
+    die(where + ': every section needs a "heading", naming the "## " line it archives.');
+  }
+  if (typeof raw.archive !== 'string' || !/^[A-Z0-9_-]+\.md$/.test(raw.archive)) {
+    die(where + ': section "' + raw.heading + '" needs an "archive" filename in capitals ending ' +
+      '.md, because the receipt left behind has to be findable by pattern as well as by eye.');
+  }
+  const noun = raw.noun || 'entry';
+  const plural = raw.nounPlural || pluralOf(noun);
+  return {
+    heading: raw.heading,
+    archive: raw.archive,
+    noun: noun,
+    nounPlural: plural,
+    title: raw.title || (raw.heading + ' archive'),
+    opener: raw.opener || 'auto',
+    group: raw.group || (plural.charAt(0).toUpperCase() + plural.slice(1)),
+    groupUnit: raw.groupUnit || plural,
+    boundary: raw.boundary || null,
+  };
+}
+
+// THE PLURAL IS GENERATED INTO SOMEBODY'S RECORD, so it cannot be noun + 's'. A section whose
+// noun is "build status entry" would have had "entrys" written into a sibling project's own
+// document, permanently, by a tool whose entire claim is that it does not damage the record it
+// edits. A project that wants a word this does not reach supplies "nounPlural".
+function pluralOf (noun) {
+  if (/[^aeiou]y$/.test(noun)) return noun.slice(0, -1) + 'ies';
+  if (/(s|x|z|ch|sh)$/.test(noun)) return noun + 'es';
+  return noun + 's';
+}
+
+function configuredSections (dir) {
+  const f = path.join(dir, CONFIG_NAME);
+  if (!fs.existsSync(f)) return null;
+  let cfg;
+  try { cfg = JSON.parse(fs.readFileSync(f, 'utf8')); }
+  catch (e) { die(CONFIG_NAME + ' is not readable JSON (' + e.message + '). Nothing was written, ' +
+    'because a tool that falls back to its defaults when a project\'s own configuration is broken ' +
+    'archives the wrong thing and reports success.'); }
+  const list = cfg && cfg.sections;
+  if (!Array.isArray(list) || !list.length) {
+    die(CONFIG_NAME + ' has no "sections" array. Nothing was written.');
+  }
+  return list.map(x => normalise(x, CONFIG_NAME));
+}
+
+const configured = configuredSections(path.dirname(target));
+// THE BUILT-IN TWO GO THROUGH THE SAME NORMALISER as a project's own, so there is one place that
+// decides what a section means. Left raw they would carry no plural and no group, and this
+// project's own archiving would be the one case the generic path had never run.
+const SECTIONS = configured || BUILT_IN.map(x => normalise(x, 'the built-in defaults'));
+const sourceOfSections = configured ? CONFIG_NAME : 'the built-in defaults';
+
+let wanted;
+if (onlySection && archiveOpt) {
+  wanted = [normalise({ heading: onlySection, archive: archiveOpt, noun: nounOpt,
+                        opener: openerOpt, boundary: boundaryOpt }, 'the command line')];
+} else {
+  wanted = onlySection ? SECTIONS.filter(x => x.heading.toLowerCase() === onlySection.toLowerCase()) : SECTIONS;
+  if (!wanted.length) {
+    die('no section called "' + onlySection + '" in ' + sourceOfSections + '. Known: ' +
+      SECTIONS.map(x => x.heading).join(', ') + '. To archive a section nothing has described yet, ' +
+      'name it with --section and give it --archive <FILE.md>, and --opener when the dates are not ' +
+      'written this project\'s way.');
+  }
+  if (openerOpt || nounOpt) wanted = wanted.map(x => normalise(Object.assign({}, x,
+    { opener: openerOpt || x.opener, noun: nounOpt || x.noun }), 'the command line'));
+}
 
 const plans = wanted.map(plan);
 const doable = plans.filter(p => !p.skip);
+
+// TWO SECTIONS THAT RESOLVE TO THE SAME LINES TRUNCATE THE DOCUMENT, AND THE RUN REPORTS A SAVING.
+// The splices below run bottom up so an earlier one cannot move indices a later one was computed
+// against, which is correct for regions that do not overlap and is no protection at all for
+// regions that do: both plans hold indices into the ORIGINAL array, so the second splice runs
+// against an array the first already shortened and slice(regionEnd + 1) takes lines past the end
+// of its own region. Reproduced with a config naming one heading twice: exit 0, a character saving
+// printed as success, and 11 lines gone into no archive including every live-state line, the next
+// heading and the tail of the file. sectionRange matches case-insensitively, so "Rounds" and
+// "rounds" is the same fault wearing a disguise. Refused here, before anything is written.
+for (let i = 0; i < doable.length; i++) {
+  for (let j = i + 1; j < doable.length; j++) {
+    const a = doable[i], b = doable[j];
+    if (a.regionStart <= b.regionEnd && b.regionStart <= a.regionEnd) {
+      refuse('"' + a.section.heading + '" and "' + b.section.heading + '" resolve to the same ' +
+        'lines of this document (' + (a.regionStart + 1) + '-' + (a.regionEnd + 1) + ' and ' +
+        (b.regionStart + 1) + '-' + (b.regionEnd + 1) + '). Headings are matched without regard to ' +
+        'case, so two entries differing only in case are one section. Archiving both would rewrite ' +
+        'the same lines twice and destroy whatever followed them. Nothing was written. Give each ' +
+        'section a heading that appears once.');
+    }
+  }
+}
 
 console.log('');
 console.log('  ' + target + '  ' + src.length + ' characters');
@@ -305,8 +720,30 @@ for (const p of plans) {
 }
 console.log('');
 
+// NOTHING TO ARCHIVE IS NOT NOTHING TO DO. The receipts are residue from PREVIOUS runs and they
+// cost on every request whether or not this run has a block to move, so the consolidation is
+// attempted on this path too. The real document had one dated block in each section, so the tool
+// said "already inside the shape this tool keeps" and exited, about a 111,332 character file whose
+// archiver residue was 20.4 per cent. Found by RUNNING the tool on the real file, not by reading it.
 if (!doable.length) {
-  console.log('Nothing to archive. The document is already inside the shape this tool keeps.');
+  const c = consolidateReceipts(lines, path.dirname(target), wanted.concat(SECTIONS));
+  c.report.forEach(say);
+  if (c.lines === lines) {
+    console.log('Nothing to archive. The document is already inside the shape this tool keeps.');
+    process.exit(0);
+  }
+  const out = c.lines.join(nl);
+  say(src.length + ' to ' + out.length + ' characters, ' + (src.length - out.length) +
+      ' off EVERY request');
+  if (!write) {
+    console.log('DRY RUN. Nothing was modified. Re-run with --write to apply.');
+    process.exit(0);
+  }
+  fs.writeFileSync(target, out, 'utf8');
+  const back = fs.readFileSync(target, 'utf8');
+  if (back.length !== out.length) die('the consolidated document did not survive the write.');
+  console.log('consolidated the archive receipts, ' + (src.length - back.length) +
+              ' characters off every request. Nothing was archived; there was nothing to archive.');
   process.exit(0);
 }
 
@@ -357,7 +794,39 @@ for (const p of doable.slice().sort((a, b) => b.regionStart - a.regionStart)) {
   const replacement = kept.concat([''], pointerFor(p, p.proved), ['']);
   rebuilt = rebuilt.slice(0, p.regionStart).concat(replacement, rebuilt.slice(p.regionEnd + 1));
 }
-const after = rebuilt.join(nl);
+
+// EVERY LINE THAT LEAVES THIS DOCUMENT HAS TO BE IN AN ARCHIVE, AND NOTHING PROVED THAT DIRECTION.
+// The read-back above proves the archive received what was SENT to it. This proves the opposite
+// and more important thing: that nothing left the document which no archive holds. Every check in
+// this file until now was about the plan, and a plan is only as good as the splice that executes
+// it; the refusal above catches the one way that splice is known to go wrong, and this catches the
+// ways nobody has found yet. It runs BEFORE the receipt consolidation, because that deliberately
+// drops text this tool generated and no archive was ever meant to hold.
+const survived = new Set(rebuilt.filter(l => l.trim() !== ''));
+const inArchives = doable.map(p => {
+  try { return fs.readFileSync(path.join(dir, p.section.archive), 'utf8'); } catch (e) { return ''; }
+}).join('\n');
+const orphaned = Array.from(new Set(lines.filter(l => l.trim() !== '')))
+  .filter(l => !survived.has(l) && inArchives.indexOf(l) === -1);
+if (orphaned.length) {
+  die(orphaned.length + ' line(s) would leave the document without being present in any archive. ' +
+    'The source has NOT been touched, so nothing is lost. The first is: ' +
+    JSON.stringify(orphaned[0].slice(0, 90)));
+}
+// THE CONSOLIDATION RUNS HERE TOO, WHICH IS THE WHOLE POINT OF IT. It used to be called from one
+// place only, inside the branch taken when there is nothing to archive, so it never ran at a real
+// wind-down: every wind-down has a block to move. Ten simulated sittings grew the document from
+// 1,134 to 5,642 characters WHILE ARCHIVING IT. It looked correct because the one document it was
+// run against happened to have nothing to archive that day, which is the corner case and not the
+// norm. A fix that runs only in the corner case is indistinguishable from a fix. S250.
+//
+// IT RUNS AFTER THE SPLICES AND NEVER BEFORE THEM. Everything above addresses lines by the index
+// plan() computed against the ORIGINAL array, and consolidating first would move those lines out
+// from under it. This reads the rebuilt array, which is the document as it will be written, and
+// that is also what lets it fold the receipt this very run is adding in with the older ones.
+const settled = consolidateReceipts(rebuilt, dir, wanted.concat(SECTIONS));
+settled.report.forEach(say);
+const after = settled.lines.join(nl);
 fs.writeFileSync(target, after, 'utf8');
 
 console.log('');

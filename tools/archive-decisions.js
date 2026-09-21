@@ -59,6 +59,76 @@ function die(msg) { console.error('archive-decisions: ' + msg); process.exit(2);
 function stop(msg) { console.log(msg); process.exit(1); }
 function say(msg) { console.log('  ' + msg); }
 
+// --- THE POINTER IS ONE LINE, NOT ONE LINE PER RUN --------------------------------------------
+// This tool used to concatenate a fresh pointer above everything that followed the table, and
+// everything that followed the table included every pointer it had ever written. So the receipt
+// for archiving accumulated in the file that archiving exists to shrink: WARM_START.md carried 51
+// of these, 171 characters each, about 8,700 characters of one sentence repeated, re-sent on
+// EVERY request for the life of every session. Measured at the thirty-fifth sitting: the archiver
+// residue was 20.4 per cent of that document. The project that did the right thing was the only
+// one carrying the penalty for it, which is why this is a PRECONDITION for asking any other
+// project to adopt archiving rather than a tidy-up to do afterwards.
+//
+// THE RANGE IS READ BACK FROM THE ARCHIVE FILE RATHER THAN ACCUMULATED FROM THE OLD POINTERS.
+// Summing what the old lines CLAIM would carry any error in them forward forever and would print
+// a contiguous span over rows that were never moved. The archive file is the only ground truth
+// about what is in the archive, so the pointer is derived from it and is true by construction.
+// Gaps are printed as separate ranges rather than smoothed into one, because a pointer that
+// overstates its coverage sends the next reader to a file that does not hold what it promised.
+//
+// THIS RUNS EVEN WHEN THERE IS NOTHING TO ARCHIVE, and that is the difference between a fix that
+// pays now and one that pays whenever somebody next happens to cross the retention threshold. The
+// residue is already in the file; it is not created by this run and it should not wait for one.
+// The real document had 20 live rows against a keep of 20, so the tool exited before it reached
+// the consolidation and the entire 8,700 character saving would have sat there until the next
+// archive. Found by running the tool on the real file rather than by reading it.
+const POINTER_RE = new RegExp('^Decisions (\\d+) to (\\d+) are in \\[' + ARCHIVE_NAME.replace('.', '\\.'));
+
+function rangesOf(list) {
+  const sorted = Array.from(new Set(list)).sort((a, b) => a - b);
+  const out = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const lo = sorted[i];
+    while (i + 1 < sorted.length && sorted[i + 1] === sorted[i] + 1) i++;
+    out.push(lo === sorted[i] ? String(lo) : lo + ' to ' + sorted[i]);
+  }
+  return out;
+}
+
+function pointerFor(list) {
+  const r = rangesOf(list);
+  const span = r.length ? r.join(', ') : 'older entries';
+  return 'Decisions ' + span + ' are in [' + ARCHIVE_NAME + '](' + ARCHIVE_NAME + '), which ' +
+    'is deliberately not imported. Read it when looking for a decision that is not listed above.';
+}
+
+// Returns { lines, removed, unproved } or null when there is nothing it can safely do. It NEVER
+// writes: the caller decides, so the dry run stays a dry run.
+function consolidate(allLines, from, archivedIds) {
+  const found = [];
+  for (let i = from; i < allLines.length; i++) {
+    const m = allLines[i].match(POINTER_RE);
+    if (m) found.push({ at: i, lo: parseInt(m[1], 10), hi: parseInt(m[2], 10) });
+  }
+  if (found.length < 2) return null;
+  const have = new Set(archivedIds);
+  const unproved = [];
+  for (const p of found) {
+    if (!have.has(p.lo)) unproved.push(p.lo);
+    if (!have.has(p.hi)) unproved.push(p.hi);
+  }
+  if (unproved.length) return { lines: null, removed: 0, unproved: Array.from(new Set(unproved)).sort((a, b) => a - b) };
+  const drop = new Set(found.map(p => p.at));
+  const kept = allLines.slice(0, from);
+  let first = true;
+  for (let i = from; i < allLines.length; i++) {
+    if (!drop.has(i)) { kept.push(allLines[i]); continue; }
+    if (first) { kept.push(pointerFor(archivedIds)); first = false; continue; }
+    if (kept.length && kept[kept.length - 1] === '') kept.pop();
+  }
+  return { lines: kept, removed: found.length - 1, unproved: [] };
+}
+
 if (!target) die('usage: node tools/archive-decisions.js <file> [--keep N] [--write]');
 if (!fs.existsSync(target)) die('no such file: ' + target);
 if (!Number.isInteger(KEEP) || KEEP < 1) die('--keep must be a positive whole number');
@@ -85,6 +155,41 @@ for (; end < lines.length; end++) {
   rows.push({ line: lines[end], index: end });
 }
 if (rows.length <= KEEP) {
+  // NOTHING TO ARCHIVE IS NOT NOTHING TO DO. Accumulated pointers are residue from PREVIOUS runs
+  // and they cost on every request whether or not this run has rows to move, so the consolidation
+  // is attempted here too. Everything else about the run is unchanged: dry by default, and the
+  // pointer is still derived from the archive file read from disk rather than from the old lines.
+  const ap = path.join(path.dirname(target), ARCHIVE_NAME);
+  if (fs.existsSync(ap)) {
+    const ids = fs.readFileSync(ap, 'utf8').split(/\r?\n/).map(idOf).filter(n => n !== null);
+    const c = consolidate(lines, end, ids);
+    if (c && c.unproved.length) {
+      stop(rows.length + ' decision(s), keeping ' + KEEP + ', so there is nothing to archive yet. ' +
+        'The pointers were NOT consolidated either: ' + c.unproved.length + ' identifier(s) they ' +
+        'name are absent from ' + ARCHIVE_NAME + ' (' + c.unproved.join(', ') + '), and removing a ' +
+        'pointer to something this tool cannot find would delete the only trail to it.');
+    }
+    if (c) {
+      const before = src.length;
+      const out = c.lines.join(nl);
+      say(rows.length + ' decision(s), keeping ' + KEEP + ', so there is nothing to archive yet, ' +
+          'but ' + (c.removed + 1) + ' pointer(s) are in the file and ' + c.removed + ' of them ' +
+          'are residue from earlier runs');
+      say('consolidating to 1 saves ' + (before - out.length) + ' characters on EVERY request');
+      if (!write) {
+        console.log('DRY RUN. Nothing was modified. Re-run with --write to apply.');
+        process.exit(0);
+      }
+      fs.writeFileSync(target, out, 'utf8');
+      const check = fs.readFileSync(target, 'utf8');
+      if (check.indexOf(pointerFor(ids)) === -1) {
+        die('the consolidated pointer is not in ' + path.basename(target) + ' after the write.');
+      }
+      console.log('consolidated ' + (c.removed + 1) + ' pointer(s) to 1 in ' + path.basename(target) +
+                  ', ' + (before - check.length) + ' characters off every request');
+      process.exit(0);
+    }
+  }
   stop(rows.length + ' decision(s), keeping ' + KEEP + ', so there is nothing to archive yet');
 }
 
@@ -157,15 +262,26 @@ if (seen.size !== rows.length) {
 
 const ids = archive.map(r => idOf(r.line)).filter(n => n !== null);
 const span = ids.length ? Math.min(...ids) + ' to ' + Math.max(...ids) : 'older entries';
-const pointer = 'Decisions ' + span + ' are in [' + ARCHIVE_NAME + '](' + ARCHIVE_NAME + '), which ' +
-  'is deliberately not imported. Read it when looking for a decision that is not listed above.';
+
+// The pointer helpers are defined near the top, because the consolidation also has to run on the
+// path where there is nothing new to archive. See THE POINTER IS ONE LINE there.
+const priorPointers = [];
+for (let i = end; i < lines.length; i++) {
+  const m = lines[i].match(POINTER_RE);
+  if (m) priorPointers.push({ at: i, lo: parseInt(m[1], 10), hi: parseInt(m[2], 10) });
+}
+
+const pointer = pointerFor(ids);
 
 console.log('');
 console.log('  ' + target);
 console.log('    ' + rows.length + ' decision(s), ' + (newestFirst ? 'newest first' : 'oldest first'));
 console.log('    keep    ' + keep.length);
 console.log('    archive ' + archive.length + '  (' + span + ')');
-console.log('    pointer ' + pointer.slice(0, 72) + '...');
+if (priorPointers.length) {
+  console.log('    pointers ' + priorPointers.length + ' already in the file, consolidating to 1, ' +
+              'saving about ' + (priorPointers.length * (pointer.length + 1)) + ' characters');
+}
 console.log('');
 
 if (!write) {
@@ -200,11 +316,51 @@ if (missing.length) {
       '. The source has NOT been touched, so nothing is lost.');
 }
 
+// --- derive the consolidated pointer from the archive, and PROVE it before removing anything ----
+// Removing a pointer line deletes a claim about where something lives, so this is the same class
+// of act as removing a decision row and it gets the same protection as S106: every identifier the
+// old lines named is looked for IN THE ARCHIVE FILE READ BACK FROM DISK, and if one is not there
+// the old pointers are left exactly where they are. A consolidation that cannot prove it preserved
+// the trail is a deletion wearing a consolidation's costume, which is tech-lead's objection 2 at
+// the thirty-fifth sitting front door, recorded on ST-257.
+const archivedIds = readBack.split(/\r?\n/).map(idOf).filter(n => n !== null);
+const archivedSet = new Set(archivedIds);
+const unproved = [];
+for (const p of priorPointers) {
+  if (!archivedSet.has(p.lo)) unproved.push(p.lo);
+  if (!archivedSet.has(p.hi)) unproved.push(p.hi);
+}
+
+let pointerBlock = [pointer];
+let tail = lines.slice(end);
+if (priorPointers.length) {
+  if (unproved.length) {
+    console.log('  ' + priorPointers.length + ' existing pointer(s) were NOT consolidated: ' +
+      unproved.length + ' identifier(s) they name are absent from ' + ARCHIVE_NAME +
+      ' (' + Array.from(new Set(unproved)).sort((a, b) => a - b).join(', ') + '). ' +
+      'They are left where they are, because removing a pointer to something this tool cannot ' +
+      'find in the archive would delete the only trail to it.');
+  } else {
+    pointerBlock = [pointerFor(archivedIds)];
+    const priorAt = new Set(priorPointers.map(p => p.at));
+    const trimmed = [];
+    for (let i = end; i < lines.length; i++) {
+      if (priorAt.has(i)) {
+        // drop the pointer, and the blank line that was inserted with it, never a line of prose
+        if (trimmed.length && trimmed[trimmed.length - 1] === '') trimmed.pop();
+        continue;
+      }
+      trimmed.push(lines[i]);
+    }
+    tail = trimmed;
+  }
+}
+
 // --- only now rewrite the source ---------------------------------------------------------------
 const rebuilt = lines.slice(0, headerAt + 2)
   .concat(keep.map(r => r.line))
-  .concat([''], [pointer])
-  .concat(lines.slice(end));
+  .concat([''], pointerBlock)
+  .concat(tail);
 fs.writeFileSync(target, rebuilt.join(nl), 'utf8');
 
 console.log('archived ' + archive.length + ' decision(s) to ' + ARCHIVE_NAME);

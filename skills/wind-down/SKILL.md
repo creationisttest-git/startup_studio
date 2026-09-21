@@ -178,7 +178,9 @@ thought to ask on the way out. The session that would have noticed had already e
 that exists on one disk is not a record, it is a draft, and the next session opens against
 whatever was last committed.
 
-The four checks in the next section run FIRST, every time, and none of them is optional. Then you
+The SIX checks in the next section run FIRST, every time, and none of them is optional. This
+said four until 2026-09-21: two more were added and the ordinals below restarted at Third rather
+than continuing, so the section listed First, Second, Third, Fourth, Third, Fourth. Then you
 stage the two documents **by name** and commit. Never `git add -A` and never `git add .`.
 
 ---
@@ -312,7 +314,7 @@ the `CLAUDE.md` import, which already loads this whole document on every request
 What the check cannot see, so you have to: whether what the brief says about a ticket is TRUE. It
 proves the brief names the right tickets and nothing more.
 
-**Third, the context budget, and this one is about what the document COSTS rather than what
+**Fifth, the context budget, and this one is about what the document COSTS rather than what
 it says.**
 
 ```
@@ -347,7 +349,7 @@ If the studio is not reachable from this project, say so and check by reading in
 newest dated block, then confirm the prompt names that date and no other. Say which way you
 checked. An unrun check reported as run is worse than no check.
 
-**Fourth, archive the decisions table and the dated history, and these WRITE rather than report.**
+**Sixth, archive the decisions table and the dated history, and these WRITE rather than report.**
 
 ```
 node <studio>/tools/archive-decisions.js --file <path-to-the-state-document>
@@ -356,10 +358,72 @@ node <studio>/tools/archive-sittings.js <path-to-the-state-document>
 node <studio>/tools/archive-sittings.js <path-to-the-state-document> --write
 ```
 
-`archive-sittings.js` is the same job for the two sections that actually dominate the file: it
-keeps the most recent sitting in Current state and in Session log and moves the rest out. Note the
-one difference in how they answer: it exits 0 when there is nothing to move, because a healthy
-document is success, while `archive-decisions.js` exits 1 in the same case. ST-263 carries that.
+`archive-sittings.js` keeps the most recent entry in each dated section and moves the rest out.
+Note the one difference in how they answer: it exits 0 when there is nothing to move, because a
+healthy document is success, while `archive-decisions.js` exits 1 in the same case. ST-263.
+
+**WHICH SECTIONS IT ARCHIVES IS A FACT ABOUT YOUR PROJECT, NOT ABOUT THE TOOL.** With no
+configuration it keeps the studio's own two, `Current state` and `Session log`, written the
+studio's own way. That default was once compiled in, and it is why the tool walked past 217,682
+characters of a sibling project's history in silence and reported nothing to archive: the section
+was called something else and the dates were written another way. Describe your project once, in
+`.studio-archive.json` beside the document:
+
+```json
+{ "sections": [
+  { "heading": "Build status",
+    "archive": "BUILD-STATUS-ARCHIVE.md",
+    "noun": "build status entry",
+    "opener": "lead:Added",
+    "boundary": "a distinctive phrase from the first paragraph that is NOT history" } ] }
+```
+
+`opener` says how a date is written where an entry BEGINS, and every convention has to carry
+something prose does not:
+
+- `ordinal`, a bold span reading `<date>, <ORDINAL> sitting`. The comma is the discriminator.
+- `date`, the paragraph opening with the date itself, followed by a bracket, colon, dash or stop.
+  A heading separates its date from what follows; a sentence puts a word there.
+- `lead:<word>`, the paragraph opening `<word> <date>`, as in `Added 2026-09-20`. The word is the
+  discriminator, and it has to be one the project writes deliberately.
+- `auto`, the default: try `ordinal`, then `date`.
+
+`boundary` names where history STOPS. The tool DEFAULTS it to the archive filename
+(`archive-sittings.js:319`) and refuses only when that phrase appears in no paragraph of the
+section. This line claimed it refuses without one until 2026-09-21. Get it right, because in this project's own
+documents the live state sits underneath the dated blocks and looks identical to them, and
+archiving it would move facts a session needs today into a file nothing imports. Give it a
+distinctive phrase from the first paragraph that is NOT history.
+
+**If the section is history all the way down to the next heading, say `--boundary end`, and only
+after reading it.** A sibling project's `Build status` is 244 dated paragraphs with no live tail at
+all, because its live state lives in a different section; without this the region collapsed to the
+first block and the tool reported nothing to archive about 94,965 characters. `end` is a claim only
+a human can make, it is never a default, and making it wrongly archives live state.
+
+**Before you write a config, archive it once from the command line**, because a dry run against
+the real document is the only thing that tells you whether you have the convention right:
+
+```
+node <studio>/tools/archive-sittings.js <file> --section "Build status" \
+     --archive BUILD-STATUS-ARCHIVE.md --opener lead:Added --noun "build status entry" \
+     --boundary "<phrase from the first paragraph that is not history>"
+```
+
+**READ THE DRY RUN, DO NOT SKIM IT.** It names every block it would keep and every one it would
+move. Six leads, a front door and three CEO decisions once agreed a plan to run these tools
+against four more projects, and nobody ran one first; total reachable was zero. One dry run
+against one real file would have caught it at any point in that chain.
+
+**A REFUSAL IS THE TOOL WORKING, NOT THE TOOL FAILING.** The commonest one you will meet is that
+the dates rise somewhere, which means the section is not in one consistent order and which end is
+newest cannot be established. It names the two dates. A human who knows the project moves the row;
+do not teach the tool to guess, because guessing wrong archives the newest entry.
+
+**NOT EVERY BIG SECTION IS ARCHIVABLE, AND THE TOOL CANNOT TELL YOU WHICH.** A sibling project's
+risk list is 148,883 characters and 269 bullets, of which about 250 are still marked OPEN. An
+open risk moved out of a loaded document is context lost, not cost saved. Dated history archives;
+a live list needs a human to decide which entries are dead.
 
 Run it without `--write` first: that is a dry run and touches nothing. It keeps the most recent
 twenty decisions in the loaded document and moves the rest to `DECISIONS-ARCHIVE.md` beside it,
@@ -369,8 +433,13 @@ leaving a line in the live table naming which numbers moved and where they went.
 already specific, and five projects sailed past it. An instruction that is 0 for 5 is not a
 control. The step that had never happened was a human choosing to run it.
 
-**If you are archiving HERE, you are archiving late, and that is now the fallback rather than the
-plan.** `/warm-start` archives at the opening of a session, before any work. The reason is
+**ARCHIVING BELONGS HERE. CEO ruling, 2026-09-21, in their words:** *"i prefer archieving
+happening at wind down and not at start of a session"*. **This REVERSES the rule that stood in
+this file until then**, which said the opening was the right moment and a wind-down was the
+fallback. The paragraph below is that older reasoning, kept because it is the argument their
+ruling overrides rather than one nobody made.
+
+**The superseded reasoning.** `/warm-start` archives at the opening of a session, before any work. The reason is
 structural: at a wind-down the session is out of budget and this is the last act before stopping,
 so it is the step that gets deferred, and the saving is handed to the NEXT session rather than
 collected by the one paying for it. One project declined the manual cut eleven sittings running

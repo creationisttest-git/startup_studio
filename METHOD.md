@@ -121,7 +121,7 @@ category and the only one that carries ceremony.
 Every deviation gets a row in the stack card's register, with the base rule affected, what
 changes, why, who approved it, the date, and a review date. A deviation with no owner and
 no date is a defect, not a rule. Security gates cannot be waived by an overlay, and neither
-can the rule that nothing deploys until the mobile, content and code reviews have all passed.
+can the rule that nothing deploys until every review that reads the work has passed.
 Waiving either needs sign-off recorded in the shared governance, or the project layer becomes
 the route around review.
 
@@ -192,7 +192,10 @@ gate, it is a formality, and everyone will work out that it can be walked past.
 
 ## Releasing
 
-Nothing ships without a changelog entry, and the entry is written before the release.
+Nothing ships without a changelog entry, and the entry is the LAST thing written, on its own,
+once every customer-facing change is built and reviewed. The founder reversed the order that
+stood here before, because writing the entry first meant every later fix rewrote it and every
+rewrite discarded a review of code the entry never touched.
 
 `CHANGELOG.md` is the single source of what changed and why, written for someone who did
 not build it. The release message is generated from its newest dated section, so the

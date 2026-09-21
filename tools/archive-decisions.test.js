@@ -211,7 +211,74 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
   ok('and nothing was written', fs.readFileSync(file, 'utf8') === before);
 }
 
-const EXPECTED_ASSERTIONS = 31;
+// --- THE POINTER IS ONE LINE, NOT ONE PER RUN -------------------------------------------------
+// Measured on the real WARM_START.md at the thirty-fifth sitting: 51 pointer lines, 171 characters
+// each, about 8,700 characters of ONE SENTENCE REPEATED, re-sent on every request of every session.
+// The tool concatenated a new pointer above everything after the table, and everything after the
+// table was every pointer it had ever written. So the receipt for archiving accumulated inside the
+// document archiving exists to shrink, and the only project that had ever archived was the only
+// one paying for it. Watched failing: commenting out `tail = trimmed` returns 1, 2, 3 pointers
+// across three runs while the range in the top pointer stays correct, which is what isolates this
+// control from the range derivation below it.
+{
+  const rows = Array.from({ length: 60 }, (_, i) => '| S' + (60 - i) + ' | d | r | 2026-01-01 |');
+  const { file } = doc(rows);
+  const ptrs = () => fs.readFileSync(file, 'utf8').split('\n')
+    .filter(l => /^Decisions .* are in \[DECISIONS-ARCHIVE/.test(l));
+
+  run(file, ['--keep', '40', '--write']);
+  ok('the first archive leaves exactly one pointer', ptrs().length === 1);
+  ok('and it names the range it moved', /^Decisions 1 to 20 are in/.test(ptrs()[0]));
+
+  const r2 = run(file, ['--keep', '20', '--write']);
+  ok('a SECOND archive still leaves exactly one pointer, rather than adding another',
+    ptrs().length === 1);
+  ok('and the one pointer now covers everything in the archive, not just this run',
+    /^Decisions 1 to 40 are in/.test(ptrs()[0]));
+  ok('and the run says it consolidated rather than doing it silently',
+    /consolidating to 1/.test(r2.out));
+
+  run(file, ['--keep', '10', '--write']);
+  ok('a THIRD archive still leaves exactly one pointer', ptrs().length === 1);
+  ok('and the range grew again', /^Decisions 1 to 50 are in/.test(ptrs()[0]));
+
+  const after = fs.readFileSync(file, 'utf8');
+  ok('prose after the table is never removed by the consolidation', after.includes('tail text'));
+  ok('and the heading after the table survives', after.includes('## After'));
+  ok('and no run of blank lines is left where the old pointers were', !/\n\n\n/.test(after));
+  const arch = fs.readFileSync(path.join(path.dirname(file), 'DECISIONS-ARCHIVE.md'), 'utf8');
+  ok('every decision the single pointer claims is actually in the archive: the low end',
+    arch.includes('| S1 |'));
+  ok('and the high end', arch.includes('| S50 |'));
+  ok('and the row just outside the claim is still live in the source', after.includes('| S51 |'));
+}
+
+// --- A POINTER IT CANNOT PROVE IS LEFT WHERE IT IS ---------------------------------------------
+// Removing a pointer deletes a claim about where something lives, which is the same class of act
+// as removing a decision row and gets the same protection as S106: every identifier the old line
+// names is looked for IN THE ARCHIVE READ BACK FROM DISK. A consolidation that cannot prove it
+// preserved the trail is a deletion wearing a consolidation's costume. tech-lead's objection 2 at
+// the thirty-fifth sitting front door, on ST-257.
+{
+  const rows = Array.from({ length: 60 }, (_, i) => '| S' + (60 - i) + ' | d | r | 2026-01-01 |');
+  const { file } = doc(rows);
+  const lying = 'Decisions 900 to 999 are in [DECISIONS-ARCHIVE.md](DECISIONS-ARCHIVE.md), which '
+    + 'is deliberately not imported. Read it when looking for a decision that is not listed above.';
+  fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('## After', lying + '\n\n## After'), 'utf8');
+
+  const r = run(file, ['--keep', '40', '--write']);
+  const after = fs.readFileSync(file, 'utf8');
+  ok('a pointer naming identifiers absent from the archive is NOT removed',
+    after.includes('Decisions 900 to 999'));
+  ok('and the run says so rather than consolidating silently', /NOT consolidated/.test(r.out));
+  ok('and it names the identifiers it could not find, so the reader can go and look',
+    /900, 999/.test(r.out));
+  ok('and the archive still happened, because one unprovable pointer is not a reason to stop',
+    after.includes('Decisions 1 to 20 are in'));
+  ok('and prose is still untouched on the refusal path', after.includes('tail text'));
+}
+
+const EXPECTED_ASSERTIONS = 49;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

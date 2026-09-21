@@ -2604,11 +2604,12 @@ function Show-Status ([switch]$Fix) {
     # founder was asked and said not now, which is an answer and is recorded as one.
     Write-Host ""
     Write-Host "CONTEXT (what a session loads before it starts)" -ForegroundColor Cyan
-    $ctxOver = 0; $ctxNear = 0; $ctxFloor = 0; $ctxFloorName = ''
+    $ctxOver = 0; $ctxNear = 0; $ctxFloor = 0; $ctxFloorName = ''; $ctxEstate = 0
     foreach ($t in $stateTargets) {
         $ctx = Get-LoadedContext $t.Path
         if (-not $ctx) { continue }
         $k = [math]::Round($ctx.Total / 1000)
+        $ctxEstate += $ctx.Total
         if ($ctx.Total -gt $ctxFloor) { $ctxFloor = $ctx.Total; $ctxFloorName = $t.Name }
         if ($ctx.Over.Count) {
             $ctxOver++
@@ -2651,9 +2652,26 @@ function Show-Status ([switch]$Fix) {
     #
     # Four characters per token is an approximation and is stated as one. It is close enough to
     # tell a 15k floor from a 56k one, which is the decision this line exists to inform.
+    # THE ESTATE TOTAL, WHICH IS ST-257'S AGREED MEASURE AND WAS THE ONE NUMBER NOT PRINTED HERE.
+    #
+    # The worst project's floor is what a single session pays, and it is the right number for
+    # deciding where to act. It is the wrong number for knowing whether the problem is getting
+    # better, because four projects can each grow while the worst one holds still. Measured over
+    # three sittings: _STUDIO fell 15.6 per cent, the four without an instrument moved between
+    # -1.2 and +50.8, and the estate ROSE 20.8 per cent. Every one of those sittings could read the
+    # per-project lines above and none of them could see that. ST-257.
+    #
+    # IT REPORTS AND REFUSES NOTHING, deliberately. Archiving another project's documents needs
+    # that project's session or the CEO's instruction, so a refusal here would be a gate with no
+    # remedy the reader can perform, which is the failure class this repository keeps recording.
+    if ($ctxEstate) {
+        Write-Host ""
+        Write-Host ("  ESTATE   {0:N0} characters across {1} project(s), ~{2}k tokens loaded on every request" -f `
+            $ctxEstate, $stateTargets.Count, [math]::Round($ctxEstate / 4000)) -ForegroundColor `
+            $(if ($ctxEstate -ge 1000000) { 'Red' } elseif ($ctxEstate -ge 500000) { 'Yellow' } else { 'Gray' })
+    }
     if ($ctxFloor) {
         $floorTok = [math]::Round($ctxFloor / 4000)
-        Write-Host ""
         Write-Host ("  FLOOR    worst is {0} at ~{1}k tokens, charged on EVERY request" -f `
             $ctxFloorName, $floorTok) -ForegroundColor $(if ($floorTok -ge 40) { 'Red' } elseif ($floorTok -ge 20) { 'Yellow' } else { 'Gray' })
         foreach ($n in @(100, 200)) {

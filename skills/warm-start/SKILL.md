@@ -1,6 +1,6 @@
 ---
 name: warm-start
-description: Hand over this project's resume prompt, checked against reality first. Use at the start of a session, after a compaction, or any time you need to know where the work actually is. The session start hands the prompt over on its own, unchecked; this is the version that verifies it.
+description: Hand over this project's resume prompt, checked against reality first. Use at the start of a session, after a compaction, or any time you need to know where the work actually is. The session start hands over only the founder brief, unchecked; this is the version that verifies.
 ---
 
 # warm-start
@@ -118,9 +118,14 @@ STALE     points at the block dated <old>, which this document marks superseded 
 BROKEN    the resume section carries no fenced block, so there was nothing to extract
 ```
 
-## Step 4: archive the dated history, EVERY sitting, and change nothing else
+## Step 4: read the budget (archiving moved to wind-down, CEO ruling 2026-09-21)
 
-Archive before you do any work, then read the budget:
+**ARCHIVING NO LONGER RUNS HERE.** The CEO ruled on 2026-09-21, in their words, *"i prefer
+archieving happening at wind down and not at start of a session"*. That reverses S221 and the
+reasoning kept below, which is left in place because it is the argument that lost rather than a
+mistake. `base/skills/wind-down/SKILL.md` owns the archiving step now, and this skill and that one
+said opposite things to every project for a day. Read the budget, and run the commands below only
+if a human has decided to archive at the opening for a reason they can state:
 
 ```
 node <studio>/tools/archive-sittings.js <path-to-the-state-document>
@@ -145,7 +150,8 @@ the blocks are followed by LIVE state that looks identical to a block and must n
 there is no such paragraph it writes nothing and tells you to name the boundary yourself with
 `--boundary "<a phrase from the first paragraph that is not dated history>"`.
 
-Do it first for a structural reason rather than a tidy one. At wind-down the session is out of
+THE SUPERSEDED REASONING, kept for the argument and not as an instruction. Do it first for a
+structural reason rather than a tidy one. At wind-down the session is out of
 budget and archiving is the last act before stopping, so it is the thing that gets deferred: one
 project declined the manual cut eleven sittings running while it was a wind-down job, and this
 studio's own state document sat 23 per cent over its limit having had a wind-down every sitting

@@ -6,6 +6,33 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-21
+
+### Cheaper sessions, a safer tidy-up, and claims that are true
+
+**What this gives you.** Cheaper sessions wherever a project has history to archive, a tidy-up that
+cannot lose your text, and claims about this method you can rely on.
+
+**A project pays for its own past every time you ask it anything.** What a session loads is sent
+again on every request, so old history is a bill that keeps arriving. One project now loads 196,000
+characters less, roughly 50,000 tokens returned on every request there. Nothing was deleted: it
+moved to a linked archive.
+
+**The tidy-up could damage what it was tidying.** It could lose a sentence you added, or cut the
+end off a document while reporting a saving. Both are fixed.
+
+**It could not read some documents at all**, walking past two hundred thousand characters of one
+project's history. It reads them now, and stops rather than guess.
+
+**A new project loaded the wrong shared document on every request**, four times the size of the
+right one.
+
+**The health check** now reports one total across every project.
+
+**Twenty-five sentences claimed more than they delivered.** Every one now says what is true.
+
+---
+
 ## 2026-09-20
 
 ### Shipping costs less, and a health check stops answering about the wrong project
