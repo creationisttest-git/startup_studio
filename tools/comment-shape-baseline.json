@@ -1,6 +1,6 @@
 {
   "what": "Per published code file: named comment lines, counted comment ratio and control lines, as tools/check-comment-shape.js defines them. Written only by that tool. The check refuses when any value differs from this record: the wrong way outright, the right way until this record is rewritten, so the record is never slack.",
-  "written": "2026-09-21",
+  "written": "2026-09-22",
   "new_file_cap": 5,
   "overrides": [
     {
@@ -3813,6 +3813,384 @@
       "to": 17.2,
       "reason": "ST-295 round three. Every comment added records a defect a reviewer proved or a mutation exposed: a colon, a stop and a dash are things prose puts after a date; a boundary phrase belongs to ONE section and was aimed at all of them; a noun pattern that could match nothing let the name swallow it; and two fixtures that could not reach the code they were named after.",
       "scope": "all"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-session-goal.js",
+      "field": "ratio",
+      "from": 13.6,
+      "to": 23.3,
+      "reason": "the mission half was added under ST-306, and the design is in what the check does NOT print, so the silence needs a reason beside it or the next reader adds the agreeing line back",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-session-goal.test.js",
+      "field": "ratio",
+      "from": 6.3,
+      "to": 14.2,
+      "reason": "five mission assertions added under ST-306, each carrying why the case exists, including the one asserting that no praise is printed when the work fits",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-session-goal.js",
+      "field": "ratio",
+      "from": 23.3,
+      "to": 24.6,
+      "reason": "the ordering between the two halves needed stating, because being about a finished session has to win over every finding and the reason a refusal was downgraded is not readable from the code",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-session-goal.test.js",
+      "field": "ratio",
+      "from": 14.2,
+      "to": 15.4,
+      "reason": "one assertion for that ordering, found by running the finished tool against this repository rather than against a fixture",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 20,
+      "to": 22,
+      "reason": "ST-302 LOW 6: the estate line counted projects it had not summed, and the comment says why a project with no CLAUDE.md is an ordinary case rather than a fault",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 32.5,
+      "to": 32.6,
+      "reason": "ST-302 LOW 6: the estate line counted projects it had not summed, and the comment says why a project with no CLAUDE.md is an ordinary case rather than a fault",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-decisions.js",
+      "field": "named",
+      "from": 2,
+      "to": 4,
+      "reason": "ST-302 HIGH 1 and MEDIUM 5: the pointer pattern recognised one of the three sentences the tool writes, and the replacement was derived from this run rather than from the archive. Both comments record the defect a reader would otherwise reinstate",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-decisions.js",
+      "field": "ratio",
+      "from": 14.7,
+      "to": 19.2,
+      "reason": "ST-302 HIGH 1 and MEDIUM 5: the pointer pattern recognised one of the three sentences the tool writes, and the replacement was derived from this run rather than from the archive. Both comments record the defect a reader would otherwise reinstate",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-decisions.test.js",
+      "field": "named",
+      "from": 5,
+      "to": 8,
+      "reason": "ST-302 HIGH 2: two new fixtures for the gapped and single-identifier pointer forms, with the prediction made before the run and the reason the range assertions stay green recorded beside them",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-decisions.test.js",
+      "field": "ratio",
+      "from": 14.1,
+      "to": 18.7,
+      "reason": "ST-302 HIGH 2: two new fixtures for the gapped and single-identifier pointer forms, with the prediction made before the run and the reason the range assertions stay green recorded beside them",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.js",
+      "field": "named",
+      "from": 1,
+      "to": 5,
+      "reason": "ST-302 HIGH 3 and LOW 6: the block name dropped the comma the document carries, and the write that removes text had no read-back while the write that removes nothing did",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.js",
+      "field": "ratio",
+      "from": 25.4,
+      "to": 26.8,
+      "reason": "ST-302 HIGH 3 and LOW 6: the block name dropped the comma the document carries, and the write that removes text had no read-back while the write that removes nothing did",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.test.js",
+      "field": "named",
+      "from": 3,
+      "to": 7,
+      "reason": "ST-302 HIGH 3 and MEDIUM 4: a fixture for the comma form, a backstop that no natural input can reach covered by breaking the splice in a copy of the tool, and an assertion corrected that had pinned the defect",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.test.js",
+      "field": "ratio",
+      "from": 17.2,
+      "to": 18.8,
+      "reason": "ST-302 HIGH 3 and MEDIUM 4: a fixture for the comma form, a backstop that no natural input can reach covered by breaking the splice in a copy of the tool, and an assertion corrected that had pinned the defect",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.js",
+      "field": "named",
+      "from": 4,
+      "to": 9,
+      "reason": "ST-304: the check asked only whether a prompt was raised, so it exited 0 while the board claimed options the founder was never shown. The comments record both shapes, the dropped escape and the reordering, because each one reads as correct until you know what it cost",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.js",
+      "field": "ratio",
+      "from": 15.4,
+      "to": 19.4,
+      "reason": "ST-304: the check asked only whether a prompt was raised, so it exited 0 while the board claimed options the founder was never shown. The comments record both shapes, the dropped escape and the reordering, because each one reads as correct until you know what it cost",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "named",
+      "from": 5,
+      "to": 7,
+      "reason": "ST-304: fixtures for both shapes with their negative controls, including the one that stops the recommendation marking being read as a difference",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "ratio",
+      "from": 19.3,
+      "to": 22.7,
+      "reason": "ST-304: fixtures for both shapes with their negative controls, including the one that stops the recommendation marking being read as a difference",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.js",
+      "field": "named",
+      "from": 5,
+      "to": 9,
+      "reason": "ST-295: the noun is now constrained the way the archive filename always was, two sections may not share one archive file, a negative saving says so instead of printing a minus sign, and the tautological line-accounting proof is recorded as a tripwire rather than left looking like a control",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.js",
+      "field": "ratio",
+      "from": 26.8,
+      "to": 28.6,
+      "reason": "ST-295: the noun is now constrained the way the archive filename always was, two sections may not share one archive file, a negative saving says so instead of printing a minus sign, and the tautological line-accounting proof is recorded as a tripwire rather than left looking like a control",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.test.js",
+      "field": "named",
+      "from": 7,
+      "to": 9,
+      "reason": "ST-295: fixtures for the noun constraint, the shared archive file and a run that grows the document, plus the note on an assertion that was tightened after a wrong prediction exposed it as unfailable",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.test.js",
+      "field": "ratio",
+      "from": 18.8,
+      "to": 20.4,
+      "reason": "ST-295: fixtures for the noun constraint, the shared archive file and a run that grows the document, plus the note on an assertion that was tightened after a wrong prediction exposed it as unfailable",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.js",
+      "field": "named",
+      "from": 9,
+      "to": 10,
+      "reason": "ST-304: the session-level printer read the count fields on a row carrying the order fields and threw, so a reordering crashed the wind-down reading that a ticket, a commit and a governance fragment all claimed reported it. The comment records that a content reviewer found it by running the case",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.js",
+      "field": "ratio",
+      "from": 19.4,
+      "to": 20,
+      "reason": "ST-304: the session-level printer read the count fields on a row carrying the order fields and threw, so a reordering crashed the wind-down reading that a ticket, a commit and a governance fragment all claimed reported it. The comment records that a content reviewer found it by running the case",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "named",
+      "from": 7,
+      "to": 8,
+      "reason": "ST-304: six assertions on the session-level path, which every earlier ordering test skipped in favour of the at-answer gate",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "ratio",
+      "from": 22.7,
+      "to": 23.6,
+      "reason": "ST-304: six assertions on the session-level path, which every earlier ordering test skipped in favour of the at-answer gate",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-decisions.js",
+      "field": "named",
+      "from": 4,
+      "to": 5,
+      "reason": "ST-295 review round: the pointer consolidation printed a negative saving as a saving, the same fault the sibling tool had already fixed",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-decisions.js",
+      "field": "ratio",
+      "from": 19.2,
+      "to": 19.7,
+      "reason": "ST-295 review round: the pointer consolidation printed a negative saving as a saving, the same fault the sibling tool had already fixed",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.js",
+      "field": "named",
+      "from": 9,
+      "to": 12,
+      "reason": "ST-295 review round: the noun refusal named a remedy held to the same rule, nothing-is-lost was false about which side was at risk, and the third saving site still did the raw subtraction",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.js",
+      "field": "ratio",
+      "from": 28.6,
+      "to": 29.5,
+      "reason": "ST-295 review round: the noun refusal named a remedy held to the same rule, nothing-is-lost was false about which side was at risk, and the third saving site still did the raw subtraction",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.test.js",
+      "field": "named",
+      "from": 9,
+      "to": 10,
+      "reason": "ST-295 review round: an assertion that the escape route is not offered, because a presence test cannot see a remedy that does not work",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.test.js",
+      "field": "ratio",
+      "from": 20.4,
+      "to": 20.7,
+      "reason": "ST-295 review round: an assertion that the escape route is not offered, because a presence test cannot see a remedy that does not work",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.js",
+      "field": "named",
+      "from": 10,
+      "to": 14,
+      "reason": "ST-304 review round: the order check could say anything about only 3 of 24,790 real pairs and returned null on the one recorded instance, the refusal paired with the first prompt so its own remedy could not clear it, and a two-question prompt was flattened into an impossible comparison. Each reads as correct until measured",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.js",
+      "field": "ratio",
+      "from": 20,
+      "to": 22.7,
+      "reason": "ST-304 review round: the order check could say anything about only 3 of 24,790 real pairs and returned null on the one recorded instance, the refusal paired with the first prompt so its own remedy could not clear it, and a two-question prompt was flattened into an impossible comparison. Each reads as correct until measured",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "named",
+      "from": 8,
+      "to": 11,
+      "reason": "ST-304 review round: the cannot-tell path, the remedy that must clear the refusal, and the real recorded strings the previous predicate returned null on",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "ratio",
+      "from": 23.6,
+      "to": 25.7,
+      "reason": "ST-304 review round: the cannot-tell path, the remedy that must clear the refusal, and the real recorded strings the previous predicate returned null on",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.js",
+      "field": "named",
+      "from": 12,
+      "to": 13,
+      "reason": "The NAME pattern was widened to match what DATE_OPENER emits, and the comment names the one shape it still does not cover, a newline inside the name, rather than claiming total coverage as its first version did.",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/archive-sittings.js",
+      "field": "ratio",
+      "from": 29.5,
+      "to": 30.5,
+      "reason": "The NAME pattern was widened to match what DATE_OPENER emits, and the comment names the one shape it still does not cover, a newline inside the name, rather than claiming total coverage as its first version did.",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.js",
+      "field": "named",
+      "from": 14,
+      "to": 16,
+      "reason": "Three HIGH defects from pre-release review needed their causes written where the next reader meets the code: a crash on the real recorded session when a row carried neither a gap nor an order finding, a not-comparable result returning the same null as agreement so one unreadable prompt erased a real finding, and a refusal quoting the same string on both sides of a disagreement. Each comment names the defect and how it was found.",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.js",
+      "field": "ratio",
+      "from": 22.7,
+      "to": 26.5,
+      "reason": "Three HIGH defects from pre-release review needed their causes written where the next reader meets the code: a crash on the real recorded session when a row carried neither a gap nor an order finding, a not-comparable result returning the same null as agreement so one unreadable prompt erased a real finding, and a refusal quoting the same string on both sides of a disagreement. Each comment names the defect and how it was found.",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "named",
+      "from": 11,
+      "to": 17,
+      "reason": "Four new assertion blocks, each naming the mutation it survives and the prediction made before the run, plus a correction recording that two counts in an earlier version of these comments were false and were caught by running the case. The comments are the evidence trail for assertions that would otherwise look arbitrary.",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-22",
+      "file": "tools/check-decision-shape.test.js",
+      "field": "ratio",
+      "from": 25.7,
+      "to": 29.1,
+      "reason": "Four new assertion blocks, each naming the mutation it survives and the prediction made before the run, plus a correction recording that two counts in an earlier version of these comments were false and were caught by running the case. The comments are the evidence trail for assertions that would otherwise look arbitrary.",
+      "scope": "file"
     }
   ],
   "files": {
@@ -3943,49 +4321,49 @@
       "ratio_all": 21.4
     },
     "studio.ps1": {
-      "nonblank": 2981,
-      "comment": 1123,
+      "nonblank": 2996,
+      "comment": 1133,
       "header": 36,
       "controls": 119,
-      "named": 20,
-      "ratio": 32.5,
-      "ratio_all": 37.7
+      "named": 22,
+      "ratio": 32.6,
+      "ratio_all": 37.8
     },
     "tools/archive-decisions.js": {
-      "nonblank": 339,
-      "comment": 102,
+      "nonblank": 385,
+      "comment": 131,
       "header": 42,
-      "controls": 10,
-      "named": 2,
-      "ratio": 14.7,
-      "ratio_all": 30.1
+      "controls": 13,
+      "named": 5,
+      "ratio": 19.7,
+      "ratio_all": 34
     },
     "tools/archive-decisions.test.js": {
-      "nonblank": 270,
-      "comment": 71,
+      "nonblank": 375,
+      "comment": 114,
       "header": 13,
-      "controls": 20,
-      "named": 5,
-      "ratio": 14.1,
-      "ratio_all": 26.3
+      "controls": 31,
+      "named": 8,
+      "ratio": 18.7,
+      "ratio_all": 30.4
     },
     "tools/archive-sittings.js": {
-      "nonblank": 776,
-      "comment": 302,
+      "nonblank": 892,
+      "comment": 387,
       "header": 78,
-      "controls": 27,
-      "named": 1,
-      "ratio": 25.4,
-      "ratio_all": 38.9
+      "controls": 37,
+      "named": 13,
+      "ratio": 30.5,
+      "ratio_all": 43.4
     },
     "tools/archive-sittings.test.js": {
-      "nonblank": 861,
-      "comment": 203,
+      "nonblank": 1158,
+      "comment": 313,
       "header": 16,
-      "controls": 39,
-      "named": 3,
-      "ratio": 17.2,
-      "ratio_all": 23.6
+      "controls": 57,
+      "named": 10,
+      "ratio": 20.7,
+      "ratio_all": 27
     },
     "tools/build-releases.js": {
       "nonblank": 713,
@@ -4096,22 +4474,22 @@
       "ratio_all": 18.6
     },
     "tools/check-decision-shape.js": {
-      "nonblank": 395,
-      "comment": 118,
+      "nonblank": 746,
+      "comment": 273,
       "header": 52,
-      "controls": 5,
-      "named": 4,
-      "ratio": 15.4,
-      "ratio_all": 29.9
+      "controls": 23,
+      "named": 16,
+      "ratio": 26.5,
+      "ratio_all": 36.6
     },
     "tools/check-decision-shape.test.js": {
-      "nonblank": 311,
-      "comment": 81,
+      "nonblank": 738,
+      "comment": 253,
       "header": 11,
-      "controls": 10,
-      "named": 5,
-      "ratio": 19.3,
-      "ratio_all": 26
+      "controls": 27,
+      "named": 17,
+      "ratio": 29.1,
+      "ratio_all": 34.3
     },
     "tools/check-document-shape.js": {
       "nonblank": 302,
@@ -4366,22 +4744,22 @@
       "ratio_all": 29.8
     },
     "tools/check-session-goal.js": {
-      "nonblank": 228,
-      "comment": 75,
+      "nonblank": 355,
+      "comment": 132,
       "header": 39,
-      "controls": 5,
+      "controls": 6,
       "named": 0,
-      "ratio": 13.6,
-      "ratio_all": 32.9
+      "ratio": 24.5,
+      "ratio_all": 37.2
     },
     "tools/check-session-goal.test.js": {
-      "nonblank": 224,
-      "comment": 32,
+      "nonblank": 337,
+      "comment": 71,
       "header": 9,
-      "controls": 9,
+      "controls": 10,
       "named": 1,
-      "ratio": 6.3,
-      "ratio_all": 14.3
+      "ratio": 15.4,
+      "ratio_all": 21.1
     },
     "tools/clock.js": {
       "nonblank": 43,

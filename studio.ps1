@@ -2604,12 +2604,20 @@ function Show-Status ([switch]$Fix) {
     # founder was asked and said not now, which is an answer and is recorded as one.
     Write-Host ""
     Write-Host "CONTEXT (what a session loads before it starts)" -ForegroundColor Cyan
-    $ctxOver = 0; $ctxNear = 0; $ctxFloor = 0; $ctxFloorName = ''; $ctxEstate = 0
+    $ctxOver = 0; $ctxNear = 0; $ctxFloor = 0; $ctxFloorName = ''; $ctxEstate = 0; $ctxCounted = 0
     foreach ($t in $stateTargets) {
         $ctx = Get-LoadedContext $t.Path
         if (-not $ctx) { continue }
         $k = [math]::Round($ctx.Total / 1000)
         $ctxEstate += $ctx.Total
+        # COUNT WHAT WAS SUMMED, NOT WHAT WAS LOOKED AT. The ESTATE line below printed
+        # $stateTargets.Count while this loop skips any project whose context cannot be read, and
+        # Get-LoadedContext returns null for a project with no CLAUDE.md. A repository that
+        # qualifies on its .git alone and has not adopted the governance documents is exactly that,
+        # and it is the ordinary state of a new project rather than a fault. So the one number
+        # ST-257 agreed as the estate measure carried projects contributing nothing to it.
+        # ST-302 LOW 6.
+        $ctxCounted++
         if ($ctx.Total -gt $ctxFloor) { $ctxFloor = $ctx.Total; $ctxFloorName = $t.Name }
         if ($ctx.Over.Count) {
             $ctxOver++
@@ -2667,8 +2675,15 @@ function Show-Status ([switch]$Fix) {
     if ($ctxEstate) {
         Write-Host ""
         Write-Host ("  ESTATE   {0:N0} characters across {1} project(s), ~{2}k tokens loaded on every request" -f `
-            $ctxEstate, $stateTargets.Count, [math]::Round($ctxEstate / 4000)) -ForegroundColor `
+            $ctxEstate, $ctxCounted, [math]::Round($ctxEstate / 4000)) -ForegroundColor `
             $(if ($ctxEstate -ge 1000000) { 'Red' } elseif ($ctxEstate -ge 500000) { 'Yellow' } else { 'Gray' })
+    }
+    # AND SAY SO WHEN THE TWO DIFFER, because a project silently dropping out of the measure is
+    # how the measure stops describing the estate. Reported, never refused on: a project without
+    # governance documents is a fact about that project, not a fault in this one.
+    if ($ctxEstate -and $ctxCounted -lt $stateTargets.Count) {
+        Write-Host ("           {0} project(s) had no readable context and are not in that total" -f `
+            ($stateTargets.Count - $ctxCounted)) -ForegroundColor DarkGray
     }
     if ($ctxFloor) {
         $floorTok = [math]::Round($ctxFloor / 4000)

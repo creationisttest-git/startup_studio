@@ -278,7 +278,125 @@ junk.forEach(d => fs.rmSync(d, { recursive: true, force: true }));
   ok('and prose is still untouched on the refusal path', after.includes('tail text'));
 }
 
-const EXPECTED_ASSERTIONS = 49;
+// --- A GAPPED RANGE IS A POINTER THIS TOOL WROTE AND COULD NOT READ BACK ------------------------
+/* HIGH 1 and HIGH 2 on ST-302, and the second is why the first survived. POINTER_RE recognised
+   ONE of the three sentences pointerFor emits: the contiguous "N to M" form. It did not recognise
+   the GAPPED form, "1 to 27, 32 to 40", which pointerFor writes whenever the archive has a hole in
+   it, and it did not recognise the SINGLE form, "Decisions 5 are in", written when exactly one row
+   moves. Every fixture in this file used S60..S1 with no gap, so every range it could generate was
+   contiguous and the branch was never entered: a confident name over an unexercised path, S254.
+
+   THE REAL FILE HAS THE HOLE. S28 to S31 were never allocated in this project, so WARM_START.md
+   carried TWO gapped pointers the tool walked straight past, and the steady state measured on
+   ST-302 is one NEW pointer every two runs: the exact residue the consolidation exists to remove.
+
+   WHY IT IS WORSE THAN RESIDUE. archive-decisions.js derives the replacement pointer from THIS
+   RUN's archive read back from disk. That is correct, and it is only safe because the unrecognised
+   line is still sitting there holding the older claim. Hand-remove the duplicates, which is the
+   obvious tidy-up, and the next archive leaves S1 to S237 with no pointer at all. Text is never at
+   risk; the TRAIL is.
+
+   WATCHED FAILING, and the count was predicted before it was run: 4 of these assertions redden
+   against the old POINTER_RE, two in each block, and they are the pointer COUNT and the
+   CONSOLIDATION MESSAGE at the run that follows a gapped or single pointer. The range assertions
+   stay green throughout, because the top pointer is always correct and the stale one is below it,
+   which is precisely what makes this defect invisible to a reader checking the range. */
+{
+  // 1..27 and 32..60, descending, which is this project's own shape rather than an invented one.
+  const ids = [];
+  for (let n = 60; n >= 32; n--) ids.push(n);
+  for (let n = 27; n >= 1; n--) ids.push(n);
+  const rows = ids.map(n => '| S' + n + ' | decision | reason | 2026-01-01 |');
+  const { file } = doc(rows);
+  const ptrs = () => fs.readFileSync(file, 'utf8').split('\n')
+    .filter(l => /^Decisions .* are in \[DECISIONS-ARCHIVE/.test(l));
+
+  run(file, ['--keep', '40', '--write']);
+  ok('gapped table: the first archive leaves exactly one pointer', ptrs().length === 1);
+  ok('and its range is contiguous, because the hole is not in what moved',
+    /^Decisions 1 to 16 are in/.test(ptrs()[0]));
+
+  const r2 = run(file, ['--keep', '20', '--write']);
+  ok('the second archive crosses the hole and still leaves exactly one pointer', ptrs().length === 1);
+  ok('and the pointer prints the gap as two ranges rather than smoothing over rows it does not hold',
+    /^Decisions 1 to 27, 32 to 40 are in/.test(ptrs()[0]));
+  ok('and the second run says it consolidated', /consolidating to 1/.test(r2.out));
+
+  const r3 = run(file, ['--keep', '10', '--write']);
+  ok('a THIRD archive reads back the GAPPED pointer it wrote itself and still leaves one',
+    ptrs().length === 1);
+  ok('and the third run says it consolidated, rather than silently appending a second pointer',
+    /consolidating to 1/.test(r3.out));
+  ok('and the one pointer covers both sides of the hole',
+    /^Decisions 1 to 27, 32 to 50 are in/.test(ptrs()[0]));
+
+  const arch = fs.readFileSync(path.join(path.dirname(file), 'DECISIONS-ARCHIVE.md'), 'utf8');
+  ok('the row below the hole is in the archive', arch.includes('| S27 |'));
+  ok('and the row above it is too', arch.includes('| S32 |'));
+  ok('and no row inside the hole was invented', !/\| S(28|29|30|31) \|/.test(arch));
+  ok('prose after the table survived every run',
+    fs.readFileSync(file, 'utf8').includes('tail text'));
+}
+
+// --- AND THE SINGLE-IDENTIFIER FORM, WHICH IS THE THIRD SENTENCE pointerFor WRITES --------------
+/* One row archived produces "Decisions 5 are in [...]" with no "to" in it at all. Same defect,
+   different sentence, and it needs its own fixture because a gapped range cannot produce it. */
+{
+  const { file } = doc(desc(21));
+  const ptrs = () => fs.readFileSync(file, 'utf8').split('\n')
+    .filter(l => /^Decisions .* are in \[DECISIONS-ARCHIVE/.test(l));
+
+  run(file, ['--keep', '20', '--write']);
+  ok('one row archived writes a pointer with no range in it', /^Decisions 1 are in/.test(ptrs()[0]));
+  ok('and there is exactly one of them', ptrs().length === 1);
+
+  const r2 = run(file, ['--keep', '19', '--write']);
+  ok('the next archive reads that single-identifier pointer back and still leaves one',
+    ptrs().length === 1);
+  ok('and it says it consolidated', /consolidating to 1/.test(r2.out));
+  ok('and the range now names both', /^Decisions 1 to 2 are in/.test(ptrs()[0]));
+}
+
+// --- THE TIDY-UP MUST NOT BE ABLE TO LOSE THE TRAIL ---------------------------------------------
+/* ST-302 MEDIUM 5, and it is the half of HIGH 1 that survives HIGH 1 being fixed. The replacement
+   pointer used to be derived from the rows THIS RUN moved, and it was only the stale line sitting
+   below it that still held the older claim. So the moment a pointer is not there to be read, for
+   any reason, everything archived before this run silently stops being pointed at. The obvious
+   tidy-up on seeing duplicate pointers is to delete them by hand, and that is exactly the input
+   that triggers it: the fixture below does the tidy-up and then archives again.
+
+   THE ARCHIVE FILE READ BACK FROM DISK IS THE ONLY GROUND TRUTH about what is in the archive, which
+   is what the header of this tool has said since it was written. Deriving the pointer from anything
+   else, including from this run, makes it a claim about the run rather than about the file.
+
+   Watched failing: predicted exactly 1 assertion would redden and measured 1. The count assertion
+   stays green throughout, which is the point: nothing about the number of pointers is wrong on this
+   path, only what the single remaining one covers. */
+{
+  const { file } = doc(desc(60));
+  const ptrs = () => fs.readFileSync(file, 'utf8').split('\n')
+    .filter(l => /^Decisions .* are in \[DECISIONS-ARCHIVE/.test(l));
+
+  run(file, ['--keep', '40', '--write']);
+  ok('the first archive points at what it moved', /^Decisions 1 to 20 are in/.test(ptrs()[0]));
+
+  // the hand tidy-up WARM_START.md warns about, done exactly as a person would do it
+  const tidied = fs.readFileSync(file, 'utf8').split('\n')
+    .filter(l => !/^Decisions .* are in \[DECISIONS-ARCHIVE/.test(l)).join('\n');
+  fs.writeFileSync(file, tidied, 'utf8');
+  ok('the tidy-up really did remove every pointer, so the next run starts with none',
+    ptrs().length === 0);
+
+  run(file, ['--keep', '20', '--write']);
+  ok('archiving after the tidy-up leaves exactly one pointer', ptrs().length === 1);
+  ok('and it covers everything in the ARCHIVE, not only the rows this run moved, so the tidy-up '
+    + 'cannot lose the trail', /^Decisions 1 to 40 are in/.test(ptrs()[0]));
+
+  const arch = fs.readFileSync(path.join(path.dirname(file), 'DECISIONS-ARCHIVE.md'), 'utf8');
+  ok('the oldest row the pointer claims is genuinely in the archive', arch.includes('| S1 |'));
+}
+
+const EXPECTED_ASSERTIONS = 71;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

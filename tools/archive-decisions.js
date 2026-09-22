@@ -82,7 +82,40 @@ function say(msg) { console.log('  ' + msg); }
 // The real document had 20 live rows against a keep of 20, so the tool exited before it reached
 // the consolidation and the entire 8,700 character saving would have sat there until the next
 // archive. Found by running the tool on the real file rather than by reading it.
-const POINTER_RE = new RegExp('^Decisions (\\d+) to (\\d+) are in \\[' + ARCHIVE_NAME.replace('.', '\\.'));
+// IT RECOGNISES EVERY SENTENCE pointerFor WRITES, WHICH IS THREE AND USED TO BE ONE. The pattern
+// was the CONTIGUOUS form, "N to M", so the GAPPED form this tool emits whenever the archive has a
+// hole in it ("1 to 27, 32 to 237") and the SINGLE form written when exactly one row moves
+// ("Decisions 5 are in") were both invisible to it. This project's own decisions are gapped,
+// because S28 to S31 were never allocated, so WARM_START.md carried TWO pointers the tool walked
+// straight past and the measured steady state was one NEW pointer every two runs: the exact residue
+// the consolidation exists to remove, in the one document it was written for.
+//
+// AND THE RESIDUE WAS THE SMALL HALF. An unrecognised pointer is the only thing still holding the
+// older claim, because the replacement is derived from the archive read back at THIS run. Hand-tidy
+// the duplicates, which is the obvious thing to do on seeing them, and the next archive leaves the
+// whole older span with no pointer at all. The text is never at risk; the TRAIL is. ST-302 HIGH 1
+// and MEDIUM 5. The sibling tool had already solved the same problem with CONSOLIDATED_RE in
+// archive-sittings.js: a tool that cannot read its own output consolidates once and never again.
+const SPAN_RE = '(?:\\d+(?: to \\d+)?(?:, \\d+(?: to \\d+)?)*|older entries)';
+const POINTER_RE = new RegExp('^Decisions (' + SPAN_RE + ') are in \\[' +
+  ARCHIVE_NAME.replace(/\./g, '\\.'));
+
+// The identifiers a pointer sentence CLAIMS, so they can be looked for in the archive before the
+// line is removed. Returns null for anything this tool did not write, which is then left exactly
+// where it is rather than parsed optimistically: a range is proved by its ends, and a sentence
+// whose ends cannot be read has no ends to prove. "older entries" claims no identifier at all and
+// returns an empty list, which is not the same as null and must not be treated as one.
+function endpointsOf(span) {
+  if (span === 'older entries') return [];
+  const out = [];
+  for (const part of span.split(', ')) {
+    const m = part.match(/^(\d+)(?: to (\d+))?$/);
+    if (!m) return null;
+    out.push(parseInt(m[1], 10));
+    if (m[2] !== undefined) out.push(parseInt(m[2], 10));
+  }
+  return out;
+}
 
 function rangesOf(list) {
   const sorted = Array.from(new Set(list)).sort((a, b) => a - b);
@@ -108,14 +141,15 @@ function consolidate(allLines, from, archivedIds) {
   const found = [];
   for (let i = from; i < allLines.length; i++) {
     const m = allLines[i].match(POINTER_RE);
-    if (m) found.push({ at: i, lo: parseInt(m[1], 10), hi: parseInt(m[2], 10) });
+    if (!m) continue;
+    const ends = endpointsOf(m[1]);
+    if (ends) found.push({ at: i, ends: ends });
   }
   if (found.length < 2) return null;
   const have = new Set(archivedIds);
   const unproved = [];
   for (const p of found) {
-    if (!have.has(p.lo)) unproved.push(p.lo);
-    if (!have.has(p.hi)) unproved.push(p.hi);
+    for (const e of p.ends) if (!have.has(e)) unproved.push(e);
   }
   if (unproved.length) return { lines: null, removed: 0, unproved: Array.from(new Set(unproved)).sort((a, b) => a - b) };
   const drop = new Set(found.map(p => p.at));
@@ -185,8 +219,13 @@ if (rows.length <= KEEP) {
       if (check.indexOf(pointerFor(ids)) === -1) {
         die('the consolidated pointer is not in ' + path.basename(target) + ' after the write.');
       }
+      // A NEGATIVE SAVING IS NOT A SAVING HERE EITHER. The sibling tool learned this and this one
+      // was left doing the raw subtraction, so a consolidation that somehow grew the file would
+      // print the growth as a benefit with a minus sign in front of it. ST-295.
+      const delta = before - check.length
       console.log('consolidated ' + (c.removed + 1) + ' pointer(s) to 1 in ' + path.basename(target) +
-                  ', ' + (before - check.length) + ' characters off every request');
+                  ', ' + (delta >= 0 ? delta + ' characters off every request'
+                                     : (-delta) + ' characters MORE on every request, which is a fault'))
       process.exit(0);
     }
   }
@@ -268,7 +307,9 @@ const span = ids.length ? Math.min(...ids) + ' to ' + Math.max(...ids) : 'older 
 const priorPointers = [];
 for (let i = end; i < lines.length; i++) {
   const m = lines[i].match(POINTER_RE);
-  if (m) priorPointers.push({ at: i, lo: parseInt(m[1], 10), hi: parseInt(m[2], 10) });
+  if (!m) continue;
+  const ends = endpointsOf(m[1]);
+  if (ends) priorPointers.push({ at: i, ends: ends });
 }
 
 const pointer = pointerFor(ids);
@@ -327,11 +368,17 @@ const archivedIds = readBack.split(/\r?\n/).map(idOf).filter(n => n !== null);
 const archivedSet = new Set(archivedIds);
 const unproved = [];
 for (const p of priorPointers) {
-  if (!archivedSet.has(p.lo)) unproved.push(p.lo);
-  if (!archivedSet.has(p.hi)) unproved.push(p.hi);
+  for (const e of p.ends) if (!archivedSet.has(e)) unproved.push(e);
 }
 
-let pointerBlock = [pointer];
+// DERIVED FROM THE ARCHIVE READ BACK FROM DISK, ALWAYS, AND NOT FROM THE ROWS THIS RUN MOVED.
+// It used to name this run's rows and was corrected to the full archive only on the branch where
+// prior pointers were recognised and proved, so the older claim was being held by the stale line
+// underneath rather than by the pointer itself. Delete those lines by hand, which is the obvious
+// thing to do on seeing duplicates, and everything archived before this run stops being pointed
+// at while the run prints success. The archive file is the only ground truth about what is in the
+// archive, which is what the header of this tool has said since it was written. ST-302 MEDIUM 5.
+let pointerBlock = [pointerFor(archivedIds)];
 let tail = lines.slice(end);
 if (priorPointers.length) {
   if (unproved.length) {

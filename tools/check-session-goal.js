@@ -96,7 +96,7 @@ const section = sectionOf(text, '## Session goal');
 if (section === null) {
   process.stdout.write('CANNOT TELL  ' + path.basename(target) + ' carries no "## Session goal" section.\n');
   process.stdout.write('             This does not block the commit. It does mean nothing can say whether this\n');
-  process.stdout.write('             session did what it set out to do. ST-275.\n');
+  process.stdout.write('             session did what it set out to do.\n');
   process.exit(3);
 }
 
@@ -143,11 +143,69 @@ if ((cleanVerdict === 'PARTLY MET' || cleanVerdict === 'NOT MET') && !carried) {
 
 function normalise(s) { return String(s).replace(/\s+/g, ' ').trim().toLowerCase(); }
 
+/* ---- the mission half. Does this work head towards what the project is FOR? ----
+ *
+ * RAISED BY THE CEO, in their words: "we should question their vision and mission
+ * against their features and work they plan to do at start of every session."
+ *
+ * THE DESIGN IS IN WHAT IT DOES NOT PRINT. Six leads assessed this and all six landed on the
+ * same place: the check says NOTHING when the planned work fits the mission. Every draft of an
+ * agreeing line turned out to be a sentence a stranger could paste into any project unchanged,
+ * which is the test for a category rather than for a detail. A line that prints
+ * every session becomes the eleventh bullet of a founder brief the CEO already cut at 98 lines,
+ * and a check that speaks every time teaches its reader that its speech is noise.
+ *
+ * THE ESCAPE EXISTS FROM THE FIRST RUN, and that is load-bearing rather than a courtesy. Without
+ * a sayable NO this is a rubber stamp, and this studio has spent thirty-nine sittings repairing
+ * itself, so a check that refuses every maintenance sitting would be routed around within three.
+ * `Off-mission:` with a reason is a PASS. What it is not is silence.
+ *
+ * A PROJECT WITH NO MISSION IS NOT REFUSED. Same lockout reasoning as the no-section and no-board
+ * paths: a check that blocks a commit over a section a project has never had gets deleted rather
+ * than adopted. It says the mission is absent and moves on.
+ *
+ * WHAT IT WILL NOT DO IS INFER ONE. An inferred mission is a founder ruling nobody gave, and the
+ * check would then agree with it forever. Absent is a state this tool reports. Invented is not. */
+const missionSection = sectionOf(text, '## Mission');
+const UNSET = /^\*?(not captured|never|tbd|todo|unanswered|none)\*?\.?$/i;
+function missionField(name) {
+  if (!missionSection) return null;
+  const m = missionSection.match(new RegExp('^\\s*(?:\\*\\*)?' + name + '(?:\\*\\*)?\\s*:\\s*(.+)$', 'im'));
+  return m ? m[1].trim() : null;
+}
+const missionText = missionField('Mission');
+const missionCaptured = !!(missionText && !UNSET.test(missionText));
+const serves = field('Mission');
+const offMission = field('Off-mission');
+
+if (missionCaptured) {
+  if (!serves && !offMission) {
+    findings.push('the project has a captured mission and this session did not say how the work relates to it. '
+      + 'Add either a "Mission:" line naming the clause the work serves, or an "Off-mission:" line with the '
+      + 'reason.\n        Off-mission is a PASS. A sitting spent on maintenance says so and moves on. What is '
+      + 'refused is neither, because a mission nothing is ever measured against is decoration.\n        mission : '
+      + String(missionText).slice(0, 120));
+  } else if (serves && PLACEHOLDER.test(serves)) {
+    findings.push('the "Mission:" line is a placeholder (' + JSON.stringify(serves) + '), which satisfies the field and names no clause.');
+  } else if (offMission && PLACEHOLDER.test(offMission)) {
+    findings.push('the "Off-mission:" line is a placeholder (' + JSON.stringify(offMission) + '). The escape costs a reason somebody stands behind, or it is a flag nobody sees.');
+  }
+}
+
 /* ---- the board half: was the goal a commitment or a summary? ---- */
 
 const boardDir = arg('--board', path.join(path.dirname(path.resolve(target)), '.board'));
 const ticketsDir = path.join(boardDir, 'tickets');
 let boardVerdict = null;
+/* WHICH SITTING THIS RUN IS ABOUT, always printed, so a pass is never silent about it. */
+let scoringLine = stated ? 'the sitting stated ' + stated : 'unknown, this document carries no Stated line';
+let supersededBy = null;
+/* A mission captured at birth is a claim nobody re-verifies, so staleness has to
+ * be mechanical rather than remembered. Three sittings running that all declare themselves
+ * off-mission is evidence about the MISSION and not about the work, and the tool says so in that
+ * direction: it asks the founder to reaffirm or rewrite rather than telling three sittings they
+ * were wrong. It does not refuse, because the sittings were probably right. */
+let missionStale = false;
 
 if (!fs.existsSync(ticketsDir)) {
   boardVerdict = 'NO BOARD  ' + ticketsDir + ' does not exist, so nothing can say WHEN the goal was written.';
@@ -223,6 +281,46 @@ if (!fs.existsSync(ticketsDir)) {
         + '        board    : ' + todaysNotes.map(nt => String(nt.what).slice(0, 70)).join(' // ') + '\n'
         + '        document : ' + String(goal).slice(0, 160));
     }
+
+    /* ---- is this document about the LIVE sitting, or one that is already over? ----
+     *
+     * THE DEFECT THIS CLOSES. The `## Session goal` section is written at wind-down, so until
+     * then it holds the PREVIOUS sitting's goal. Every run before that read an old sitting,
+     * found it complete and correct, and exited 0. Green was therefore not evidence about the
+     * session being scored, and WARM_START.md described that in prose for three sittings before
+     * anybody put it on a ticket.
+     *
+     * THE DISCRIMINATOR IS THE BOARD AND NOT THE CLOCK, deliberately. Two sittings in one
+     * calendar day is ordinary here, so the date alone cannot separate them; and the document's
+     * `Stated:` line is minute-resolution while a board stamp carries seconds, so comparing the
+     * two timestamps directly invents a difference on a perfectly correct wind-down. What is
+     * unambiguous is which NOTE carries this document's goal. If the board holds a later goal
+     * note than the one this document is about, then a newer sitting has committed to something
+     * and this document is not about it.
+     *
+     * IT IS CANNOT TELL, NOT A FAILURE. The document is not wrong; it is simply about a session
+     * that has finished. Refusing here would block a commit for the ordinary act of running the
+     * check mid-session. Exit 3 is already advisory in run-checks.js, so this reports without
+     * locking anybody out, which is the same lockout reasoning that shaped the no-section path. */
+    const allNotes = notes.slice().sort((a, b) => a.at.localeCompare(b.at));
+    const lastThree = allNotes.slice(-3);
+    if (lastThree.length === 3 && lastThree.every(nt => /off-mission/i.test(String(nt.what)))) missionStale = true;
+    if (allNotes.length) {
+      const newest = allNotes[allNotes.length - 1];
+      const key = goal ? normalise(goal).slice(0, Math.min(40, normalise(goal).length)) : '';
+      const mine = key ? allNotes.filter(nt => normalise(nt.what).includes(key)).pop() : null;
+      if (mine) {
+        scoringLine = 'the sitting whose goal was noted ' + mine.at + ' on ' + mine.ref;
+        if (newest.at > mine.at) {
+          supersededBy = newest;
+          scoringLine += ', which is NOT the newest goal on this board';
+        } else {
+          scoringLine += ', which IS the newest goal on this board';
+        }
+      } else {
+        scoringLine = 'a goal that appears in no board note at all, newest on the board is ' + newest.at;
+      }
+    }
   }
 }
 
@@ -233,9 +331,42 @@ if (stated) process.stdout.write('  Stated  ' + stated + '\n');
 if (verdict) process.stdout.write('  Verdict ' + verdict + '\n');
 if (carried) process.stdout.write('  Carried ' + carried + '\n');
 if (boardVerdict) process.stdout.write('  Board   ' + boardVerdict + '\n');
+process.stdout.write('  Scoring ' + scoringLine + '\n');
+/* NOTHING IS PRINTED HERE TO CONGRATULATE WORK THAT FITS. The clause is echoed so a reader can
+ * check the claim, and that is all. */
+if (missionCaptured) {
+  if (serves) process.stdout.write('  Serves  ' + serves + '\n');
+  if (offMission) process.stdout.write('  Off     ' + offMission + '\n');
+} else {
+  process.stdout.write('  Mission not captured, so nothing here can say whether the work heads towards it.\n');
+  process.stdout.write('  Add a "## Mission" section to the state document with a Mission and a Vision line.\n');
+}
+if (missionStale) {
+  process.stdout.write('\n  MISSION STALE. The last three sittings on this board all recorded themselves off-mission.\n');
+  process.stdout.write('  That is evidence about the mission rather than about the work. Reaffirm it or rewrite it.\n');
+}
 /* An accepted ordering is PRINTED on every run rather than silently swallowed. A suppression
  * nobody sees is a suppression nobody revisits. */
 for (const nt of orderingNotes) process.stdout.write('  ' + nt + '\n');
+
+/* BEING ABOUT A FINISHED SESSION WINS OVER EVERY FINDING, and that ordering is the whole point.
+ * A document about a sitting that is already over will also be missing whatever the live sitting
+ * was supposed to add, so its findings are about the dead sitting. Blocking a commit over them
+ * reinstates the defect this branch exists to close, one level down. They are printed, because a
+ * suppression nobody sees is a suppression nobody revisits, and they are printed as context
+ * rather than as a refusal. */
+if (supersededBy) {
+  process.stdout.write('\nCANNOT TELL  this document is about a sitting that is already over.\n');
+  process.stdout.write('             The newest goal on this board was noted ' + supersededBy.at + ' on '
+    + supersededBy.ref + ' and this document does not carry it:\n');
+  process.stdout.write('               board    ' + String(supersededBy.what).slice(0, 100) + '\n');
+  process.stdout.write('               document ' + String(goal || '(none)').slice(0, 100) + '\n');
+  for (const f of findings) process.stdout.write('             context: ' + String(f).split('\n')[0] + '\n');
+  process.stdout.write('             Everything above is true of the EARLIER sitting and says nothing about the\n');
+  process.stdout.write('             live one. This does not block the commit. The wind-down rewrites the section,\n');
+  process.stdout.write('             and this check then scores the sitting it claims to.\n\n');
+  process.exit(3);
+}
 
 if (findings.length === 0) {
   process.stdout.write('\n  the goal was committed to before the work and is answered with a verdict.\n\n');
@@ -246,6 +377,6 @@ if (findings.length === 0) {
  * path above adds no finding: a project with no board must still be able to commit. */
 process.stdout.write('\n');
 for (const f of findings) process.stdout.write('FAIL  ' + f + '\n');
-process.stdout.write('\n' + findings.length + ' finding(s). ST-275.\n');
+process.stdout.write('\n' + findings.length + ' finding(s).\n');
 if (boardVerdict && /^NO BOARD/.test(boardVerdict)) process.stdout.write('  ' + boardVerdict + '\n');
 process.exit(1);

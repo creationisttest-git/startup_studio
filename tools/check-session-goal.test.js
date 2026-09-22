@@ -248,7 +248,125 @@ function broken (replace, withText) { return GOOD.replace(replace, withText); }
   ok('a goal matching a LATER note of the same day is not reported as drift', r.code === 0);
 }
 
-const EXPECTED_ASSERTIONS = 37;
+/* ---------------------------------------------------------------- the sitting being scored
+ * WHICH SITTING IS THIS RUN ABOUT? The check reads the `## Session goal` section, and that
+ * section holds the PREVIOUS sitting's goal until the wind-down rewrites it. So every run before
+ * the wind-down scored a session that was already over and exited 0, which means green here was
+ * not evidence about the session being scored. WARM_START.md called that a defect worth a ticket
+ * three sittings running before anybody put it on a ticket.
+ *
+ * The discriminator is the board and not the clock. Two sittings on one calendar day is ordinary
+ * here, and the document's `Stated:` line is minute-resolution while a board stamp is seconds, so
+ * comparing the two timestamps invents a difference on a correct wind-down. What is unambiguous
+ * is WHICH NOTE carries this document's goal: if a newer goal note exists than the one this
+ * document is about, the document is scoring a sitting that has been superseded. */
+{
+  const w = world(GOOD, [
+    { at: '2026-09-18 09:00:00', what: NOTE },
+    { at: '2026-09-18 14:00:00', what: 'SESSION GOAL 2026-09-18. Goal: a later sitting on the same day, working on something else entirely' }
+  ]);
+  const r = run(w);
+  ok('a document scoring a sitting the board has already superseded is CANNOT TELL, not a pass', r.code === 3);
+}
+{
+  const w = world(GOOD, [{ at: '2026-09-18 09:00:00', what: NOTE }]);
+  const r = run(w);
+  ok('every run names the sitting it scored, so a pass is never silent about what it was about', /Scoring/.test(r.out));
+}
+{
+  /* The negative control for the case above. A document carrying the NEWEST goal on the board is
+   * the live sitting and must still pass, or the fix simply refuses every wind-down. */
+  const w = world(GOOD, [
+    { at: '2026-09-18 04:00:00', what: 'SESSION GOAL 2026-09-18. Goal: an earlier sitting on the same day, working on something else entirely' },
+    { at: '2026-09-18 09:00:00', what: NOTE }
+  ]);
+  const r = run(w);
+  ok('a document carrying the NEWEST goal on the board still passes', r.code === 0);
+}
+
+/* ---------------------------------------------------------------- the mission check
+ * THE MISSION CHECK, and the whole design is in what it does NOT print. All six leads at the
+ * front door agreed the challenge must be silent when the planned work fits the mission,
+ * because every draft of an agreeing line turned out to be a sentence a stranger could paste
+ * into any project unchanged. A line that prints every session becomes the
+ * eleventh bullet of a founder brief the CEO already cut at 98 lines.
+ *
+ * So there is no "aligned" message to assert on. What is asserted is that the field is REQUIRED
+ * once a mission exists, that saying no is possible from the first run, and that a project with
+ * no mission is not locked out over a section it has never had. */
+const MISSION = [
+  '## Mission',
+  '',
+  'Mission: founders who cannot afford a team and need one that refuses bad work',
+  'Vision: a studio that ships without a person holding it up',
+  'Captured: 2026-09-18',
+  '',
+  ''
+].join(LF);
+const NO_MISSION = MISSION
+  .replace('founders who cannot afford a team and need one that refuses bad work', '*not captured*')
+  .replace('a studio that ships without a person holding it up', '*not captured*');
+
+function withGoal (extraLine) {
+  return GOOD.replace('Verdict: MET', extraLine === null ? 'Verdict: MET' : ('Verdict: MET' + LF + extraLine));
+}
+
+{
+  const w = world(MISSION + withGoal(null), [{ at: '2026-09-18 09:00:00', what: NOTE }]);
+  const r = run(w);
+  ok('a captured mission makes the mission field REQUIRED in the goal', r.code === 1 && /mission/i.test(r.out));
+}
+{
+  const w = world(MISSION + withGoal('Mission: refuses bad work, which is what this round is'), [{ at: '2026-09-18 09:00:00', what: NOTE }]);
+  const r = run(w);
+  ok('naming the clause the work serves passes, and prints no praise for it', r.code === 0 && !/aligned|on mission|well done/i.test(r.out));
+}
+{
+  /* THE ESCAPE, AND IT EXISTS FROM THE FIRST RUN. Without a sayable no the check is a rubber
+   * stamp, and this studio has spent 39 sittings repairing itself: a check that fails every
+   * sitting is noise within three. Off-mission with a reason is a pass. */
+  const w = world(MISSION + withGoal('Off-mission: this sitting is maintenance on the archivers'), [{ at: '2026-09-18 09:00:00', what: NOTE }]);
+  const r = run(w);
+  ok('saying the work is OFF-mission, with a reason, is a pass and not a refusal', r.code === 0);
+}
+{
+  /* ADOPTION. A project that has never captured a mission must not be locked out of committing
+   * over a section it has never had, which is the same lockout reasoning that shaped the
+   * no-section path and the no-board path. */
+  const w = world(NO_MISSION + withGoal(null), [{ at: '2026-09-18 09:00:00', what: NOTE }]);
+  const r = run(w);
+  ok('a project with no captured mission is not refused for lacking the field', r.code === 0);
+}
+{
+  /* STALENESS IS MECHANICAL. A mission captured at birth is a claim nobody re-verifies.
+   * Three sittings running that all declare themselves off-mission is evidence about the
+   * MISSION, not about the work, and the tool says so rather than blaming the sittings. */
+  const off = 'SESSION GOAL 2026-09-18. Goal: ship the eight-item round the CEO authorised, finished rather than carried. Off-mission: maintenance.';
+  const w = world(MISSION + withGoal('Off-mission: this sitting is maintenance on the archivers'), [
+    { at: '2026-09-16 09:00:00', what: off },
+    { at: '2026-09-17 09:00:00', what: off },
+    { at: '2026-09-18 09:00:00', what: off }
+  ]);
+  const r = run(w);
+  ok('three off-mission sittings running reports the MISSION as stale, not the work', /stale/i.test(r.out));
+}
+
+{
+  /* THE TWO HALVES MEETING, found by running the finished tool against this repository rather
+   * than against a fixture. A document about a sitting that is already over will also be missing
+   * anything the live sitting was supposed to add, so its findings are about the dead sitting and
+   * blocking a commit over them reinstates exactly the defect the superseded check closed. Being
+   * about a finished session wins over every finding, because none of those findings is about the
+   * session anybody is in. */
+  const w = world(MISSION + withGoal(null), [
+    { at: '2026-09-18 09:00:00', what: NOTE },
+    { at: '2026-09-18 14:00:00', what: 'SESSION GOAL 2026-09-18. Goal: a later sitting on the same day, working on something else entirely' }
+  ]);
+  const r = run(w);
+  ok('a finding about a superseded sitting does not block, because it is not about the live one', r.code === 3);
+}
+
+const EXPECTED_ASSERTIONS = 46;
 if (pass + fail !== EXPECTED_ASSERTIONS) {
   console.log('FAIL  the suite ran ' + (pass + fail) + ' assertion(s) and expects ' + EXPECTED_ASSERTIONS + '. A block was skipped or deleted. Find out which before you change the number.');
   fail++;

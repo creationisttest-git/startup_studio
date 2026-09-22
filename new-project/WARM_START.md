@@ -10,6 +10,35 @@ Delete the italic guidance as you fill each section in.
 
 ---
 
+## Mission
+
+*Two lines and no more. Every session's planned work is checked against this, so it is re-sent
+on every request for the life of the session: a paragraph here is a charge on every call, and
+anything longer belongs on a ticket.*
+
+*Ask the founder these two questions, in these words, and do not show them the labels. Asking
+for a "mission" and a "vision" by name returns a tagline, and returns it twice.*
+
+> who is this for, and what does it do for them that nothing else does?
+>
+> if it works, what is different in three years?
+
+*The first answer is the Mission, the second is the Vision. Label them here once they exist. If
+the founder ever asks what the difference is: mission is what you do, for whom, today; vision is
+what is different in the world once it has worked.*
+
+Mission: *not captured*
+Vision: *not captured*
+Captured: *never*
+
+*LEAVE THOSE THREE LINES EXACTLY AS THEY ARE UNTIL THE FOUNDER HAS ANSWERED. A session that
+fills them in from the code, the README or the repository name is writing a founder ruling
+nobody gave, and that is worse than leaving them empty: an invented mission is one the mission
+check agrees with forever, and nothing downstream can tell it from a real one. Empty is a state
+the tooling understands and reports. Invented is not.*
+
+---
+
 ## Current state
 
 *What is true of the project today. What exists, what works, what is deployed where. Enough

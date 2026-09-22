@@ -6,6 +6,28 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-22
+
+### Your decision trail survives the tidy-up, and what you chose is checked
+
+**What this gives you.** The tool that tidies your project history can no longer lose the trail
+back to your decisions, and what you were shown when you decided is now checked against what was
+written down.
+
+**The tidy-up could lose the trail back to your decisions.** It did not recognise every signpost
+it writes, so a document collected duplicates and older decisions could end up with nothing
+pointing at them. Clearing those duplicates by hand was the move that lost them. All are
+recognised now, and tidying by hand is safe.
+
+**Nothing checked that the options stored against your answer were the ones you saw.** Now
+something does. If the list you clicked was ordered differently from the list on the record, you
+are told while it can still be fixed. If the two cannot be compared, it says so, because silence
+from a check reads like approval.
+
+**A tidy-up that made a document longer called it a saving.** It now says the document grew.
+
+---
+
 ## 2026-09-21
 
 ### Cheaper sessions, a safer tidy-up, and claims that are true

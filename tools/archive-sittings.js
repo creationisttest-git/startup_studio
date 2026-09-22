@@ -183,9 +183,18 @@ const CONVENTIONS = {
     const m = boldHead(text).match(OPENER);
     return m ? { date: m[1], ordinal: m[2] } : null;
   },
+  // THE NAME IS THE DOCUMENT'S OWN TEXT, NOT A REBUILD OF IT. This used to join the date and the
+  // time-of-day word with a space, dropping the comma the document actually carries, so a block
+  // opening "2026-03-01, evening" was named "2026-03-01 evening". The archive holds the original,
+  // and every receipt is proved by looking its name up IN THE ARCHIVE, so the proof searched for a
+  // string no archive will ever contain: the receipts never folded and six runs left six of them.
+  // The match is taken whole because DATE_OPENER's tail is a lookahead and consumes nothing, so
+  // d[0] is exactly the opener as written. Invisible in this project only because its own blocks
+  // are named by ordinal, which is S249 again: correct here, broken for the convention the header
+  // of this file names as the one it was built for. ST-302 HIGH 3.
   date: function (text) {
     const d = text.match(DATE_OPENER);
-    return d ? { date: d[1], ordinal: d[1] + (d[2] ? ' ' + d[2] : '') } : null;
+    return d ? { date: d[1], ordinal: d[0] } : null;
   },
 };
 
@@ -365,6 +374,19 @@ function plan (section) {
   const move = blocks.slice(KEEP);
 
   // Prove the split accounts for every line of the region BEFORE anything is written.
+  //
+  // AND THIS IS RECORDED AS UNPROVABLE RATHER THAN LEFT LOOKING LIKE A CONTROL. ST-295 MEDIUM. The
+  // three checks below cannot fail as the code stands: blocks are built by walking the openers in
+  // the region, each one ending where the next begins and the last ending at regionEnd, so they
+  // tile it by construction and the count, the overlap and the coverage all follow. A reviewer
+  // guarded them and nothing reddened. They are kept as a TRIPWIRE for a future change to that
+  // walk, not deleted, because the cost is three comparisons and the thing they would catch is a
+  // silent rewrite of somebody's record. What actually guards the splice today is the orphan check
+  // after the rebuild, which compares the document that will be written against the archives on
+  // disk and CAN fail: it is covered by a fixture that breaks the splice deliberately.
+  //
+  // A check nobody has watched fail and a check that always passes are the same thing until
+  // somebody writes down which it is. This is the second one, and now it says so.
   const regionLines = regionEnd - regionStart + 1;
   const counted = blocks.reduce((n, b) => n + (b.end - b.start + 1), 0);
   if (counted !== regionLines) {
@@ -460,7 +482,24 @@ function pointerFor (p, proved) {
 // project whose entries are named that way would have its receipts go unrecognised and accumulate
 // one per run, which is the defect this consolidation exists to fix, reintroduced for everyone
 // except the projects that happen to write dates the way this one does.
-const NAME = '([A-Z][A-Z-]+|\\d{4}-\\d\\d-\\d\\d(?: [A-Za-z]+)?|[A-Z][A-Za-z]* \\d{4}-\\d\\d-\\d\\d)';
+// THE DATE BRANCH TAKES THE COMMA, because the name it has to match is now the document's own
+// opener rather than a rebuild of it. Optional, so a date with no time-of-day word and the
+// receipts already written in this project both still parse. ST-302 HIGH 3.
+//
+// AND IT TAKES A RUN OF SPACES OR TABS, BECAUSE THE OPENER IT HAS TO MATCH DOES. DATE_OPENER
+// accepts ",\s+" while this accepted exactly one space, so a block headed "2026-03-01,  evening ("
+// with two spaces was given a name this pattern could never read back, and the receipt went
+// unfindable on the next run. That is the same residue ST-302 HIGH 3 was about, one whitespace
+// character away, and it survived that fix because the two patterns were written apart and never
+// compared. Any pattern that reads a name another pattern WROTE has to accept what that one emits.
+//
+// NOT \s, DELIBERATELY, AND THE GAP IS NAMED RATHER THAN PAPERED OVER. \s would also match a
+// newline, and this pattern is not line-anchored at its tail, so it could run a name across a line
+// break and match text from the row below. DATE_OPENER can therefore still emit one thing this
+// cannot read, a heading split by a newline inside the comma, which is not a shape markdown
+// produces. A reviewer flagged the earlier version of this comment for claiming total coverage it
+// did not have, which is the same overclaim the rest of this release is about.
+const NAME = '([A-Z][A-Z-]+|\\d{4}-\\d\\d-\\d\\d(?:,?[ \\t]+[A-Za-z]+)?|[A-Z][A-Za-z]* \\d{4}-\\d\\d-\\d\\d)';
 const ARCHIVE = '\\[([A-Z_-]+\\.md)\\]';
 // THE WORD "sitting" MOVED OUT OF THIS PATTERN AND INTO THE SECTION'S OWN NOUN. Hard-coded here
 // it was a claim about every project's vocabulary, and writing "sitting" into a sibling's build
@@ -620,8 +659,33 @@ function normalise (raw, where) {
     die(where + ': section "' + raw.heading + '" needs an "archive" filename in capitals ending ' +
       '.md, because the receipt left behind has to be findable by pattern as well as by eye.');
   }
+  // CONSTRAINED FOR THE SAME REASON `archive` IS, and it was not. The noun is interpolated into
+  // RECEIPT_RE, which can only read lower-case words, so a project whose entries are "Round" or
+  // "build-status" gets receipts written that the consolidation can never match again: six
+  // sittings leave six receipts, growing the document this tool exists to shrink, silently and in
+  // somebody else's record. Same cause as the tool failing to read its own consolidated output: a
+  // field a PROJECT supplies, interpolated into a pattern without being constrained. ST-295.
+  //
+  // REFUSED RATHER THAN LOWER-CASED. Coercing it would write a word into a sibling's document that
+  // its authors did not choose, which is the exact fault pluralOf exists to avoid one line below.
   const noun = raw.noun || 'entry';
   const plural = raw.nounPlural || pluralOf(noun);
+  for (const pair of [['noun', noun], ['nounPlural', plural]]) {
+    if (!/^[a-z]+( [a-z]+)*$/.test(pair[1])) {
+      // THE REMEDY HAS TO BE ONE THE READER CAN PERFORM, and the first version of this message
+      // named one that cannot be. It told them to supply "nounPlural", which is checked by this
+      // same predicate, so following the instruction produces the identical refusal. A content
+      // reviewer proved it with a config. The header of this file promises a refusal names a
+      // remedy you can perform, so the message was falsifying its own file's claim. ST-295.
+      die(where + ': section "' + raw.heading + '" has a "' + pair[0] + '" of "' + pair[1] + '". ' +
+        'It must be one or more lower-case words separated by single spaces, with no capital, ' +
+        'hyphen or digit, because it is written into the receipt paragraph and read back out of ' +
+        'it by pattern. Rewrite it in lower-case words, for example "build status entry" rather ' +
+        'than "Build-Status Entry". Both "noun" and "nounPlural" are held to this, so supplying ' +
+        'one to escape the other will not help; set "nounPlural" only when the plural this tool ' +
+        'derives is the wrong word.');
+    }
+  }
   return {
     heading: raw.heading,
     archive: raw.archive,
@@ -639,6 +703,20 @@ function normalise (raw, where) {
 // noun is "build status entry" would have had "entrys" written into a sibling project's own
 // document, permanently, by a tool whose entire claim is that it does not damage the record it
 // edits. A project that wants a word this does not reach supplies "nounPlural".
+// A SAVING THAT IS NEGATIVE IS NOT A SAVING, AND THIS TOOL PRINTED IT AS ONE. Three call sites all
+// said "N off every request" with N computed as before minus after, so a run that GREW the document
+// reported the growth as a benefit with a minus sign in front of it. That is the one number anybody
+// reads to decide whether archiving is working, and it was the number that could not tell them it
+// had stopped. Ten simulated sittings once grew a document from 1,134 to 5,642 characters while
+// archiving it, and every one of those runs printed a saving. ST-295 LOW.
+function savingLine (before, after) {
+  const d = before - after;
+  if (d > 0) return before + ' to ' + after + ' characters, ' + d + ' off every request';
+  if (d === 0) return before + ' to ' + after + ' characters, no change';
+  return before + ' to ' + after + ' characters, which is ' + (-d) + ' MORE on every request. ' +
+    'Archiving is supposed to shrink this document and this run grew it.';
+}
+
 function pluralOf (noun) {
   if (/[^aeiou]y$/.test(noun)) return noun.slice(0, -1) + 'ies';
   if (/(s|x|z|ch|sh)$/.test(noun)) return noun + 'es';
@@ -698,6 +776,20 @@ const doable = plans.filter(p => !p.skip);
 for (let i = 0; i < doable.length; i++) {
   for (let j = i + 1; j < doable.length; j++) {
     const a = doable[i], b = doable[j];
+    // AND THE SAME DESTINATION IS THE SAME FAULT ONE STEP LATER. Two DIFFERENT sections pointed at
+    // one archive filename pass the overlap test below, because their regions are disjoint and that
+    // test is about lines. What they share is where everything downstream is keyed: receipts are
+    // grouped by archive NAME, so the second section's receipt folds into the first section's group
+    // and the pointer belonging to it is erased. No text is lost, the archive holds both, and the
+    // TRAIL to the second section stops existing. Refused rather than merged, because a merged
+    // group cannot say which section a block came from and the boundary is per-section. ST-295.
+    if (a.section.archive === b.section.archive) {
+      refuse('"' + a.section.heading + '" and "' + b.section.heading + '" both write to the ' +
+        'same archive file, ' + a.section.archive + '. Receipts and pointers are grouped by that ' +
+        'filename, so the second section would lose the pointer that leads to it while its text ' +
+        'sat in the archive with nothing naming it. Nothing was written. Give each section its ' +
+        'own archive file.');
+    }
     if (a.regionStart <= b.regionEnd && b.regionStart <= a.regionEnd) {
       refuse('"' + a.section.heading + '" and "' + b.section.heading + '" resolve to the same ' +
         'lines of this document (' + (a.regionStart + 1) + '-' + (a.regionEnd + 1) + ' and ' +
@@ -733,17 +825,25 @@ if (!doable.length) {
     process.exit(0);
   }
   const out = c.lines.join(nl);
-  say(src.length + ' to ' + out.length + ' characters, ' + (src.length - out.length) +
-      ' off EVERY request');
+  say(savingLine(src.length, out.length));
   if (!write) {
     console.log('DRY RUN. Nothing was modified. Re-run with --write to apply.');
     process.exit(0);
   }
   fs.writeFileSync(target, out, 'utf8');
+  // WHOLE, NOT BY LENGTH. This read it back and compared the SIZE, and a document of the right
+  // length that is not the right document passes that. S258: a file with clean bytes and broken
+  // content reads as repaired. ST-302 LOW 6.
   const back = fs.readFileSync(target, 'utf8');
-  if (back.length !== out.length) die('the consolidated document did not survive the write.');
-  console.log('consolidated the archive receipts, ' + (src.length - back.length) +
-              ' characters off every request. Nothing was archived; there was nothing to archive.');
+  if (back !== out) die('the consolidated document did not survive the write: ' + out.length +
+      ' characters were written and ' + back.length + ' read back.');
+  // THROUGH savingLine LIKE THE OTHER TWO. Its own comment counts three call sites and it covered
+  // two; a reviewer found this one still doing the raw subtraction. Unreachable with a negative
+  // today, because consolidation only fires on two or more receipts and always folds them into one
+  // shorter paragraph, and that is exactly the kind of "cannot happen" that ships wrong the day
+  // the path changes. ST-295.
+  console.log('consolidated the archive receipts, ' + savingLine(src.length, back.length) +
+              '. Nothing was archived; there was nothing to archive.');
   process.exit(0);
 }
 
@@ -828,9 +928,26 @@ const settled = consolidateReceipts(rebuilt, dir, wanted.concat(SECTIONS));
 settled.report.forEach(say);
 const after = settled.lines.join(nl);
 fs.writeFileSync(target, after, 'utf8');
+// READ IT BACK, BECAUSE THIS IS THE WRITE WITH SOMETHING TO LOSE. The no-op path above, which
+// only folds receipts and removes nothing, verified its own write from the day it was written.
+// This one has just taken dated history OUT of the document and did not, which is the wrong way
+// round. Compared WHOLE rather than by length: a check on the size cannot tell a document that
+// survived from one of the same length that did not, which is the distinction S258 was paid for.
+// Nothing is lost when this fires, because the archive was written and proved first, so the
+// remedy is to re-run. ST-302 LOW 6.
+const landed = fs.readFileSync(target, 'utf8');
+if (landed !== after) {
+  // "NOTHING IS LOST" WAS FALSE AND A REVIEWER SAID SO. This fires only when the source write did
+  // NOT land, so what is at risk is the DOCUMENT rather than the archive, and re-running against a
+  // document in an unknown state is not obviously safe. The archive is safe; the remedy is version
+  // control. A refusal that misdescribes what survived is worse than one that says less. ST-295.
+  die(path.basename(target) + ' did not survive the write: ' + after.length + ' characters were ' +
+      'written and ' + landed.length + ' read back. The archive was written and PROVED first, so ' +
+      'every block that moved is safe there. The document on disk is in an unknown state: restore ' +
+      'it from version control before running this again.');
+}
 
 console.log('');
 console.log('archived ' + doable.reduce((n, p) => n + p.move.length, 0) + ' dated block(s)');
-console.log(path.basename(target) + ' went ' + src.length + ' to ' + after.length + ' characters, ' +
-  (src.length - after.length) + ' off every request');
+console.log(path.basename(target) + ' went ' + savingLine(src.length, after.length));
 process.exit(0);

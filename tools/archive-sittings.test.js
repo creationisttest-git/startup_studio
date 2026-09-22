@@ -363,8 +363,11 @@ function receiptDoc (opts) {
   ok('a document with nothing to archive still reports the receipts it can consolidate',
     /receipt\(s\) consolidated to 1/.test(dry.out));
   ok('and a dry run changes nothing', fs.readFileSync(file, 'utf8') === before);
+  /* The wording lost its shouted EVERY when all three saving lines moved through savingLine, which
+     is what makes a negative saving say so instead of printing a minus sign. Updated rather than
+     loosened: it still requires the figure and the per-request framing, which is the claim. */
   ok('and it says what the consolidation is worth, in characters off every request',
-    /off EVERY request/.test(dry.out));
+    /\d+ off every request/.test(dry.out));
 
   const r = run(file, ['--write']);
   const after = fs.readFileSync(file, 'utf8');
@@ -380,7 +383,10 @@ function receiptDoc (opts) {
     after.includes('**Durable state that must never be touched.**'));
   ok('the live sitting block is untouched', after.includes('live body.'));
   ok('prose after the sections is untouched', after.includes('tail text'));
-  ok('and the run reports the saving it actually made', /characters off every request/.test(r.out));
+  /* Wording moved when this third call site was routed through savingLine, which is what makes a
+     negative saving say so instead of printing a minus sign. Updated rather than loosened: it
+     still requires a figure and the per-request framing, which is the claim. */
+  ok('and the run reports the saving it actually made', /\d+ off every request/.test(r.out));
   ok('and it exits clean', r.code === 0);
   ok('the document got smaller', after.length < before.length);
 }
@@ -428,8 +434,17 @@ function receiptDoc (opts) {
     /Session log: 4 dated block\(s\)/.test(dry.out));
   ok('and the block is named by its date, because there is no ordinal to name it with',
     /keep 1 \(2026-09-20\)/.test(dry.out));
-  ok('and a time-of-day word after the comma is carried, so two sittings in one day stay distinct',
-    /2026-09-19 evening/.test(dry.out) && /2026-09-19 afternoon/.test(dry.out));
+  /* THIS ASSERTION USED TO PIN THE DEFECT. It required the name to be "2026-09-19 evening", the
+     comma-dropped rebuild, which is a string the archive can never hold because the document wrote
+     a comma. So the one check covering this convention demanded exactly the value that made the
+     receipt proof fail, and reading it agreed with it. S256: a check encodes a belief, and when the
+     belief is wrong the check becomes a machine for reinstating it. ST-302 HIGH 3. */
+  ok('and a time-of-day word after the comma is carried AS THE DOCUMENT WROTE IT, so two sittings '
+    + 'in one day stay distinct',
+    /2026-09-19, evening/.test(dry.out) && /2026-09-19, afternoon/.test(dry.out));
+  ok('and the comma is NOT dropped, because the name is looked up in the archive and the archive '
+    + 'holds the original',
+    !/2026-09-19 evening/.test(dry.out));
 
   const r = run(file, ['--section', 'Session log', '--boundary', 'Live state that is NOT', '--write']);
   // read(), not fs.readFileSync. The mutation that removes the date convention stops the archive
@@ -918,7 +933,309 @@ function receiptDoc (opts) {
   ok('and its document does not grow while it is being archived',
      sizes[sizes.length - 1] - sizes[1] < 400);
 }
-const EXPECTED_ASSERTIONS = 120;
+// --- AND THE SAME PROJECT WITH A TIME OF DAY ON THE DATE ------------------------------------------
+/* ST-302 HIGH 3. The block above is named for six runs and its fixture cannot reach the branch it
+   is about: it uses a date with NO trailing word, which is the only form that avoids the defect.
+   DATE_OPENER reads "2026-03-01, evening" and CONVENTIONS.date used to rebuild the name as
+   "2026-03-01 evening", dropping the comma the document actually carries. The archive holds the
+   original, so the proof that every receipt names something present in the archive looked for a
+   string no archive will ever contain, the receipts never folded, and six runs left six of them.
+
+   THIS IS THE REAL SIBLING CONVENTION, not an invented one: the header of this tool names the
+   comma form as the shape it was built for. Adding ONE WORD to the fixture above would have found
+   it, which is why this is a separate fixture rather than a change to that one: both forms are
+   real and both must keep working.
+
+   Watched failing, count predicted first: 2 of these 3 redden against the old name, the receipt
+   count and the document growing, while "archives cleanly" stays green because nothing exits
+   non-zero. A tool that silently declines to consolidate looks exactly like one with nothing to
+   consolidate, which is S219 and is why the count is asserted rather than the exit code. */
+{
+  const d = fixtureRoot('studio-sit-datecomma');
+  const file = path.join(d, 'NOTES.md');
+  const round = (n) => ['2026-03-' + String(n).padStart(2, '0') + ', evening (round ' + n + ', history.)', ''];
+  const tail = ['**Earlier rounds are in [ROUNDS-ARCHIVE.md](ROUNDS-ARCHIVE.md)**, unedited.', '',
+                'LIVE STATE that is NOT dated history.', '', '## Next', '', 'tail text'];
+  fs.writeFileSync(file, ['# Doc', '', '## Rounds', '']
+    .concat(round(3), round(2), round(1), tail).join('\n') + '\n', 'utf8');
+
+  const sizes = [];
+  let broke = '';
+  for (let n = 4; n < 10; n++) {
+    const cur = read(file).split('\n');
+    const at = cur.indexOf('## Rounds') + 2;
+    fs.writeFileSync(file, cur.slice(0, at).concat(round(n), cur.slice(at)).join('\n'), 'utf8');
+    const r = run(file, ['--section', 'Rounds', '--archive', 'ROUNDS-ARCHIVE.md', '--noun', 'round',
+      '--write']);
+    if (r.code !== 0 && !broke) broke = 'run ' + n + ' exited ' + r.code + ': ' + r.out.slice(0, 160);
+    sizes.push(read(file).length);
+  }
+  const flat = read(file).replace(/\s+/g, ' ');
+  const receipts = (flat.match(/archived on \d{4}-\d\d-\d\d to \[ROUNDS-ARCHIVE/g) || []).length
+                 + (flat.match(/rounds were archived to \[ROUNDS-ARCHIVE/g) || []).length;
+  ok('a date-and-time-of-day project archives cleanly run after run' + (broke ? ', got ' + broke : ''),
+     broke === '');
+  ok('and ONE receipt survives six runs when the date carries a comma and a word', receipts === 1);
+  ok('and its document does not grow while it is being archived',
+     sizes[sizes.length - 1] - sizes[1] < 400);
+
+  const arch = read(path.join(d, 'ROUNDS-ARCHIVE.md'));
+  ok('the archived block kept the comma the document wrote, so the receipt names something real',
+     arch.includes('2026-03-01, evening'));
+}
+
+// --- THE BACKSTOP THAT NOTHING COULD REACH --------------------------------------------------------
+/* ST-302 MEDIUM 4. The orphan check asserts the direction the read-back cannot: that no line LEFT
+   the document without an archive holding it. A reviewer guarded it with if (false) and the suite
+   stayed at 120 passed 0 failed, while the control mutation in the same file killed five, so the
+   harness worked and this branch simply had no fixture.
+
+   IT HAS NO NATURAL INPUT, AND THAT IS THE POINT OF IT. plan() proves the blocks tile the region
+   exactly, line for line, before anything is written, so under a correct splice every line is
+   either kept or archived and this can never fire. It is there for the ways the splice goes wrong
+   that nobody has found yet. A guard like that cannot be reached by writing a cleverer document:
+   the only honest way to watch it fail is to BREAK THE SPLICE and confirm it refuses.
+
+   So this runs a COPY of the tool with one moved block dropped from the archive body, which is the
+   simplest possible splice bug: the document loses the block and the archive never receives it.
+   The assertion that matters is not the message, it is that the SOURCE IS UNTOUCHED afterwards,
+   because that is what the refusal promises and it is the whole reason the check runs before the
+   write rather than after it. S55: a check nobody has watched fail cannot be told from one that
+   always passes, and this one had never been watched. */
+{
+  const d = fixtureRoot('studio-sit-orphan');
+  const file = path.join(d, 'NOTES.md');
+  const round = (n) => ['2026-03-' + String(n).padStart(2, '0') + ' (round ' + n + ', history.)',
+                        'DISTINCT BODY LINE FOR ROUND ' + n + '.', ''];
+  fs.writeFileSync(file, ['# Doc', '', '## Rounds', '']
+    .concat(round(5), round(4), round(3), round(2), round(1),
+            ['LIVE STATE that is NOT dated history.', '', '## Next', '', 'tail text']).join('\n') + '\n',
+    'utf8');
+
+  const src = fs.readFileSync(TOOL, 'utf8');
+  const whole = 'for (const b of move) for (let i = b.start; i <= b.end; i++) body.push(lines[i]);';
+  ok('the line the splice bug is injected into is still in the tool, so this fixture still bites',
+     src.indexOf(whole) !== -1);
+  const brokenTool = path.join(d, 'archive-sittings-broken.js');
+  fs.writeFileSync(brokenTool, src.replace(whole,
+    'for (const b of move.slice(0, -1)) for (let i = b.start; i <= b.end; i++) body.push(lines[i]);'),
+    'utf8');
+
+  const before = read(file);
+  const a = [brokenTool, file, '--section', 'Rounds', '--archive', 'ROUNDS-ARCHIVE.md',
+             '--noun', 'round', '--boundary', 'LIVE STATE that is NOT', '--write'];
+  let out = '', code = 0;
+  try { out = execFileSync('node', a, { stdio: ['pipe', 'pipe', 'pipe'] }).toString(); }
+  catch (e) { code = e.status; out = ((e.stdout || '') + (e.stderr || '')).toString(); }
+
+  ok('a splice that drops a block from the archive is REFUSED rather than written', code !== 0);
+  ok('and the refusal says what it caught, so the reader is not left guessing',
+     /without being present in any archive/.test(out));
+  ok('and it quotes the first line it could not find, so the loss is identifiable',
+     /2 line\(s\) would leave/.test(out) && /2026-03-01 \(round 1/.test(out));
+  /* AND THE READ-BACK PASSED ON THE SAME RUN. "6 of 6 distinct non-blank lines read back from
+     disk, 0 missing" is printed by this very run, while two lines are being lost. That is the
+     whole argument for this check existing: the read-back proves the archive received what was
+     SENT to it and can say nothing at all about what was sent. */
+  ok('and the read-back proof was GREEN on the same run, which is why this check is not redundant',
+     /0 missing/.test(out));
+  ok('and THE SOURCE IS BYTE FOR BYTE WHAT IT WAS, which is what the refusal promises',
+     read(file) === before);
+}
+
+// --- THE WRITE THAT DELETES TEXT IS THE ONE THAT WAS NOT READ BACK --------------------------------
+/* ST-302 LOW 6. The no-op path, which only folds receipts and removes nothing, read its own write
+   back. The archiving path, which has just taken dated history OUT of the document, wrote and
+   exited. That is the wrong way round: the write with something to lose was the unchecked one.
+
+   WATCHED FAILING THE SAME WAY THE ORPHAN BACKSTOP WAS, because a read-back guards against the
+   filesystem and no fixture can make a real filesystem lie. A copy of the tool is given a
+   truncating write, which is what a partial write looks like from the outside, and the question is
+   whether anything notices. Predicted 2 of these redden before the fix, the refusal and its
+   message, and the shape guard and the disk-agrees-with-the-report assertion stay green in both
+   directions. */
+{
+  const d = fixtureRoot('studio-sit-readback');
+  const file = path.join(d, 'NOTES.md');
+  const round = (n) => ['2026-04-' + String(n).padStart(2, '0') + ' (round ' + n + ', history.)',
+                        'DISTINCT BODY LINE FOR ROUND ' + n + '.', ''];
+  const doc = ['# Doc', '', '## Rounds', '']
+    .concat(round(5), round(4), round(3), round(2), round(1),
+            ['LIVE STATE that is NOT dated history.', '', '## Next', '', 'tail text']).join('\n') + '\n';
+  fs.writeFileSync(file, doc, 'utf8');
+
+  const args = ['--section', 'Rounds', '--archive', 'ROUNDS-ARCHIVE.md', '--noun', 'round',
+                '--boundary', 'LIVE STATE that is NOT', '--write'];
+  const real = run(file, args);
+  const onDisk = read(file);
+  const claimed = (real.out.match(/went \d+ to (\d+) characters/) || [])[1];
+  ok('a real archiving run reports the size it left behind', claimed !== undefined);
+  ok('and the document on disk is exactly that many characters, so the report is about the file '
+    + 'rather than about the plan', onDisk.length === parseInt(claimed, 10));
+
+  const src = fs.readFileSync(TOOL, 'utf8');
+  const theWrite = "fs.writeFileSync(target, after, 'utf8');";
+  ok('the final source write is still written the way this test mutates it', src.indexOf(theWrite) !== -1);
+  const brokenTool = path.join(d, 'archive-sittings-halfwrite.js');
+  fs.writeFileSync(brokenTool, src.replace(theWrite,
+    "fs.writeFileSync(target, after.slice(0, after.length - 40), 'utf8');"), 'utf8');
+
+  const file2 = path.join(d, 'NOTES2.md');
+  fs.writeFileSync(file2, doc, 'utf8');
+  let out = '', code = 0;
+  try { out = execFileSync('node', [brokenTool, file2].concat(args), { stdio: ['pipe', 'pipe', 'pipe'] }).toString(); }
+  catch (e) { code = e.status; out = ((e.stdout || '') + (e.stderr || '')).toString(); }
+  ok('a write that does not land whole is caught rather than reported as a successful archive',
+     code !== 0);
+  ok('and it says the document did not survive the write, naming the two sizes',
+     /did not survive the write/.test(out));
+}
+
+// --- A NOUN THE RECEIPT PATTERN CANNOT READ ------------------------------------------------------
+/* ST-295 MEDIUM, and it has the same cause as the defect that stopped this tool reading its own
+   output: a field a PROJECT supplies is interpolated into a pattern without being constrained.
+   `archive` is validated for exactly this reason and says so in its own refusal. `noun` was not,
+   and RECEIPT_RE can only read lower-case words, so a project whose entries are "Round" or
+   "build-status" gets receipts written that the consolidation can never match. Six sittings leave
+   six receipts, growing the document the tool exists to shrink, silently, in somebody else's
+   record rather than in this one.
+
+   REFUSED RATHER THAN COERCED. Lower-casing it quietly would write a word into a sibling project's
+   own document that its authors did not choose, which is the fault pluralOf already exists to
+   avoid. The remedy is one flag and the refusal names it.
+
+   Watched failing, predicted 3 and measured 3: without the check the run SUCCEEDS, so the refusal,
+   its message and the untouched-source assertion all redden together. */
+{
+  const d = fixtureRoot('studio-sit-noun');
+  const file = path.join(d, 'NOTES.md');
+  const round = (n) => ['2026-05-' + String(n).padStart(2, '0') + ' (round ' + n + ', history.)', ''];
+  fs.writeFileSync(file, ['# Doc', '', '## Rounds', '']
+    .concat(round(3), round(2), round(1),
+            ['LIVE STATE that is NOT dated history.', '', '## Next', '', 'tail text']).join('\n') + '\n',
+    'utf8');
+  const before = read(file);
+  const r = run(file, ['--section', 'Rounds', '--archive', 'ROUNDS-ARCHIVE.md', '--noun', 'Round',
+    '--boundary', 'LIVE STATE that is NOT', '--write']);
+  ok('a noun the receipt pattern cannot read is refused rather than written into the record: got exit '
+    + r.code, r.code !== 0);
+  ok('and the refusal says what a noun may contain, so the reader can fix it in one go',
+    /lower-case/.test(r.out) && /noun/.test(r.out));
+  ok('and nothing was written, because the damage is in the document and not in the run',
+    read(file) === before);
+
+  /* AND THE REMEDY IT NAMES HAS TO WORK. The first version told the reader to supply nounPlural,
+     which is held to the SAME predicate, so following the instruction produced the identical
+     refusal. A content reviewer proved it with a config. This asserts the escape route is not
+     offered, rather than asserting a sentence is present, because a presence test cannot see a
+     remedy that does not work. */
+  const cfg = path.join(d, '.studio-archive.json');
+  fs.writeFileSync(cfg, JSON.stringify({ sections: [
+    { heading: 'Rounds', archive: 'ROUNDS-ARCHIVE.md', noun: 'Round', nounPlural: 'rounds',
+      boundary: 'LIVE STATE that is NOT' },
+  ] }), 'utf8');
+  const rp = run(file, ['--write']);
+  ok('supplying nounPlural does NOT buy a way past the noun rule: got exit ' + rp.code, rp.code !== 0);
+  ok('and the refusal does not offer nounPlural as the escape, because it is held to the same rule',
+    /will not help/.test(rp.out));
+  ok('and it shows what a good one looks like rather than only what is banned',
+    /build status entry/.test(rp.out));
+  fs.unlinkSync(cfg);
+
+  // THE CONTROL, and it is the whole reason this is a constraint rather than a ban: a multi-word
+  // lower-case noun is exactly what a sibling project uses and it must keep working.
+  const r2 = run(file, ['--section', 'Rounds', '--archive', 'ROUNDS-ARCHIVE.md',
+    '--noun', 'build status entry', '--boundary', 'LIVE STATE that is NOT', '--write']);
+  ok('a multi-word lower-case noun is accepted: got exit ' + r2.code, r2.code === 0);
+  ok('and its plural reached the receipt rather than being guessed at with an s',
+    read(file).indexOf('build status entries') !== -1);
+}
+
+// --- TWO SECTIONS, ONE ARCHIVE FILE ---------------------------------------------------------------
+/* ST-295 MEDIUM. Two DIFFERENT sections pointed at the same archive filename pass the overlap
+   refusal above, because their regions are disjoint and that check is about lines. What they share
+   is the destination, and everything downstream is keyed on the archive NAME: the receipts are
+   grouped by it, so the second section's receipt is folded into the first section's group and the
+   pointer that belongs to it is erased. No text is lost, the archive holds both, and the TRAIL to
+   the second section stops existing.
+
+   REFUSED, NOT MERGED. A merged group cannot say which section a block came from, and the boundary
+   marker each section needs is per-section. Two files is one line of config; a wrong trail is
+   permanent. */
+{
+  const d = fixtureRoot('studio-sit-onearchive');
+  const file = path.join(d, 'NOTES.md');
+  const rows = (tag, lo, hi) => {
+    const out = [];
+    for (let n = hi; n >= lo; n--) out.push('2026-06-' + String(n).padStart(2, '0') + ' (' + tag + ' ' + n + ', dated history.)', '');
+    return out;
+  };
+  const body = ['# Doc', '', '## Rounds', ''].concat(rows('round', 1, 5))
+    .concat(['LIVE ROUND STATE that is not dated history.', '', '## Builds', ''])
+    .concat(rows('build', 1, 5))
+    .concat(['LIVE BUILD STATE that is not dated history.', '', '## Next', '', 'tail text']).join('\n') + '\n';
+  fs.writeFileSync(file, body, 'utf8');
+  fs.writeFileSync(path.join(d, '.studio-archive.json'), JSON.stringify({ sections: [
+    { heading: 'Rounds', archive: 'SHARED-ARCHIVE.md', noun: 'round', boundary: 'LIVE ROUND STATE' },
+    { heading: 'Builds', archive: 'SHARED-ARCHIVE.md', noun: 'build', boundary: 'LIVE BUILD STATE' },
+  ] }), 'utf8');
+
+  const r = run(file, ['--write']);
+  ok('two sections writing to ONE archive file are refused: got exit ' + r.code, r.code === 1);
+  /* TIGHTENED AFTER IT PROVED NOTHING. The first version asked only that the output mention the
+     shared filename and both headings, and an ordinary successful run prints all three, so it
+     passed against the unfixed tool. Predicted 4 would redden and 3 did, which is what exposed it:
+     a prediction wrong in the direction of FEWER failures is usually an assertion that cannot
+     fail. S242. */
+  ok('and the refusal says they share one archive, rather than merely mentioning the names',
+     /same archive file/.test(r.out) && /SHARED-ARCHIVE\.md/.test(r.out)
+     && /Rounds/.test(r.out) && /Builds/.test(r.out));
+  ok('and the document is byte-identical afterwards', read(file) === body);
+  ok('and no archive was created, because the refusal runs before anything is written',
+     !fs.existsSync(path.join(d, 'SHARED-ARCHIVE.md')));
+}
+
+// --- A NEGATIVE SAVING IS NOT A SAVING -------------------------------------------------------------
+/* ST-295 LOW. Three call sites printed "N off every request" with N computed as before minus after,
+   so a run that GREW the document reported the growth as a benefit with a minus sign in front of it.
+   That is the one number anybody reads to decide whether archiving is working, and it was the number
+   that could not tell them it had stopped. Ten simulated sittings once grew a document from 1,134 to
+   5,642 characters while archiving it, and every one of those runs printed a saving.
+
+   PROVED BY MAKING A COPY OF THE TOOL GROW THE DOCUMENT, because the consolidation now prevents
+   growth on any real input and an unreachable branch is exactly the kind that ships wrong. Same
+   technique as the orphan backstop above: the behaviour under test is what the tool SAYS, and the
+   only way to reach it is to make the thing it describes actually happen. */
+{
+  const d = fixtureRoot('studio-sit-grew');
+  const file = path.join(d, 'NOTES.md');
+  const round = (n) => ['2026-07-' + String(n).padStart(2, '0') + ' (round ' + n + ', history.)', ''];
+  fs.writeFileSync(file, ['# Doc', '', '## Rounds', '']
+    .concat(round(3), round(2), round(1),
+            ['LIVE STATE that is NOT dated history.', '', '## Next', '', 'tail text']).join('\n') + '\n',
+    'utf8');
+
+  const src = fs.readFileSync(TOOL, 'utf8');
+  const theJoin = 'const after = settled.lines.join(nl);';
+  ok('the line the growth is injected into is still in the tool', src.indexOf(theJoin) !== -1);
+  const grower = path.join(d, 'archive-sittings-grows.js');
+  fs.writeFileSync(grower, src.replace(theJoin,
+    "const after = settled.lines.join(nl) + new Array(5001).join('x');"), 'utf8');
+
+  let out = '';
+  try {
+    out = execFileSync('node', [grower, file, '--section', 'Rounds', '--archive', 'ROUNDS-ARCHIVE.md',
+      '--noun', 'round', '--boundary', 'LIVE STATE that is NOT', '--write'],
+      { stdio: ['pipe', 'pipe', 'pipe'] }).toString();
+  } catch (e) { out = ((e.stdout || '') + (e.stderr || '')).toString(); }
+
+  ok('a run that GREW the document does not call the growth a saving', !/-\d+ off every request/.test(out));
+  ok('and it says plainly that the document got bigger', /MORE on every request/.test(out));
+  ok('and it says archiving was supposed to shrink it, so the reader knows it is a fault',
+     /supposed to shrink/.test(out));
+}
+
+const EXPECTED_ASSERTIONS = 152;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS,
   ranBefore === EXPECTED_ASSERTIONS - 1);

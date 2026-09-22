@@ -96,7 +96,49 @@ Two lines, written BEFORE any work starts, in the founder's terms rather than th
 GOAL AND BUSINESS VALUE
 Goal:  <the one thing this session will FINISH, naming the tickets>
 Value: <what the founder gets that they did not have, in their terms>
+Mission: <the clause of the project's mission this work serves>   OR
+Off-mission: <the reason this sitting is not heading towards it>
 ```
+
+**The mission line is read from the `## Mission` section of the state document, and you say
+NOTHING to the founder when the work fits it.** The silence is the design rather than an
+omission. Six independent leads assessed this and the content lead tried to write the agreeing
+line: every draft was a sentence a stranger could paste into any project unchanged, which is the
+test for a category rather than a detail. So when the work heads towards the mission, the line
+goes in the goal note and nothing is said to the founder about it.
+
+**Precisely: no praise and no nag.** The check echoes whichever clause you claimed, the mission
+one or the off-mission one, so a reader can check the claim against the work, and it REFUSES if
+it finds neither, which is the rule in the paragraph headed "`Off-mission:` is a PASS". This
+paragraph used to say "no words go on screen", which was false of the code it describes.
+
+**That pointer names the paragraph rather than counting to it, and the reason is worth one
+line.** It said "two paragraphs below" and a later edit inserted a paragraph in front of the
+thing it counted to, which made it false without anybody touching it. A counted pointer breaks
+on every insertion and nothing in any suite can see it.
+
+**When it does not fit, say so on one line, and keep it short.** The PREFIX is what decides how
+it is read, and the check reads one line, so anything on a second line is not seen:
+
+```
+Off-mission: this sitting is maintenance on the studio's own instruments.
+```
+
+**Do not write an off-mission statement under the `Mission:` prefix.** This example used to do
+exactly that, which is worse than a typo: the check echoes it as `Serves`, so a sitting that does
+NOT fit gets recorded as one that does, and it is recorded in the founder's own words. Short and
+plain is a habit rather than a rule here; the check enforces neither a length nor an escape.
+
+**`Off-mission:` is a PASS and not a confession.** This studio has spent most of its sittings
+repairing itself, and a check that refuses every maintenance sitting is routed around within
+three. What is refused is saying neither, because a mission nothing is ever measured against is
+decoration. If the project has captured no mission at all, the check says so and tells you how to
+add one, without blocking anything: a project is never locked out of committing over a section it
+has never had.
+
+**Do not infer a mission from the code, the README or the repository name.** An invented mission
+is a founder ruling nobody gave, and every later check agrees with it forever. Ask the two
+questions in the `## Mission` section and wait for the answer.
 
 **Write the same two lines onto the board as a note before you touch a line of code**, on the
 initiative in flight. The order matters for the same reason the board `ask` is written before the
