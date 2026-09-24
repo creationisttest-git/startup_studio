@@ -83,11 +83,16 @@ function doc (opts) {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-sit-'));
   junk.push(d);
 
+  // SHUFFLED IS NOT ASCENDING AND THE TOOL USED TO CALL THEM THE SAME THING. A region that rises
+  // everywhere is as establishable as one that falls everywhere; one that does both is genuinely
+  // unorderable. The old fixture only ever built the first, so the refusal it proved was never
+  // pointed at the case the refusal is FOR. ST-293.
+  const SHUFFLE = [2, 0, 3, 1];
   let state = [];
   for (let i = 0; i < n; i++) {
-    const date = o.ascending ? DAY[n - 1 - i] : DAY[i];
+    const date = o.shuffled ? DAY[SHUFFLE[i % SHUFFLE.length]] : (o.ascending ? DAY[n - 1 - i] : DAY[i]);
     state = state.concat(block(ORD[i], date, 'state body ' + i));
-    if (i === 0 && !o.ascending) state = state.concat(INNER_POINTER);
+    if (i === 0 && !o.ascending && !o.shuffled) state = state.concat(INNER_POINTER);
   }
   if (!o.noPointer) state = state.concat(POINTER);
   state = state.concat(DURABLE);
@@ -223,12 +228,32 @@ const read = p => fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
      read(file) === before && !fs.existsSync(path.join(dir, 'WARM_START-ARCHIVE.md')));
 }
 {
-  const { file } = doc({ ascending: true });
+  const { file } = doc({ shuffled: true });
   const before = read(file);
   const r = run(file, ['--write']);
-  ok('dates that rise are refused rather than guessed at', r.code === 1);
+  ok('dates that rise AND fall are refused rather than guessed at', r.code === 1);
   ok('and the refusal says which end could not be established', /no consistent order/.test(r.out));
+  ok('and it reports both directions, because one alone is not the fault', /rise \d+ time\(s\).*fall \d+ time\(s\)/s.test(r.out));
   ok('and the source is untouched after that refusal', read(file) === before);
+}
+// --- OLDEST FIRST IS AN ORDER, NOT A SHUFFLE (ST-293) --------------------------------------------
+// This used to be refused with the same words as the shuffled case above, so a sibling project's
+// 230,982-character Session log was unreachable and the reason given was "no consistent order",
+// which was false about it. Every assertion here is about the END the tool takes from.
+{
+  const { dir, file } = doc({ ascending: true });
+  const r = run(file, ['--write', '--keep', '1']);
+  ok('a region that only rises is archived rather than refused', r.code === 0);
+  const live = read(file);
+  const arch = read(path.join(dir, 'WARM_START-ARCHIVE.md'));
+  ok('the NEWEST block is the one kept', live.indexOf('state body 3') > -1);
+  ok('and the oldest blocks went to the archive', arch.indexOf('state body 0') > -1);
+  ok('and the newest block is NOT in the archive', arch.indexOf('state body 3') === -1);
+  ok('and the oldest blocks left the loaded document', live.indexOf('state body 0') === -1);
+  ok('and live state below the region is untouched', /Two repositories, in sync/.test(live));
+  const ptrAt = live.indexOf('were archived on');
+  ok('and the pointer sits ABOVE what is kept, where the history used to be',
+     ptrAt > -1 && ptrAt < live.indexOf('state body 3'));
 }
 
 // --- a no-op is success, deliberately, and not exit 1 (ST-263) -----------------------------------
@@ -640,6 +665,101 @@ function receiptDoc (opts) {
   // whole claim is that it does not damage what it edits.
   ok('and the receipt speaks the section own words rather than calling it a sitting',
      /build status entries were archived on/.test(flat) && live.indexOf('entrys') === -1);
+}
+
+// --- THE NUMBERED CONVENTION, WRITTEN AGAINST THE REAL DOCUMENT IT WAS BUILT FOR (ST-293) --------
+// This is the sibling shape that made 230,982 characters unreachable: a bold span opening
+// "**<date>, session <N>.**", oldest at the top. Neither existing convention could see one of its
+// 34 blocks, and the refusal it did produce named the wrong fault. The fixture uses the project's
+// real strings rather than a description of them, because a fixture is a statement of what you
+// already believe (S273).
+{
+  const d = fixtureRoot('studio-sit-numbered');
+  const file = path.join(d, 'WARM_START.md');
+  const NEWEST = 'the newest session, which must stay loaded.';
+  // THE NEGATIVE CONTROL IS PROSE CARRYING THE WORD WITHOUT A NUMBER, AND IT HAS TO SIT INSIDE THE
+  // DATED REGION TO BE ONE. The first version of this fixture put it where the --boundary marker
+  // went, so the region stopped before reaching it: mutating the digit out of the pattern was then
+  // a proved SURVIVOR at 165 passed, because the paragraph the assertion is named after was never
+  // offered to the convention at all. S254, in the test written to prove a convention. Placed here
+  // it is an ordinary continuation paragraph of session 41 and travels to the archive with it,
+  // which is correct; what must never happen is it OPENING a block of its own, dated 2026-09-12,
+  // between two blocks dated later.
+  const PROSE = '**2026-09-12, session notes were lost.** This must not open a block of its own.';
+  fs.writeFileSync(file, ['# Doc', '', '## Session log', '',
+    '**2026-09-11, session 28. The oldest one.** oldest body.', '',
+    'A CONTINUATION PARAGRAPH belonging to session 28.', '',
+    '**2026-09-18, session 41. The middle one.** middle body.', '',
+    PROSE, '',
+    '**2026-09-22, session 64. ' + NEWEST + '** newest body.', '',
+    'Live state that is NOT dated history.', '',
+    '## Next', '', 'tail text'].join('\n') + '\n', 'utf8');
+
+  const r = run(file, ['--section', 'Session log', '--archive', 'SESSION-LOG-ARCHIVE.md',
+    '--opener', 'numbered:session', '--noun', 'session', '--keep', '1',
+    '--boundary', 'Live state that is NOT', '--write']);
+  const live = read(file);
+  const arch = read(path.join(d, 'SESSION-LOG-ARCHIVE.md'));
+  ok('a numbered convention finds blocks no other convention can see', r.code === 0 &&
+     arch.indexOf('oldest body') > -1 && arch.indexOf('middle body') > -1);
+  ok('and oldest-first means the NEWEST session is the one kept',
+     live.indexOf('newest body') > -1 && arch.indexOf('newest body') === -1);
+  ok('and a continuation paragraph travels with the block it belongs to',
+     arch.indexOf('belonging to session 28') > -1 && live.indexOf('belonging to session 28') === -1);
+  // THE RUN HAVING SUCCEEDED IS PART OF THIS ASSERTION, NOT CONTEXT FOR IT. Without it, a mutation
+  // that makes the number optional turns the prose line into a block, the region then rises and
+  // falls, the tool refuses, nothing is written and this line is still present: the assertion
+  // passes in the world it exists to forbid. That is S254 and it is cheap to close.
+  ok('and prose carrying the word without a number does NOT open a block of its own',
+     r.code === 0 && arch.indexOf('must not open a block of its own') > -1 &&
+     live.indexOf('must not open a block of its own') === -1);
+  ok('and the receipt names the sessions rather than calling them sittings',
+     /session 28.*were archived on/s.test(live.replace(/\s+/g, ' ')));
+}
+
+// --- A HORIZONTAL RULE INSIDE A SECTION, WHICH ENDS ONE HERE AND SEPARATES ONE THERE (ST-293) ----
+// The sibling this was measured on writes "## Session log", the pointer to its archive, a "---",
+// and then 230,982 characters of blocks. Stopping at the rule made the region the pointer alone and
+// the tool said "nothing to archive" about 80 per cent of the document. Opt-in, so the default is
+// still to stop: both directions are asserted here, because a flag that changes nothing and a flag
+// that is always on read the same from one passing test.
+{
+  const d = fixtureRoot('studio-sit-rules');
+  const file = path.join(d, 'WARM_START.md');
+  const body = ['# Doc', '', '## Session log', '',
+    'Sessions 1 to 27 are in [SESSION-LOG-ARCHIVE.md](SESSION-LOG-ARCHIVE.md), moved unedited.', '',
+    '---', '',
+    '**2026-09-11, session 28. The oldest one.** oldest body.', '',
+    '**2026-09-22, session 64. The newest one.** newest body.', '',
+    'Live state that is NOT dated history.', '',
+    '## Next', '', 'tail text'].join('\n') + '\n';
+  const cfg = path.join(d, '.studio-archive.json');
+  const section = { heading: 'Session log', archive: 'SESSION-LOG-ARCHIVE.md', noun: 'session',
+    opener: 'numbered:session', boundary: 'Live state that is NOT' };
+
+  fs.writeFileSync(file, body, 'utf8');
+  fs.writeFileSync(cfg, JSON.stringify({ sections: [section] }), 'utf8');
+  const stops = run(file, ['--keep', '1', '--write']);
+  ok('by default a horizontal rule still ends the section, so the blocks below it are unreachable',
+     stops.code === 0 && /Nothing to archive/.test(stops.out) && read(file) === body);
+
+  fs.writeFileSync(file, body, 'utf8');
+  fs.writeFileSync(cfg, JSON.stringify({ sections: [Object.assign({ rules: 'through' }, section)] }), 'utf8');
+  const through = run(file, ['--keep', '1', '--write']);
+  const live = read(file);
+  ok('and "rules: through" reaches them', through.code === 0 &&
+     read(path.join(d, 'SESSION-LOG-ARCHIVE.md')).indexOf('oldest body') > -1);
+  // BOTH OF THESE ASSERTED THE ABSENCE OF AN EFFECT AND BOTH PASSED IN THE MUTANT WORLD. Reverting
+  // the flag archives nothing, so "tail text is not in the archive" and "the newest block is still
+  // loaded" are true of a document nothing touched. Predicted 3 kills, measured 1. They now require
+  // the move to have HAPPENED as well, which is the only version of either claim worth making. S55.
+  ok('and it stops at the next heading rather than walking into it',
+     live.indexOf('oldest body') === -1 &&
+     live.indexOf('## Next') > -1 && live.indexOf('tail text') > -1 &&
+     read(path.join(d, 'SESSION-LOG-ARCHIVE.md')).indexOf('tail text') === -1);
+  ok('and the newest block and the live tail both stay loaded',
+     live.indexOf('oldest body') === -1 &&
+     live.indexOf('newest body') > -1 && live.indexOf('Live state that is NOT') > -1);
 }
 
 // --- A PROJECT DESCRIBES ITS OWN SECTIONS, AND A BROKEN DESCRIPTION REFUSES ----------------------
@@ -1235,7 +1355,7 @@ function receiptDoc (opts) {
      /supposed to shrink/.test(out));
 }
 
-const EXPECTED_ASSERTIONS = 152;
+const EXPECTED_ASSERTIONS = 169;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS,
   ranBefore === EXPECTED_ASSERTIONS - 1);

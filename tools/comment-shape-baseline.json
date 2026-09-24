@@ -1,6 +1,6 @@
 {
   "what": "Per published code file: named comment lines, counted comment ratio and control lines, as tools/check-comment-shape.js defines them. Written only by that tool. The check refuses when any value differs from this record: the wrong way outright, the right way until this record is rewritten, so the record is never slack.",
-  "written": "2026-09-22",
+  "written": "2026-09-24",
   "new_file_cap": 5,
   "overrides": [
     {
@@ -4191,6 +4191,51 @@
       "to": 29.1,
       "reason": "Four new assertion blocks, each naming the mutation it survives and the prediction made before the run, plus a correction recording that two counts in an earlier version of these comments were false and were caught by running the case. The comments are the evidence trail for assertions that would otherwise look arbitrary.",
       "scope": "file"
+    },
+    {
+      "date": "2026-09-24",
+      "file": "studio.ps1",
+      "field": "named",
+      "from": 22,
+      "to": 23,
+      "reason": "One named line, added at the FORTY-FIFTH sitting under ST-312: the llms.txt entry in the publish manifest carries its ticket reference and the reason the file exists, which is exactly the convention this instrument enforces.",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-24",
+      "file": "studio.ps1",
+      "field": "ratio",
+      "from": 32.6,
+      "to": 32.7,
+      "reason": "One named line, added at the FORTY-FIFTH sitting under ST-312: the llms.txt entry in the publish manifest carries its ticket reference and the reason the file exists, which is exactly the convention this instrument enforces.",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-24",
+      "file": "tools/archive-sittings.js",
+      "field": "named",
+      "from": 13,
+      "to": 14,
+      "reason": "Rose at the FORTY-THIRD sitting under ST-293, commit 70eeb0c, and was never recorded, so the suite arrived at the forty-fifth already failing on it. The rise is the opt-in archiving flag plus the four mutations argued around it, each comment naming its ticket, which is this instrument working rather than drifting. Recorded here by the sitting that found it red rather than left for a third.",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-24",
+      "file": "tools/archive-sittings.js",
+      "field": "ratio",
+      "from": 30.5,
+      "to": 32,
+      "reason": "Rose at the FORTY-THIRD sitting under ST-293, commit 70eeb0c, and was never recorded, so the suite arrived at the forty-fifth already failing on it. The rise is the opt-in archiving flag plus the four mutations argued around it, each comment naming its ticket, which is this instrument working rather than drifting. Recorded here by the sitting that found it red rather than left for a third.",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-24",
+      "file": "tools/archive-sittings.test.js",
+      "field": "named",
+      "from": 10,
+      "to": 14,
+      "reason": "Same cause and same commit as its subject: the assertions written for the opt-in flag at the FORTY-THIRD sitting, including the two that were faulty and were found by a PREDICTED mutation count coming back 1 against an expected 3 (S283). The comments that explain why those two were wrong are the named lines.",
+      "scope": "file"
     }
   ],
   "files": {
@@ -4321,13 +4366,13 @@
       "ratio_all": 21.4
     },
     "studio.ps1": {
-      "nonblank": 2996,
-      "comment": 1133,
+      "nonblank": 3000,
+      "comment": 1136,
       "header": 36,
-      "controls": 119,
-      "named": 22,
-      "ratio": 32.6,
-      "ratio_all": 37.8
+      "controls": 120,
+      "named": 23,
+      "ratio": 32.7,
+      "ratio_all": 37.9
     },
     "tools/archive-decisions.js": {
       "nonblank": 385,
@@ -4348,22 +4393,22 @@
       "ratio_all": 30.4
     },
     "tools/archive-sittings.js": {
-      "nonblank": 892,
-      "comment": 387,
+      "nonblank": 958,
+      "comment": 435,
       "header": 78,
-      "controls": 37,
-      "named": 13,
-      "ratio": 30.5,
-      "ratio_all": 43.4
+      "controls": 50,
+      "named": 14,
+      "ratio": 32,
+      "ratio_all": 45.4
     },
     "tools/archive-sittings.test.js": {
-      "nonblank": 1158,
-      "comment": 313,
+      "nonblank": 1273,
+      "comment": 349,
       "header": 16,
-      "controls": 57,
-      "named": 10,
-      "ratio": 20.7,
-      "ratio_all": 27
+      "controls": 71,
+      "named": 14,
+      "ratio": 20.6,
+      "ratio_all": 27.4
     },
     "tools/build-releases.js": {
       "nonblank": 713,

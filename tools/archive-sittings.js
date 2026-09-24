@@ -178,6 +178,32 @@ function leadOpener (word) {
   };
 }
 
+// A FOURTH CONVENTION, AND IT IS THE ONE THAT UNBLOCKED THE LARGEST DOCUMENT IN THE ESTATE.
+// Measured 2026-09-22 under ST-293. A sibling's "## Session log" is 230,982 characters, 80 per cent
+// of its WARM_START.md, written as 34 blocks opening "**2026-09-11, session 28. ...**". The
+// 'ordinal' convention above needs "<ORDINAL> sitting" in CAPITALS after the comma, which is how
+// _STUDIO writes a block and how that project does not; 'date' needs the date at the first
+// character, and there it sits inside a bold span. Both matched 0 of 34 and the tool said "nothing
+// to archive" about a quarter-megabyte, which is S219 for the third time in this file.
+//
+// THE DISCRIMINATOR, because a convention without one archives live state. The bold span, the
+// comma after the date, the configured word, and a NUMBER after that word. Prose does not open a
+// bold span with a date, a comma, a fixed noun and a numeral; a session heading does, deliberately.
+// The number is what separates "2026-09-11, session 28." from "2026-09-11, session notes were
+// lost", and it is required rather than optional for exactly that reason.
+//
+// THE NAME IS THE DOCUMENT'S OWN TEXT rather than a rebuild of it, for the reason ST-302 HIGH 3
+// records: every receipt is proved by looking its name up in the archive, so a name this tool
+// invented is a name no archive will ever contain and the receipts never fold.
+function numberedOpener (word) {
+  const re = new RegExp('^(\\d{4}-\\d{2}-\\d{2}),\\s+' +
+    word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+(\\d+)\\b');
+  return function (text) {
+    const m = boldHead(text).match(re);
+    return m ? { date: m[1], ordinal: m[0] } : null;
+  };
+}
+
 const CONVENTIONS = {
   ordinal: function (text) {
     const m = boldHead(text).match(OPENER);
@@ -210,7 +236,10 @@ function conventionFor (name) {
   if (CONVENTIONS[name]) return CONVENTIONS[name];
   const lead = /^lead:(.+)$/.exec(name);
   if (lead) return leadOpener(lead[1].trim());
-  die('no opener convention called "' + name + '". Known: auto, ordinal, date, lead:<word>.');
+  const numbered = /^numbered:(.+)$/.exec(name);
+  if (numbered) return numberedOpener(numbered[1].trim());
+  die('no opener convention called "' + name + '". Known: auto, ordinal, date, lead:<word>, ' +
+      'numbered:<word>.');
 }
 
 function openerOf (text, conv) {
@@ -284,14 +313,26 @@ function boldHead (text) {
   return m ? m[1] : '';
 }
 
-function sectionRange (heading) {
+// A HORIZONTAL RULE ENDS A SECTION HERE AND SEPARATES ONE INSIDE A SIBLING'S, AND THE TOOL COULD
+// NOT TELL THOSE APART. In _STUDIO a "---" sits BETWEEN sections, so stopping at one is right and
+// stops a run walking out of the section it was aimed at. Measured 2026-09-22 under ST-293: a
+// sibling writes "## Session log", then the pointer to its archive, then a "---", then 34 blocks
+// and 230,982 characters. The scan stopped at that rule, the region was the pointer alone, and the
+// tool reported "nothing to archive" about 80 per cent of the document. S219 again, and this time
+// the silence was produced by a rule that is CORRECT in the project the tool was written in.
+//
+// SO IT IS OPT-IN AND IT WILL NEVER BE A DEFAULT, exactly like --boundary end. "rules: through"
+// says: I have read this document and a horizontal rule inside this section is a separator rather
+// than its end. Getting that wrong walks into the next section, which is why it is typed by a
+// human in a config rather than inferred from shape. Everything else still stops at the rule.
+function sectionRange (heading, throughRules) {
   const want = new RegExp('^##\\s+' + heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'i');
   let at = -1;
   for (let i = 0; i < lines.length; i++) { if (want.test(lines[i])) { at = i; break; } }
   if (at === -1) return null;
   let end = lines.length - 1;
   for (let i = at + 1; i < lines.length; i++) {
-    if (/^##\s/.test(lines[i]) || /^---\s*$/.test(lines[i])) { end = i - 1; break; }
+    if (/^##\s/.test(lines[i]) || (!throughRules && /^---\s*$/.test(lines[i]))) { end = i - 1; break; }
   }
   return { start: at, end: end };
 }
@@ -299,7 +340,7 @@ function sectionRange (heading) {
 // --- planning one section -----------------------------------------------------------------------
 
 function plan (section) {
-  const range = sectionRange(section.heading);
+  const range = sectionRange(section.heading, section.throughRules);
   if (!range) return { section: section, skip: 'no "## ' + section.heading + '" section in this file' };
 
   const conv = conventionFor(section.opener);
@@ -353,25 +394,43 @@ function plan (section) {
     };
   });
 
-  // Newest first is the convention. If the dates rise anywhere, which end is newest cannot be
-  // established and archiving the wrong end discards what the next session needs.
+  // WHICH END IS NEWEST, AND THE ANSWER USED TO BE ASSUMED RATHER THAN ESTABLISHED.
+  //
+  // Newest first is _STUDIO's convention and this refused anything else outright, on the correct
+  // reasoning that archiving the wrong end discards exactly what the next session needs. What it
+  // could not tell apart was a document in the OTHER consistent order from a document in no order
+  // at all, and it named both "no consistent order". Measured 2026-09-22 under ST-293: a sibling's
+  // 230,982-character Session log runs session 28 at the top to session 64 at the bottom, rising
+  // 8 times and falling never, which is as establishable as newest-first and was refused as if it
+  // were a shuffled table. This is `archive-decisions.js`'s own rule arriving one file late: that
+  // tool has read a table from either end since the day it was written, because two projects in
+  // this studio number in opposite directions.
+  //
+  // THE TEST IS BOTH DIRECTIONS AT ONCE, NOT EITHER ONE. A region that rises somewhere and falls
+  // somewhere else is genuinely unorderable and still refuses. Equal dates are neither, which is
+  // ordinary: several sittings land on one calendar day and all-equal keeps today's behaviour.
   const rises = [];
+  const falls = [];
   for (let i = 1; i < blocks.length; i++) {
     if (blocks[i].date > blocks[i - 1].date) rises.push(blocks[i - 1].date + ' then ' + blocks[i].date);
+    if (blocks[i].date < blocks[i - 1].date) falls.push(blocks[i - 1].date + ' then ' + blocks[i].date);
   }
-  if (rises.length) {
+  if (rises.length && falls.length) {
     refuse('the dates under "' + section.heading + '" rise ' + rises.length + ' time(s) (' +
-      rises[0] + '), so they are in no consistent order and which end is newest cannot be ' +
-      'established. Nothing was written.');
+      rises[0] + ') and fall ' + falls.length + ' time(s) (' + falls[0] + '), so they are in no ' +
+      'consistent order and which end is newest cannot be established. Nothing was written.');
   }
+  const oldestFirst = rises.length > 0;
 
   if (blocks.length <= KEEP) {
     return { section: section, skip: blocks.length + ' block(s) under "' + section.heading +
       '", keeping ' + KEEP + ', so there is nothing to archive yet' };
   }
 
-  const keep = blocks.slice(0, KEEP);
-  const move = blocks.slice(KEEP);
+  // The kept blocks are the NEWEST ones wherever they sit, and the moved ones stay in document
+  // order on both paths, so an archive reads in the order the document did.
+  const keep = oldestFirst ? blocks.slice(blocks.length - KEEP) : blocks.slice(0, KEEP);
+  const move = oldestFirst ? blocks.slice(0, blocks.length - KEEP) : blocks.slice(KEEP);
 
   // Prove the split accounts for every line of the region BEFORE anything is written.
   //
@@ -408,7 +467,7 @@ function plan (section) {
 
   return {
     section: section, regionStart: regionStart, regionEnd: regionEnd,
-    blocks: blocks, keep: keep, move: move, body: body,
+    blocks: blocks, keep: keep, move: move, body: body, oldestFirst: oldestFirst,
   };
 }
 
@@ -696,6 +755,7 @@ function normalise (raw, where) {
     group: raw.group || (plural.charAt(0).toUpperCase() + plural.slice(1)),
     groupUnit: raw.groupUnit || plural,
     boundary: raw.boundary || null,
+    throughRules: raw.rules === 'through',
   };
 }
 
@@ -891,7 +951,14 @@ for (const p of doable.slice().sort((a, b) => b.regionStart - a.regionStart)) {
   const kept = [];
   for (const b of p.keep) for (let i = b.start; i <= b.end; i++) kept.push(lines[i]);
   while (kept.length && kept[kept.length - 1].trim() === '') kept.pop();
-  const replacement = kept.concat([''], pointerFor(p, p.proved), ['']);
+  // THE POINTER GOES WHERE THE HISTORY WENT. In a newest-first document the moved blocks sat at
+  // the BOTTOM of the region, so the pointer belongs under what is kept. In an oldest-first one
+  // they sat at the TOP, and a pointer left at the bottom would tell a reader that the oldest
+  // sittings are below the newest ones, which is the one thing it exists to get right.
+  const ptr = pointerFor(p, p.proved);
+  const replacement = p.oldestFirst
+    ? ptr.concat([''], kept, [''])
+    : kept.concat([''], ptr, ['']);
   rebuilt = rebuilt.slice(0, p.regionStart).concat(replacement, rebuilt.slice(p.regionEnd + 1));
 }
 

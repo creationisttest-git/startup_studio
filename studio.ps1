@@ -1127,6 +1127,10 @@ $PUBLIC_MANIFEST = @(
     @{ from = 'base\skills';  to = 'skills' },
     @{ from = 'robots.txt';   to = 'robots.txt' },
     @{ from = 'sitemap.xml';  to = 'sitemap.xml' },
+    # A plain-text map of the site written for an assistant rather than for a crawler. It is a
+    # convention rather than a standard and nothing is promised to read it; it costs one file and
+    # it is published here so the claim that we have one is true rather than aspirational. ST-312.
+    @{ from = 'llms.txt';     to = 'llms.txt' },
     # Publishes so a clone of the EXPORT gets the line endings this was tested with. It was
     # added to the private repo and not here, and the two are different repositories: the one
     # strangers clone had no attributes file at all, so every text file arrived rewritten.

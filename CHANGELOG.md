@@ -6,6 +6,28 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-24
+
+### Every page of the site now says what it is, and the robots file stops lying
+
+**What this gives you.** Six of the seven pages had no main heading at all, so a search engine
+had almost nothing to go on about what each page was for. All seven have one now, written to
+say what the page actually covers rather than to chase a phrase. Nothing else about the pages
+changed: the type is the same size, the home page opens the way it always did.
+
+**Nothing here was watching for this.** Our own checks now fail when a page goes out with no
+main heading, or with one that is only the product name. They were watched failing on all seven
+pages before anything was fixed.
+
+**The robots file told a story that was not true.** It opened by describing a block that does
+not exist and then reasoned at length about working around it. That is gone. What is there now
+is what was actually measured, with the date it was measured.
+
+**There is also a plain-text map of the site for assistants**, and the GitHub page finally
+links to the site.
+
+---
+
 ## 2026-09-22
 
 ### Your decision trail survives the tidy-up, and what you chose is checked

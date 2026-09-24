@@ -1,15 +1,22 @@
-# Cloudflare prepends a managed block above this file which disallows the AI crawlers
-# across the whole zone. That toggle has no per-hostname setting, and the other hostnames
-# on this zone should stay blocked, so the exception is declared here instead.
+# Nothing is prepended above this line. Checked 2026-09-24 by fetching this file from the live
+# site with the cache bypassed: the served file begins here. Bot Preference Sync is on in the
+# Cloudflare dashboard and its description says it prepends robots.txt with the configured
+# settings; this hostname serves nothing above this text.
 #
-# This site is meant to be found. It is AGPL, the code is public, and the people it is for
-# increasingly ask an assistant rather than a search engine. Being unreadable by assistants
-# costs discovery and protects nothing that is not already public.
+# WHAT THE ZONE ACTUALLY DOES is set by CATEGORY rather than by crawler name, and it reads
+# Search allow, Agent allow, Training disallow. Agent is the category that answers a person's
+# question, and it has been allowed all along. So the groups below override nothing. They are an
+# explicit statement of intent, kept because this site is meant to be found: it is AGPL, the code
+# is public, and the people it is for increasingly ask an assistant rather than a search engine.
 #
-# Same-agent groups are merged by conforming parsers, and on an equal-length path the least
-# restrictive rule wins, so these should override the managed disallows. That behaviour is
-# documented by Google and followed by most crawlers, but it is not guaranteed for all of
-# them. Verify the served file rather than assuming.
+# One thing here disagrees with the zone and is left visible rather than quietly resolved.
+# Cloudflare classifies ClaudeBot, GPTBot, Google-Extended and CCBot as training crawlers, so by
+# that classification they meet the one category set to disallow and are refused at the edge
+# whatever this file asks for. Only one of the four has been measured: ClaudeBot, 0 allowed of
+# 553 requests across the zone in the 30 days to 2026-09-24. Whether to keep asking for the four
+# is the site owner's call rather than a tweak, because the zone policy covers every hostname on
+# it. The retrieval agents, Claude-SearchBot, OAI-SearchBot and PerplexityBot, are allowed, and
+# they are the half that decides whether an assistant can cite this site.
 
 User-agent: ClaudeBot
 Allow: /

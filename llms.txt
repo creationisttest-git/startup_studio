@@ -1,0 +1,33 @@
+# Startup Studio
+
+> A shared team of seventeen AI agents for a solo founder who cannot afford a team. It is an
+> open source multi-agent framework: one roster of roles, layered per project, with rules the
+> tooling refuses to break rather than rules somebody is trusted to remember.
+
+Startup Studio runs on Claude Code today. That is a limitation of this tooling and not of the
+method: the roster installs into the directories one specific coding agent reads, and the two
+hooks are registered that agent's way.
+
+What makes it different from a prompt pack is that several rules are enforced by the software
+rather than written down. Only the QA role can move a ticket to user acceptance testing, and
+only with test notes written first. Nothing is released without a changelog entry. A ticket
+cannot be closed over a question nobody answered. A large piece of work cannot start until an
+assessment carrying a verdict and a measure is recorded against it.
+
+The front door itself is the method rather than the software: six leads argue a large idea from
+their own disciplines before it is built, and a verdict of no is a normal outcome. What the
+board enforces is that the record exists, which is the only part a program can honestly check.
+
+## Pages
+
+- [Home](https://startupstudio.projectfreedom.xyz/): what the studio is, in the founder's own words, and who it is for.
+- [The problem](https://startupstudio.projectfreedom.xyz/problem): why building got fast and knowing whether it mattered got harder.
+- [The solution](https://startupstudio.projectfreedom.xyz/solution): the seventeen roles, what each owns, and the four points where the founder decides.
+- [Prototypes](https://startupstudio.projectfreedom.xyz/prototypes): five products and this studio, built by the one team, in domains with nothing in common.
+- [How to run it](https://startupstudio.projectfreedom.xyz/how-to): install once, tune only what differs, and ship.
+- [Release notes](https://startupstudio.projectfreedom.xyz/releases): every release, newest first, generated from the changelog.
+- [Reference](https://startupstudio.projectfreedom.xyz/reference): the board and its eight columns, the stack with the reason for each choice, every command the tool takes, and a nineteen-term glossary where every term has its own address.
+
+## Source
+
+- [Repository](https://github.com/creationisttest-git/startup_studio): AGPL-3.0, the full roster, the board and the tooling.

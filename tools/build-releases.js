@@ -376,7 +376,7 @@ navBlock('/releases') + '\n' +
 '\n' +
 '<section id="releases">\n' +
 '    <p class="eyebrow">Release notes</p>\n' +
-'    <h2>What each release gives you</h2>\n' +
+'    <h1 class="page-title">Startup Studio release notes, newest first</h1>\n' +
 '    <p class="rel-intro">Every release, newest first, written as what you get rather than what was touched. The most recent one is open below. Any term here that is not ordinary English is defined on the <a href="/reference#glossary">reference page</a>.</p>\n' +
 '\n' +
 '    <!-- A dropdown cannot filter a static page on its own: submitting it reloads the same\n' +
