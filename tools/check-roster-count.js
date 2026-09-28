@@ -172,12 +172,60 @@ function collect (root) {
   return files.sort()
 }
 
-function claimsIn (root, rel) {
-  let text
-  try { text = fs.readFileSync(path.join(root, rel.split('/').join(path.sep)), 'utf8') } catch (e) { return [] }
+// STRUCTURED DATA IS THE SAME CLAIM SERIALISED, NOT A SECOND CLAIM, AND IT WAS COUNTED AS ONE FOR
+// AN HOUR. A JSON-LD DefinedTermSet was added to reference.html whose nineteen DefinedTerm
+// nodes copy each glossary definition verbatim from the visible dd elements. Two of those
+// definitions say "One agent's brief" and "eleven Role files", and this tool read the whole file,
+// script contents included, so both counts doubled against a baseline written for the visible
+// text: 4 of "one" where the record held 2, 2 of "eleven" where it held 1. Nothing about the
+// roster had changed. A machine-readable copy of text a reader can already see on the page is the
+// same claim in a second encoding, and counting it twice means any page that describes itself in
+// structured data starts failing a check about something else. Adding the doubled numbers to the
+// baseline was refused because that couples the record to the presence of a block; weakening the
+// structured data was refused because the check is the thing that was wrong.
+//
+// BUT A BLIND STRIP TURNS A GUARD INTO A BLIND SPOT. If a future page states "seventeen agents"
+// ONLY inside its JSON-LD and nowhere in the visible text, that is still a published claim about
+// the roster, served to every crawler, and it goes stale on the day a role is added exactly like
+// the visible ones do. So the two are counted SEPARATELY and reconciled rather than one being
+// ignored. Visible text is scanned first and its claims are the record. Each block is then scanned
+// on its own, and a block claim whose NUMBER already appears among the visible claims of the same
+// file is dropped as the serialised copy. A block claim whose number appears NOWHERE in the visible
+// text is kept, marked with where it was found, and held to the baseline like any other, so the
+// message can say it lives only in structured data. The unit of identity is the number rather than
+// the exact wording, because JSON-LD may say "agents" where the page says "Roles" and it is still
+// the same count of the same thing; and because the number is what this check holds.
+//
+// What this cannot see, stated so nobody assumes it: a block that repeats a visible number MORE
+// times than the page does, or repeats it for a different reason, is folded into the visible claim.
+// That is the accepted cost, because the alternative is a baseline that has to be rewritten every
+// time a block is added or removed, which is the coupling refused above.
+const LD_JSON = /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+
+// Splits a file into the text a reader sees and the ld+json blocks a machine reads. Line numbers
+// are preserved on both sides: a stripped block is replaced by as many blank lines as it occupied,
+// and each block records the line its content starts on, so --report and a refusal name the real
+// line rather than one shifted by however much was removed above it.
+function splitStructuredData (text) {
+  const blocks = []
+  let visible = ''
+  let last = 0
+  let m
+  LD_JSON.lastIndex = 0
+  while ((m = LD_JSON.exec(text)) !== null) {
+    const before = text.slice(0, m.index)
+    const openTag = m[0].slice(0, m[0].length - m[1].length - '</script>'.length)
+    const startLine = (before.match(/\n/g) || []).length + (openTag.match(/\n/g) || []).length + 1
+    blocks.push({ line: startLine, text: m[1] })
+    visible += text.slice(last, m.index) + m[0].replace(/[^\n]/g, '')
+    last = m.index + m[0].length
+  }
+  visible += text.slice(last)
+  return { visible: visible, blocks: blocks }
+}
+
+function scanLines (rel, lines, expectOnly, offset, where) {
   const out = []
-  const expectOnly = EXPECT_ONLY.has(rel)
-  const lines = text.split(/\r?\n/)
   for (let i = 0; i < lines.length; i++) {
     let m
     if (!expectOnly) {
@@ -185,7 +233,7 @@ function claimsIn (root, rel) {
       while ((m = CLAIM.exec(lines[i])) !== null) {
         const n = numberOf(m[1])
         if (n === null) continue
-        out.push({ file: rel, line: i + 1, n: n, text: m[0], context: lines[i].trim().slice(0, 120) })
+        out.push({ file: rel, line: offset + i + 1, n: n, text: m[0], context: lines[i].trim().slice(0, 120), where: where })
       }
     }
     // The previous line counts as context. One of these claims sits in wrapped prose with the
@@ -196,7 +244,23 @@ function claimsIn (root, rel) {
     while ((m = EXPECT.exec(lines[i])) !== null) {
       const n = numberOf(m[1])
       if (n === null) continue
-      out.push({ file: rel, line: i + 1, n: n, text: m[0], context: lines[i].trim().slice(0, 120) })
+      out.push({ file: rel, line: offset + i + 1, n: n, text: m[0], context: lines[i].trim().slice(0, 120), where: where })
+    }
+  }
+  return out
+}
+
+function claimsIn (root, rel) {
+  let text
+  try { text = fs.readFileSync(path.join(root, rel.split('/').join(path.sep)), 'utf8') } catch (e) { return [] }
+  const expectOnly = EXPECT_ONLY.has(rel)
+  const split = splitStructuredData(text)
+  const out = scanLines(rel, split.visible.split(/\r?\n/), expectOnly, 0, 'visible')
+  const seen = new Set(out.map(c => c.n))
+  for (const b of split.blocks) {
+    for (const c of scanLines(rel, b.text.split(/\r?\n/), expectOnly, b.line - 1, 'ld+json')) {
+      if (seen.has(c.n)) continue
+      out.push(c)
     }
   }
   return out
@@ -210,8 +274,16 @@ function tally (claims, size) {
     const key = String(c.n)
     if (!off[c.file][key]) off[c.file][key] = { count: 0, why: '' }
     off[c.file][key].count++
+    // Carried so a refusal can say the claim is in structured data only, which is the one place
+    // a reader counting the cards on the page will never find it. Not written to the baseline.
+    if (c.where === 'ld+json') off[c.file][key].structuredOnly = true
   }
   return off
+}
+
+// A hint for the refusal, empty for the ordinary case.
+function whereHint (entry) {
+  return entry && entry.structuredOnly ? ' This number is stated ONLY inside an application/ld+json block and nowhere in the visible text.' : ''
 }
 
 function readBaseline (file) {
@@ -243,7 +315,8 @@ function main (argv) {
     process.stdout.write('\nroster on disk: ' + roster.count + ' role(s) in ' + roster.dir + '\n\n')
     for (const c of claims)
       process.stdout.write('  ' + (c.n === roster.count ? 'match  ' : 'other  ') +
-        c.file + ':' + c.line + '  "' + c.text + '"   ' + c.context + '\n')
+        c.file + ':' + c.line + '  "' + c.text + '"   ' + c.context +
+        (c.where === 'ld+json' ? '   [ld+json only]' : '') + '\n')
     process.stdout.write('\n' + claims.length + ' claim(s) in ' + files.length + ' file(s)\n\n')
     return 0
   }
@@ -258,6 +331,8 @@ function main (argv) {
       for (const n of Object.keys(measured[f])) {
         const why = (carried[f] && carried[f][n] && carried[f][n].why) || ''
         measured[f][n].why = why
+        // Where a claim was found is a property of the tree today, not of the record.
+        delete measured[f][n].structuredOnly
         if (!why.trim()) blanks.push(f + ' "' + (WORDS[Number(n)] || n) + '"')
       }
     }
@@ -312,12 +387,14 @@ function main (argv) {
       if (!rec) {
         problems.push(f + ': ' + found + ' claim(s) of "' + (WORDS[Number(n)] || n) +
           ' role/agent" and the roster holds ' + roster.count +
-          '. Either the text is stale or it is a claim about a subset; if it is a subset, record it with its reason.')
+          '. Either the text is stale or it is a claim about a subset; if it is a subset, record it with its reason.' +
+          whereHint(measured[f][n]))
         continue
       }
       if (rec.count !== found)
         problems.push(f + ': ' + found + ' claim(s) of "' + (WORDS[Number(n)] || n) +
-          '" where the record holds ' + rec.count + '. Held exact, so a new one and a deleted one both refuse.')
+          '" where the record holds ' + rec.count + '. Held exact, so a new one and a deleted one both refuse.' +
+          whereHint(measured[f][n]))
     }
   }
   // A record for a file this install does not carry is NOT a stale record. base/governance is
@@ -353,6 +430,6 @@ function main (argv) {
   return 1
 }
 
-module.exports = { main, rosterSize, collect, claimsIn, tally, CLAIM }
+module.exports = { main, rosterSize, collect, claimsIn, tally, splitStructuredData, CLAIM }
 
 if (require.main === module) process.exit(main(process.argv.slice(2)))

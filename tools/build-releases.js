@@ -21,6 +21,8 @@
  *     notes page with nothing on it reads as a broken site rather than as missing content.
  *   - the output is UTF-8, no byte order mark, LF endings, no control characters, and
  *     carries no em dash, which this house bans in anything that publishes.
+ *   - two releases on one date each get their own address, and adding a later release on that
+ *     date never moves an address a reader already has. See assignAnchors for the scheme.
  */
 
 'use strict';
@@ -130,6 +132,56 @@ function extractValueBlock(sectionLines) {
   return out.length ? out : null;
 }
 
+/* ---------- addresses ---------- */
+
+/**
+ * Gives every release its address on the page: the id of its card, the fragment in its
+ * structured-data url, and the target of any link a reader has saved.
+ *
+ * ONE RELEASE ON A DATE KEEPS THE ADDRESS IT HAS ALWAYS HAD, "r-<date>". That covers every
+ * release published before this function existed, so no saved link to any of them breaks.
+ *
+ * TWO RELEASES ON ONE DATE ARE ORDINARY, AND THIS USED TO REFUSE THEM OUTRIGHT. A second
+ * release in a day was met with "each release needs its own date", so the only way past the
+ * refusal was to re-date a note or merge two notes into one, and a note that has already gone
+ * public is not editable. So the date is not the address any more; it is the first part of it.
+ *
+ * THE ORDINAL COUNTS FROM THE BOTTOM OF THE SAME-DATE GROUP, NOT THE TOP. The changelog is
+ * newest first, so within one date the release published FIRST is the LAST of its group in
+ * the file, and it is the one that was, for a while, the only release of that day: it went out
+ * under the bare "r-<date>" and a reader may have that link. Counting from the bottom gives it
+ * the bare address forever, the one above it "-2", the one above that "-3", and a later release
+ * added ABOVE the group takes the next number without renumbering anything below. Counting from
+ * the top would hand the bare address to whichever release was newest, so every later release
+ * of the day would steal the link the earlier one had already been published under.
+ *
+ * WHAT BREAKS, AND IT IS THE ONE CASE THIS CANNOT SEE: a same-date section inserted BELOW an
+ * existing one. The build warns when dates are out of order, but two equal dates have no order
+ * to check, so file order within a date is trusted as written. Insert below and the bare address
+ * moves to the new section while a saved link keeps resolving, to the wrong release. Keep the
+ * newest-first convention within a day as well as across days and that cannot happen.
+ *
+ * The page filter keys on the DATE, held in data-release, so choosing a day shows every release
+ * of that day. Only the id and the structured-data url carry the ordinal.
+ */
+function assignAnchors(ordered) {
+  const groups = {};
+  for (const r of ordered) {
+    if (!groups[r.date]) groups[r.date] = [];
+    groups[r.date].push(r);
+  }
+  Object.keys(groups).forEach(function (date) {
+    const g = groups[date];
+    for (let i = 0; i < g.length; i++) {
+      const nth = g.length - i;
+      g[i].nth = nth;
+      g[i].ofDay = g.length;
+      g[i].anchor = nth === 1 ? date : date + '-' + nth;
+    }
+  });
+  return ordered;
+}
+
 /* ---------- formatting ---------- */
 
 /**
@@ -237,13 +289,24 @@ function navBlock(currentHref) {
   }).join('\n');
 }
 
+/* One option per DATE. The filter shows a day, and a day with two releases would otherwise be
+   listed twice with the same value, which a select cannot tell apart. */
 function optionsBlock(releases) {
   const opts = ['      <option value="all">All releases, newest first</option>'];
+  const listed = new Set();
   for (const r of releases) {
+    if (listed.has(r.date)) continue;
+    listed.add(r.date);
     opts.push('      <option value="' + r.date + '">' + escapeHtml(formatDate(r.date)) +
       '</option>');
   }
   return opts.join('\n');
+}
+
+/* "release 2 of 2 that day": said only when a day has more than one, so a reader looking at two
+   cards with the same date can tell which is which and which came later. */
+function sameDayLabel(r) {
+  return r.ofDay > 1 ? ', release ' + r.nth + ' of ' + r.ofDay + ' that day' : '';
 }
 
 function cardsBlock(releases) {
@@ -252,10 +315,10 @@ function cardsBlock(releases) {
     const tag = i === 0 ? '<span class="rel-tag">Latest release</span>' : '';
     const open = i === 0 ? ' open' : '';
     return [
-      '    <details class="rel" id="r-' + r.date + '" data-release="' + r.date + '"' + open + '>',
+      '    <details class="rel" id="r-' + r.anchor + '" data-release="' + r.date + '"' + open + '>',
       '      <summary class="rel-sum">',
       '        <h3 class="rel-h"><time datetime="' + r.date + '">' + escapeHtml(label) +
-        '</time>' + tag + '</h3>',
+        '</time>' + escapeHtml(sameDayLabel(r)) + tag + '</h3>',
       '      </summary>',
       '      <div class="rel-copy">',
       renderBody(r.body, 8).join('\n'),
@@ -280,8 +343,8 @@ function structuredData(releases) {
     return {
       '@type': 'ListItem',
       position: i + 1,
-      name: 'Startup Studio release, ' + formatDate(r.date),
-      url: SITE + '/releases#r-' + r.date
+      name: 'Startup Studio release, ' + formatDate(r.date) + sameDayLabel(r),
+      url: SITE + '/releases#r-' + r.anchor
     };
   });
   const graph = {
@@ -501,17 +564,8 @@ function build(changelogText, options) {
   if (nearMiss.length) {
     throw new Error('the heading "## ' + nearMiss[0] + '" is nearly a date and matches no ' +
       'release, so everything under it would be dropped from the page and from the release note ' +
-      'without a word. Write it as "## ' + nearMiss[0].slice(0, 10) + '" and merge it into any ' +
-      'section already carrying that date, because two sections cannot share one.');
-  }
-
-  const seen = new Set();
-  for (const s of sections) {
-    if (seen.has(s.date)) {
-      throw new Error('the changelog has two sections dated ' + s.date +
-        '. Each release needs its own date, because the date is the link to it.');
-    }
-    seen.add(s.date);
+      'without a word. Write it as "## ' + nearMiss[0].slice(0, 10) + '". Two sections may ' +
+      'share a date; each gets its own address on the page.');
   }
 
   const releases = [];
@@ -534,12 +588,18 @@ function build(changelogText, options) {
       'publish and nothing was written. Add the block under a dated heading in CHANGELOG.md.');
   }
 
-  const ordered = releases.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+  // The comparator returns 0 for equal dates rather than -1, because a comparator that never
+  // returns 0 makes the sort's order for equal keys undefined in principle, and the anchor
+  // scheme below depends on two same-date releases keeping the order they were written in.
+  const ordered = releases.slice().sort(function (a, b) {
+    return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0);
+  });
   const asWritten = releases.map(function (r) { return r.date; }).join(',');
   if (asWritten !== ordered.map(function (r) { return r.date; }).join(',')) {
     warnings.push('the changelog is not in newest-first order. The page has been sorted, ' +
       'but the two now disagree and the file is worth putting back in order.');
   }
+  assignAnchors(ordered);
 
   const html = renderPage(ordered);
 
@@ -761,6 +821,7 @@ function main(argv) {
 module.exports = {
   parseChangelog: parseChangelog,
   extractValueBlock: extractValueBlock,
+  assignAnchors: assignAnchors,
   formatDate: formatDate,
   escapeHtml: escapeHtml,
   inline: inline,

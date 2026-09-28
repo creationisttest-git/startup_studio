@@ -4236,6 +4236,51 @@
       "to": 14,
       "reason": "Same cause and same commit as its subject: the assertions written for the opt-in flag at the FORTY-THIRD sitting, including the two that were faulty and were found by a PREDICTED mutation count coming back 1 against an expected 3 (S283). The comments that explain why those two were wrong are the named lines.",
       "scope": "file"
+    },
+    {
+      "date": "2026-09-24",
+      "file": "tools/check-roster-count.js",
+      "field": "ratio",
+      "from": 9.8,
+      "to": 16.6,
+      "reason": "structured data (application/ld+json) is now split from the visible text and counted separately, and the comment above LD_JSON says why a blind strip was refused and what the fold by number cannot see; every counted line is that reasoning, and zero lines name a ticket",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-24",
+      "file": "tools/check-roster-count.test.js",
+      "field": "ratio",
+      "from": 9.5,
+      "to": 11.6,
+      "reason": "seventeen new assertions cover a roster claim in visible text only, duplicated into a ld+json block, and existing only in a block, and the group comment states the three cases and both mutations; zero new lines name a ticket",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-24",
+      "file": "site.js",
+      "field": "ratio",
+      "from": 17.5,
+      "to": 19,
+      "reason": "The hash regex gained a same-day ordinal, and the two lines beside it say where the ordinal comes from and why the filter drops it.",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-24",
+      "file": "tools/build-releases.js",
+      "field": "ratio",
+      "from": 21.6,
+      "to": 24.7,
+      "reason": "It refused two sections on one date, so a second release in a day could only ship by re-dating or merging a note already public. It now gives each an address counted from the bottom of the group; the comment says why bottom and not top, and the one insertion order that breaks it.",
+      "scope": "file"
+    },
+    {
+      "date": "2026-09-24",
+      "file": "tools/check-release-note.js",
+      "field": "ratio",
+      "from": 28.2,
+      "to": 30.2,
+      "reason": "It measured only the longest same-date section and printed it as the release note, so on a real day it named the note already public and never the one shipping. It now measures every section on the date; the comment records the day it was wrong and why a waiver stays keyed to the date.",
+      "scope": "file"
     }
   ],
   "files": {
@@ -4357,13 +4402,13 @@
       "ratio_all": 58.5
     },
     "site.js": {
-      "nonblank": 103,
-      "comment": 22,
+      "nonblank": 105,
+      "comment": 24,
       "header": 3,
       "controls": 1,
       "named": 0,
-      "ratio": 17.5,
-      "ratio_all": 21.4
+      "ratio": 19,
+      "ratio_all": 22.9
     },
     "studio.ps1": {
       "nonblank": 3000,
@@ -4411,22 +4456,22 @@
       "ratio_all": 27.4
     },
     "tools/build-releases.js": {
-      "nonblank": 713,
-      "comment": 194,
-      "header": 23,
-      "controls": 17,
+      "nonblank": 772,
+      "comment": 234,
+      "header": 25,
+      "controls": 18,
       "named": 1,
-      "ratio": 21.6,
-      "ratio_all": 27.2
+      "ratio": 24.7,
+      "ratio_all": 30.3
     },
     "tools/build-releases.test.js": {
-      "nonblank": 726,
-      "comment": 143,
+      "nonblank": 806,
+      "comment": 153,
       "header": 14,
-      "controls": 25,
+      "controls": 30,
       "named": 2,
-      "ratio": 14.3,
-      "ratio_all": 19.7
+      "ratio": 13.5,
+      "ratio_all": 19
     },
     "tools/check-board-clock.js": {
       "nonblank": 282,
@@ -4681,22 +4726,22 @@
       "ratio_all": 20.9
     },
     "tools/check-release-note.js": {
-      "nonblank": 387,
-      "comment": 167,
+      "nonblank": 437,
+      "comment": 197,
       "header": 45,
-      "controls": 13,
-      "named": 1,
-      "ratio": 28.2,
-      "ratio_all": 43.2
-    },
-    "tools/check-release-note.test.js": {
-      "nonblank": 279,
-      "comment": 102,
-      "header": 20,
       "controls": 20,
       "named": 1,
-      "ratio": 22.2,
-      "ratio_all": 36.6
+      "ratio": 30.2,
+      "ratio_all": 45.1
+    },
+    "tools/check-release-note.test.js": {
+      "nonblank": 318,
+      "comment": 112,
+      "header": 20,
+      "controls": 23,
+      "named": 1,
+      "ratio": 21.7,
+      "ratio_all": 35.2
     },
     "tools/check-reply-shape.js": {
       "nonblank": 592,
@@ -4735,22 +4780,22 @@
       "ratio_all": 23.7
     },
     "tools/check-roster-count.js": {
-      "nonblank": 325,
-      "comment": 94,
+      "nonblank": 398,
+      "comment": 130,
       "header": 55,
-      "controls": 7,
+      "controls": 9,
       "named": 0,
-      "ratio": 9.8,
-      "ratio_all": 28.9
+      "ratio": 16.6,
+      "ratio_all": 32.7
     },
     "tools/check-roster-count.test.js": {
-      "nonblank": 336,
-      "comment": 72,
+      "nonblank": 449,
+      "comment": 97,
       "header": 11,
-      "controls": 29,
+      "controls": 34,
       "named": 2,
-      "ratio": 9.5,
-      "ratio_all": 21.4
+      "ratio": 11.6,
+      "ratio_all": 21.6
     },
     "tools/check-rule-delivery.js": {
       "nonblank": 264,

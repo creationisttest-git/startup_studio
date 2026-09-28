@@ -268,9 +268,83 @@ test('a changelog with no dated heading at all fails', function () {
   throws(function () { B.build('# Changelog\n\nnothing dated here\n'); }, /no dated releases/);
 });
 
-test('two sections on the same date fail rather than colliding on one anchor', function () {
-  const text = '## 2026-08-21\n\n**What this gives you.** A.\n\n## 2026-08-21\n\n**What this gives you.** B.\n';
-  throws(function () { B.build(text); }, /two sections dated 2026-08-21/);
+/* ---------- two releases on one day ----------
+
+   THIS USED TO BE A REFUSAL, "two sections dated 2026-08-21", AND THE REFUSAL WAS THE DEFECT.
+   Two releases in one day is ordinary. On 2026-09-24 a second note was written above one that
+   had gone public that morning, and the only ways past the refusal were to re-date the morning
+   note, which is a lie about when it went out, or merge the two, which edits a published note.
+   The scheme: the release published FIRST keeps the bare "r-<date>" it was published under, and
+   each later release of the day, sitting above it, takes "-2", "-3". Counted from the BOTTOM of
+   the group so that a later release added above renumbers nothing. Each case below fails alone
+   under a scheme that counts from the top: the second and third go red and the first stays green. */
+
+const SAME_DAY = '## 2026-08-21\n\n**What this gives you.** Afternoon.\n\n## 2026-08-21\n\n**What this gives you.** Morning.\n';
+
+test('one section per date keeps the bare date as its anchor, so no saved link changes', function () {
+  const out = B.build(TWO_GOOD);
+  assert.deepStrictEqual(out.releases.map(function (r) { return r.anchor; }),
+    ['2026-08-21', '2026-08-11']);
+  assert.ok(out.html.indexOf('that day') === -1, 'a day with one release was labelled as if it had two');
+});
+
+test('two sections on the same date are both published, with distinct anchors', function () {
+  const out = B.build(SAME_DAY);
+  assert.strictEqual(out.releases.length, 2, 'one of the two was dropped');
+  assert.deepStrictEqual(out.releases.map(function (r) { return r.anchor; }),
+    ['2026-08-21-2', '2026-08-21']);
+  assert.ok(out.html.indexOf('id="r-2026-08-21"') !== -1, 'the bare anchor is gone');
+  assert.ok(out.html.indexOf('id="r-2026-08-21-2"') !== -1, 'the second anchor is missing');
+  assert.ok(out.html.indexOf('Afternoon.') !== -1 && out.html.indexOf('Morning.') !== -1,
+    'a card was emitted without its copy');
+});
+
+test('the section that already had the bare anchor keeps it when a later release is added above', function () {
+  const one = '## 2026-08-21\n\n**What this gives you.** Morning.\n';
+  const two = '## 2026-08-21\n\n**What this gives you.** Afternoon.\n\n' + one;
+  const three = '## 2026-08-21\n\n**What this gives you.** Evening.\n\n' + two;
+  function anchorOf(text, copy) {
+    const r = B.build(text).releases.filter(function (x) { return x.body.join(' ').indexOf(copy) !== -1; })[0];
+    if (!r) throw new Error('no release carries ' + copy);
+    return r.anchor;
+  }
+  assert.strictEqual(anchorOf(one, 'Morning.'), '2026-08-21', 'alone, the morning release has the bare anchor');
+  assert.strictEqual(anchorOf(two, 'Morning.'), '2026-08-21', 'a release added above it MOVED the morning anchor');
+  assert.strictEqual(anchorOf(two, 'Afternoon.'), '2026-08-21-2');
+  assert.strictEqual(anchorOf(three, 'Morning.'), '2026-08-21', 'a third release above moved the morning anchor');
+  assert.strictEqual(anchorOf(three, 'Afternoon.'), '2026-08-21-2', 'a third release above moved the afternoon anchor');
+  assert.strictEqual(anchorOf(three, 'Evening.'), '2026-08-21-3');
+});
+
+test('on a shared date the later release is the latest, the only one open, and the cards say which is which', function () {
+  const html = B.build(SAME_DAY).html;
+  const cards = html.match(/<details class="rel"[^>]*>/g);
+  assert.strictEqual(cards.length, 2);
+  assert.ok(/id="r-2026-08-21-2"/.test(cards[0]) && / open>/.test(cards[0]), cards[0]);
+  assert.ok(/id="r-2026-08-21"/.test(cards[1]) && !/ open>/.test(cards[1]), cards[1]);
+  assert.strictEqual((html.match(/class="rel-tag"/g) || []).length, 1);
+  assert.ok(html.indexOf('release 2 of 2 that day') !== -1, 'the later card does not say it is the second');
+  assert.ok(html.indexOf('release 1 of 2 that day') !== -1, 'the earlier card does not say it is the first');
+});
+
+test('the filter lists a shared date once, and both cards answer to it', function () {
+  const html = B.build(SAME_DAY).html;
+  const opts = html.match(/<option value="[^"]*">[^<]*<\/option>/g);
+  assert.strictEqual(opts.length, 2, 'a shared date was listed twice: ' + opts.join('\n'));
+  assert.strictEqual((html.match(/data-release="2026-08-21"/g) || []).length, 2,
+    'the filter keys on the date, so both cards must carry it');
+});
+
+test('check mode agrees with the build on a changelog with two releases in one day', function () {
+  const dir = fixtureRoot('rel');
+  const cl = path.join(dir, 'CHANGELOG.md');
+  const out = path.join(dir, 'releases.html');
+  fs.writeFileSync(cl, SAME_DAY);
+  const built = run(['--changelog', cl, '--out', out], dir);
+  assert.strictEqual(built.code, 0, 'the build refused a second release in one day: ' + built.err);
+  const checked = run(['--check', '--changelog', cl, '--out', out], dir);
+  assert.strictEqual(checked.code, 0, 'the check refused what the build had just written: ' + checked.err);
+  assert.ok(!/two sections dated/.test(checked.err), 'the old refusal wording is back: ' + checked.err);
 });
 
 // A HEADING THE PARSER REFUSED USED TO VANISH AND THE PAGE STILL REPORTED CURRENT. The date
@@ -603,12 +677,26 @@ test('each listed release links to the anchor that opens it', function () {
   built.releases.forEach(function (r, i) {
     const item = list.itemListElement[i];
     assert.strictEqual(item.position, i + 1, 'positions are out of order');
-    assert.ok(item.url.endsWith('/releases#r-' + r.date),
-      'item ' + i + ' does not link to #r-' + r.date + ', so the address is not the one the page uses');
+    assert.ok(item.url.endsWith('/releases#r-' + r.anchor),
+      'item ' + i + ' does not link to #r-' + r.anchor + ', so the address is not the one the page uses');
     /* The anchor has to EXIST in the markup. A url that points at nothing is worse than no url:
        it is a claim the page does not support, which is the studio's S25 in one line. */
-    assert.ok(built.html.indexOf('id="r-' + r.date + '"') !== -1,
-      'the page has no element with id r-' + r.date);
+    assert.ok(built.html.indexOf('id="r-' + r.anchor + '"') !== -1,
+      'the page has no element with id r-' + r.anchor);
+  });
+});
+
+test('two releases on one day are two list items with different urls and different names', function () {
+  const built = B.build(SAME_DAY);
+  const list = graphOf(built.html).filter(function (n) { return n['@type'] === 'ItemList'; })[0];
+  assert.strictEqual(list.itemListElement.length, 2);
+  const urls = list.itemListElement.map(function (it) { return it.url; });
+  const names = list.itemListElement.map(function (it) { return it.name; });
+  assert.notStrictEqual(urls[0], urls[1], 'both items point at the same address: ' + urls[0]);
+  assert.notStrictEqual(names[0], names[1], 'both items carry the same name: ' + names[0]);
+  urls.forEach(function (u) {
+    const id = u.split('#')[1];
+    assert.ok(built.html.indexOf('id="' + id + '"') !== -1, 'the page has no element with id ' + id);
   });
 });
 
@@ -823,7 +911,7 @@ test('the declaration set to $false is an opt OUT, not a word where a value shou
    never ran. The total is pinned here, and the number is written down rather than measured
    from the run it checks, because a self-updating total agrees with any run. S35 is the same
    rule applied to the summary. Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 76;
+const EXPECTED_ASSERTIONS = 82;
 const ranBefore = pass + fail;
 test('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',

@@ -310,7 +310,52 @@ r = run(['--dir', fileTarget, '--today', '2026-09-19']);
 ok('--dir at a file reads that file', r.code === 0 && /is 12 word\(s\)/.test(r.out));
 ok('and does not claim it fell back to a parent', !/holds no CHANGELOG\.md/.test(r.out));
 
-const EXPECTED_ASSERTIONS = 79;
+// ---- TWO SECTIONS ON ONE DATE: EVERY ONE IS MEASURED, AND A REFUSAL NAMES WHICH ----
+// The first version picked the LONGEST, printed it as "RELEASE NOTE" and passed. On a real day
+// with a 175-word note shipping above a 199-word note already public, it printed the 199 against
+// the public note's line and the shipping note appeared nowhere: a verdict about the wrong
+// subject that happened to be right. The pair that matters is the last two below, where the
+// over-cap section is the SECOND and then the FIRST, and the assertions require the two refusals
+// to name DIFFERENT sections rather than merely both exit 1.
+const twoUnder = run(['--dir', project('two-same-day-ok', note('2026-09-19', 10) + '\n' + note('2026-09-19', 20)), '--today', '2026-09-19']);
+ok('two sections on one date, both under the cap, are accepted', twoUnder.code === 0);
+ok('and the FIRST is printed with its own count and line',
+  /is 12 word\(s\), cap 200, section 1 of 2 sharing 2026-09-19\.\n[^\n]*CHANGELOG\.md:1\n/.test(twoUnder.out));
+ok('and the SECOND is printed with its own count and line, so neither is a verdict about the other',
+  /is 22 word\(s\), cap 200, section 2 of 2 sharing 2026-09-19\.\n[^\n]*CHANGELOG\.md:5\n/.test(twoUnder.out));
+ok('the tool no longer claims to have picked the longest', !/longest is measured/.test(twoUnder.out));
+ok('and a same-date sibling of the top section is not called "not the first in the file"',
+  !/not the first in the file/.test(twoUnder.out));
+
+const secondOver = run(['--dir', project('two-same-day-second-over', note('2026-09-19', 10) + '\n' + note('2026-09-19', 300)), '--today', '2026-09-19']);
+ok('two sections on one date where the SECOND exceeds the cap is refused', secondOver.code === 1);
+ok('and the refusal names the second section by count, ordinal and line',
+  /is 302 words against a cap of 200, section 2 of 2 sharing 2026-09-19\.\n[^\n]*CHANGELOG\.md:5\n/.test(secondOver.out));
+ok('and does not blame the first', !/section 1 of 2/.test(secondOver.out) && !/is 12 words against/.test(secondOver.out));
+
+const firstOver = run(['--dir', project('two-same-day-first-over', note('2026-09-19', 300) + '\n' + note('2026-09-19', 10)), '--today', '2026-09-19']);
+ok('two sections on one date where the FIRST exceeds the cap is refused', firstOver.code === 1);
+ok('and the refusal names the first section by count, ordinal and line',
+  /is 302 words against a cap of 200, section 1 of 2 sharing 2026-09-19\.\n[^\n]*CHANGELOG\.md:1\n/.test(firstOver.out));
+ok('and does not blame the second', !/section 2 of 2/.test(firstOver.out) && !/is 12 words against/.test(firstOver.out));
+
+const bothOver = run(['--dir', project('two-same-day-both-over', note('2026-09-19', 300) + '\n' + note('2026-09-19', 250)), '--today', '2026-09-19']);
+ok('two over-cap sections on one date are BOTH named in one run', bothOver.code === 1 &&
+  /is 302 words against a cap of 200, section 1 of 2/.test(bothOver.out) && /is 252 words against a cap of 200, section 2 of 2/.test(bothOver.out));
+
+// A line number on a day with two sections sends the writer to count; the heading is what a
+// person recognises a section by, so the refusal quotes it when there is one.
+const headedOver = '## 2026-09-19\n\n### The big one\n\n' + new Array(301).join('w ') + '\n\n' + note('2026-09-19', 10);
+r = run(['--dir', project('two-same-day-headed', headedOver), '--today', '2026-09-19']);
+ok('a refusal quotes the section heading when the section has one', r.code === 1 && /headed "The big one"/.test(r.out));
+ok('headingOf returns the first ### under the date and nothing else',
+  mod.headingOf(['## 2026-01-01', '', '### First', '### Second']) === 'First' && mod.headingOf(['## 2026-01-01', 'prose']) === null);
+
+// The ordinary one-note run must read exactly as before, so the ordinal is never said for one.
+ok('a single section on a date is not told it is section 1 of 1',
+  !/section 1 of 1/.test(run(['--dir', project('one-note-plain', note('2026-09-19', 10)), '--today', '2026-09-19']).out));
+
+const EXPECTED_ASSERTIONS = 94;
 console.log((fail ? 'FAIL  ' : 'ok    ') + 'check-release-note.test.js: ' + pass + ' passed, ' + fail + ' failed');
 if (pass + fail !== EXPECTED_ASSERTIONS) {
   console.log('FAIL  assertion count is ' + (pass + fail) + ', pinned at ' + EXPECTED_ASSERTIONS +

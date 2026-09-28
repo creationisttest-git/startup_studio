@@ -338,27 +338,45 @@ function main (argv) {
   for (let i = 1; i < all.length; i++) if (all[i].date > latest) latest = all[i].date;
 
   /*
-   * EVERY SECTION SHARING THE LATEST DATE IS CONSIDERED, NOT THE FIRST OF THEM. The tool cannot
-   * know which one somebody is adding, and resolving the tie by file position measured the wrong
-   * one: a project publishing twice in a day had a 403-word note pass because a fourteen-word
-   * sibling above it was checked instead. A real sibling changelog here holds eight or more
-   * duplicate dates, so this is the ordinary case and not a corner. The LONGEST decides, because a cap is
-   * a limit and a limit is broken by the largest.
+   * EVERY SECTION SHARING THE LATEST DATE IS MEASURED, EVERY ONE IS PRINTED, AND ANY ONE OVER THE
+   * CAP REFUSES. The tool cannot know which of them is the note being released: in this house the
+   * release tooling takes the FIRST dated section in the file, and a changelog ordered the other
+   * way ships the last, so any rule that picks one is a guess about somebody else's tooling.
+   *
+   * THE FIRST VERSION PICKED THE LONGEST, PRINTED IT AS "RELEASE NOTE", AND PASSED. On a day with
+   * two sections, 175 and 199 words, it reported "2026-09-24 is 199 word(s)" against the line of
+   * the note that had ALREADY gone public that morning, while the 175-word note actually shipping
+   * appeared nowhere in the output. The verdict happened to be right, because the longest under
+   * the cap means all are under it, and that is exactly what made it dangerous: a pass that names
+   * the wrong subject is indistinguishable from a pass about the right one, and the day the
+   * shipping note is the one over the cap, the line printed under FAIL sends the writer to fix
+   * the other one. So there is no single subject any more. Each section gets its own line with
+   * its own count, its own file:line and, where it has one, its own heading, and a refusal names
+   * which of the sections sharing the date it is about.
+   *
+   * A WAIVER IS KEYED TO THE DATE AND SO EXCUSES EVERY SECTION ON IT. That is coarser than one
+   * would like and it is stated rather than hidden: keying a waiver to a line would break the
+   * moment a section above it grew a paragraph, and keying it to a heading would make the
+   * approval a search for prose. Two over-cap notes on one day, one approved, is a case a reader
+   * of the waiver line will see printed, because every waiver is printed on every run.
    */
   const sameDay = all.filter(s => s.date === latest);
-  let newest = sameDay[0];
-  for (let i = 1; i < sameDay.length; i++) {
-    if (countWords(sameDay[i].body) > countWords(newest.body)) newest = sameDay[i];
-  }
   if (sameDay.length > 1) {
     process.stdout.write('  note  ' + sameDay.length + ' sections share ' + latest +
-      '. The longest is measured, at line ' + newest.line + '.\n');
+      '. Every one of them is measured, because this tool cannot know which is shipping.\n');
   }
-  if (newest !== all[0]) {
-    process.stdout.write('  note  the section measured is ' + newest.date + ' at line ' + newest.line +
-      ', not the first in the file (' + all[0].date + ').\n');
+  // File order disagrees with date order only when the latest date is not at the top. Comparing
+  // one chosen section against all[0], as the first version did, called a same-date sibling of
+  // the top section "not the first in the file", which was true and meant nothing.
+  if (all[0].date !== latest) {
+    for (let i = 0; i < sameDay.length; i++) {
+      process.stdout.write('  note  the section measured is ' + sameDay[i].date + ' at line ' + sameDay[i].line +
+        ', not the first in the file (' + all[0].date + ').\n');
+    }
   }
-  const words = countWords(newest.body);
+  const measured = sameDay.map(function (s, i) {
+    return { section: s, words: countWords(s.body), heading: headingOf(s.body), nth: i + 1 };
+  });
   const dates = {};
   // The LONGEST at each date, for the same reason the measured section is the longest: a waiver
   // is stale only when nothing at that date needs it, and the last one written is not the test.
@@ -385,27 +403,60 @@ function main (argv) {
     code = 1;
   }
 
-  const waived = waivers.filter(w => w && w.date === newest.date && String(w.reason || '').trim());
-  if (words > CAP && !waived.length) {
-    process.stdout.write('RELEASE NOTE FAIL  the ' + newest.date + ' note is ' + words + ' words against a cap of ' + CAP + '.\n' +
-      '       ' + file + ':' + newest.line + '\n' +
+  const waived = waivers.filter(w => w && w.date === latest && String(w.reason || '').trim());
+  // "section 2 of 2 sharing the date" is said only when there is more than one, so the ordinary
+  // one-note run reads exactly as it always has. The ordinal is FILE order, top down, because
+  // that is the order a person reading the changelog will count them in.
+  function which (m) {
+    return sameDay.length > 1 ? ', section ' + m.nth + ' of ' + sameDay.length + ' sharing ' + latest : '';
+  }
+  function headed (m) {
+    return m.heading ? '       headed "' + m.heading + '"\n' : '';
+  }
+  // Every over-cap section is named before the first return, so two failures on one day are
+  // reported together rather than one at a time across two runs.
+  let over = 0;
+  for (let i = 0; i < measured.length; i++) {
+    const m = measured[i];
+    if (m.words <= CAP || waived.length) continue;
+    over++;
+    process.stdout.write('RELEASE NOTE FAIL  the ' + latest + ' note is ' + m.words + ' words against a cap of ' + CAP + which(m) + '.\n' +
+      '       ' + file + ':' + m.section.line + '\n' + headed(m) +
       '       The CEO set this on 2026-09-19: over 200 words needs their approval BEFORE it is\n' +
       '       written, not after. Say what the change gives the reader and cut the mechanism.\n' +
       '       Every false claim the review rounds behind this rule found was a MECHANISM claim,\n' +
       '       so a note with no mechanism cannot carry a false one.\n' +
-      '       With their approval, add {"date":"' + newest.date + '","reason":"<their words>"} to\n' +
+      '       With their approval, add {"date":"' + latest + '","reason":"<their words>"} to\n' +
       '       ' + waiverFile + '\n');
-    return 1;
   }
+  if (over) return 1;
 
   // The PASSING line names the file too. It used to name none, so a run that measured the wrong
   // project's changelog looked identical to one that measured yours, in the direction nobody
-  // checks: the direction where everything is fine.
-  process.stdout.write('RELEASE NOTE  ' + newest.date + ' is ' + words + ' word(s), cap ' + CAP +
-    (waived.length ? ', APPROVED: ' + waived[0].reason : '') + '.\n' +
-    '       ' + file + ':' + newest.line + '\n');
+  // checks: the direction where everything is fine. One line PER SECTION sharing the date, for
+  // the same reason: a single line for two sections is a verdict about one of them wearing the
+  // other's name.
+  for (let i = 0; i < measured.length; i++) {
+    const m = measured[i];
+    process.stdout.write('RELEASE NOTE  ' + latest + ' is ' + m.words + ' word(s), cap ' + CAP +
+      (waived.length ? ', APPROVED: ' + waived[0].reason : '') + which(m) + '.\n' +
+      '       ' + file + ':' + m.section.line + '\n' + headed(m));
+  }
   return code;
 }
 
+/*
+ * The first "### " heading under a dated heading, if there is one. It is the only thing in a
+ * section a person recognises it by, so a refusal quotes it: on a day with two sections, a line
+ * number alone sends the writer to count, and a date alone sends them to the wrong note.
+ */
+function headingOf (body) {
+  for (let i = 1; i < body.length; i++) {
+    const m = /^### +(\S.*?)\s*$/.exec(body[i]);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 if (require.main === module) process.exit(main(process.argv));
-module.exports = { sections, countWords, CAP };
+module.exports = { sections, countWords, headingOf, CAP };

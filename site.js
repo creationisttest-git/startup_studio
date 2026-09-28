@@ -84,7 +84,9 @@
   function requested() {
     var q = /[?&]release=([^&#]+)/.exec(location.search);
     if (q) return decodeURIComponent(q[1]);
-    var h = /^#r-(\d{4}-\d{2}-\d{2})$/.exec(location.hash);
+    /* A day with two releases gives the second an id of r-<date>-2. The filter works by day, so
+       the ordinal is dropped here and the browser's own fragment scroll lands on the card. */
+    var h = /^#r-(\d{4}-\d{2}-\d{2})(?:-\d+)?$/.exec(location.hash);
     return h ? h[1] : null;
   }
 

@@ -6,6 +6,30 @@ Newest first. Dates are when the change went public.
 
 ---
 
+## 2026-09-28
+
+### Assistants can now read the site the way they read a recipe
+
+**What this gives you.** All seven pages now publish machine-readable data. Two did before. Six
+say what each page holds; the home page describes the product, as it always did. The how-to
+page publishes the five steps of its recommended flow as steps. The reference page publishes
+its nineteen glossary terms as nineteen definitions, each with its own address, so an assistant
+can answer a question about a stack card by quoting the one definition that covers it, not the
+whole page.
+
+**The copy matches the page today.** All nineteen definitions and all five steps were checked
+word for word against what the page shows a reader, before release.
+
+**A check went in first, and was watched failing.** Machine-readable data that stops parsing
+fails in silence: no error, nothing visibly broken, and the search engine ignores it until
+somebody notices. Our checks now refuse a page that carries no data, and refuse data that does not
+parse.
+
+**What they do not check** is that the page and its copy stay in step: edit a definition and
+its copy will not follow.
+
+---
+
 ## 2026-09-24
 
 ### Every page of the site now says what it is, and the robots file stops lying

@@ -345,11 +345,125 @@ function check (root, extra) {
     r.code === 0);
 }
 
+/* STRUCTURED DATA IS THE SAME CLAIM SERIALISED, AND IT WAS COUNTED TWICE FOR AN HOUR.
+   A JSON-LD DefinedTermSet added to reference.html copied every glossary definition verbatim,
+   the tool read script contents like any other text, and two exemptions doubled against a
+   baseline written for the visible text: 4 of "one" where the record held 2, 2 of "eleven" where
+   it held 1, on a roster nobody had changed. Three cases and both verdicts, because an arm that
+   refuses everything is as useless as one that refuses nothing:
+     visible only         counted, as before
+     visible AND block    counted ONCE, the block copy is the same claim in a second encoding
+     block only           STILL counted, marked, and named as such in the refusal
+   Mutation: stop stripping the block and the first pair goes red while the "record holds 2"
+   control goes GREEN, which is what makes the control a control. Strip the block BLINDLY and the
+   block-only refusal goes red while the accepted block-only case stays green. */
+function ld (body) {
+  return '<script type="application/ld+json">\n' + body + '\n</script>';
+}
+{
+  // The reference.html case: the same claim in the dd and in the DefinedTerm, recorded once.
+  const root = roster(fixture(), 3);
+  put(root, 'page.html', [
+    '<dd>nine roles carry the fragment</dd>',
+    ld('{"description": "nine roles carry the fragment"}')
+  ].join('\n'));
+  baseline(root, { roster: 3, exempt: { 'page.html': { 9: { count: 1, why: 'a subset' } } } });
+  ok('a claim duplicated between the visible text and a ld+json block is counted once, so the '
+    + 'record written for the visible text still holds', check(root).code === 0);
+  const claims = T.claimsIn(root, 'page.html');
+  ok('and the one claim kept is the visible one, at its own line',
+    claims.length === 1 && claims[0].line === 1 && claims[0].where === 'visible');
+  baseline(root, { roster: 3, exempt: { 'page.html': { 9: { count: 2, why: 'a subset' } } } });
+  ok('the control: a record that holds the DOUBLED count refuses, because the copy is not a second '
+    + 'claim', check(root).code === 1);
+}
+{
+  // Visible text only, no block anywhere: the ordinary case must be unchanged by the split.
+  const root = roster(fixture(), 3);
+  put(root, 'page.html', '<p>nine roles carry the fragment</p>\n');
+  baseline(root, { roster: 3, exempt: {} });
+  ok('a claim in the visible text only, unrecorded, refuses', check(root).code === 1);
+  baseline(root, { roster: 3, exempt: { 'page.html': { 9: { count: 1, why: 'a subset' } } } });
+  ok('and recorded, is accepted', check(root).code === 0);
+}
+{
+  // Block only: the arm a blind strip would remove. A number stated to every crawler and to no
+  // reader is still a published claim about the roster, and it goes stale on the same day.
+  const root = roster(fixture(), 3);
+  put(root, 'page.html', [
+    '<p>a page whose visible text says nothing about the roster</p>',
+    ld('{"description": "there are sixteen agents in the roster"}')
+  ].join('\n'));
+  baseline(root, { roster: 3, exempt: {} });
+  const r = check(root);
+  ok('a claim that exists ONLY inside a ld+json block still refuses', r.code === 1);
+  ok('and the refusal names the file, the number and that it is in structured data only',
+    /page\.html/.test(r.out) && /sixteen/.test(r.out) && /ONLY inside an application\/ld\+json block/.test(r.out));
+  const claims = T.claimsIn(root, 'page.html');
+  ok('and it is attributed to the real line inside the block rather than one shifted by the strip',
+    claims.length === 1 && claims[0].line === 3 && claims[0].where === 'ld+json');
+  const rep = run(['--root', root, '--report']);
+  ok('and --report marks it as found in structured data only', /page\.html:3 .*\[ld\+json only\]/.test(rep.out));
+  baseline(root, { roster: 3, exempt: { 'page.html': { 16: { count: 1, why: 'a subset' } } } });
+  ok('a block-only claim that IS recorded is accepted, so the arm does not refuse everything',
+    check(root).code === 0);
+}
+{
+  // Block only, stating the roster size: accepted, and turns red with the rest when a role is added.
+  const root = roster(fixture(), 3);
+  put(root, 'page.html', [
+    '<p>nothing about the roster here</p>',
+    ld('{"description": "the roster is three agents"}')
+  ].join('\n'));
+  baseline(root, { roster: 3, exempt: {} });
+  ok('a block-only claim stating the roster size passes', check(root).code === 0);
+  put(root, 'base/agents/role-new.md', 'the fourth\n');
+  const r = check(root);
+  ok('and goes stale with the visible ones on the day a role is added, which is the reason it is '
+    + 'not stripped blind', r.code === 1 && /roster holds 4/.test(r.out));
+}
+{
+  // The fold is by NUMBER, not by the presence of any visible claim: a block stating a DIFFERENT
+  // number from the page beside it is a new claim and is seen.
+  const root = roster(fixture(), 3);
+  put(root, 'page.html', [
+    '<dd>nine roles carry the fragment</dd>',
+    ld('{"description": "eight roles carry the fragment"}')
+  ].join('\n'));
+  baseline(root, { roster: 3, exempt: { 'page.html': { 9: { count: 1, why: 'a subset' } } } });
+  const r = check(root);
+  ok('a block stating a number the visible text does not is a new claim and refuses',
+    r.code === 1 && /eight/.test(r.out) && !/nine/.test(r.out));
+}
+{
+  // Writing the baseline from a tree with a block-only claim records the count and nothing about
+  // where it was found, because where is a property of the tree today and not of the record.
+  const root = roster(fixture(), 3);
+  put(root, 'page.html', ld('{"description": "sixteen agents"}') + '\n');
+  baseline(root, { roster: 3, exempt: { 'page.html': { 16: { count: 1, why: 'a subset, measured' } } } });
+  const w = check(root, ['--write-baseline']);
+  const after = JSON.parse(fs.readFileSync(path.join(root, 'baseline.json'), 'utf8'));
+  // Read defensively: under the blind-strip mutation the record is rewritten EMPTY, and an
+  // assertion that throws on that takes the pinned total down with it rather than going red.
+  const rec = (after.exempt['page.html'] || {})['16'];
+  ok('--write-baseline records the block-only claim and not the structured-data marker',
+    w.code === 0 && !!rec && rec.count === 1 && !('structuredOnly' in rec));
+}
+{
+  // The split itself: line numbers survive on both sides, and a script that is NOT ld+json is
+  // left in the visible text, because this rule is about structured data and nothing else.
+  const s = T.splitStructuredData('a\n<script type="application/ld+json">\n{"x":1}\n</script>\nb\n<script src="/site.js"></script>\nc\n');
+  ok('the block is removed from the visible text and its lines are kept blank',
+    s.visible.split('\n').length === 8 && s.visible.split('\n')[4] === 'b' && s.visible.indexOf('"x"') === -1);
+  ok('the block records the line its content starts on', s.blocks.length === 1 && s.blocks[0].line === 2);
+  ok('and a script that is not ld+json stays where it was', s.visible.indexOf('site.js') !== -1);
+}
+
 /* Measured: a fatal guard firing part way through a suite reported 0 failed and exit 0, having
    run 22 of 214, so a count of failures cannot see an assertion that never ran. The total is
    pinned here and the number is written down rather than measured from the run it checks.
    Mutation: delete an assertion above and this goes red alone. */
-const EXPECTED_ASSERTIONS = 48;
+const EXPECTED_ASSERTIONS = 65;
 const ranBefore = pass + fail;
 ok('the suite ran every assertion: ran ' + (ranBefore + 1) + ' of ' + EXPECTED_ASSERTIONS
   + '. A block was skipped or deleted. Find out which before you change the number.',
